@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Voorlichter Chatbot — NederlandWereldwijd (testomgeving)</title>
+<style>
+:root{--rijk-blauw:#154273;--rijk-licht:#007bc7;--groen:#39870c;--oranje:#d3780c;--grijs:#f3f3f3;--rand:#d6d6d6;}
+*{box-sizing:border-box;}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--grijs);color:#1a1a1a;}
+.app{max-width:760px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+.header{background:var(--rijk-blauw);color:#fff;padding:18px 24px;}
+.header h1{margin:0;font-size:1.3rem;}
+.header p{margin:4px 0 0;font-size:.82rem;opacity:.85;}
+.keybar{background:#0f3258;color:#fff;padding:10px 24px;font-size:.82rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.keybar input{flex:1;min-width:200px;padding:7px 10px;border:none;border-radius:6px;font-size:.85rem;}
+.keybar .status{font-size:.78rem;}
+.conversation{flex:1;padding:24px;overflow-y:auto;}
+.empty{color:#666;font-style:italic;}
+.samples{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;}
+.samples button{background:#fff;border:1px solid var(--rand);border-radius:16px;padding:6px 12px;font-size:.8rem;cursor:pointer;}
+.turn{margin-bottom:28px;}
+.label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:#6a6a6a;margin-bottom:4px;}
+.user-question{background:var(--rijk-licht);color:#fff;padding:12px 16px;border-radius:10px 10px 10px 0;font-weight:600;}
+.user-question .label{color:rgba(255,255,255,.8);}
+.bot-answer{margin-top:14px;background:#fff;border:1px solid var(--rand);border-radius:0 10px 10px 10px;padding:16px;}
+.restated{font-style:italic;color:#333;margin-bottom:12px;}
+blockquote.answer{margin:0 0 12px;padding:14px 16px;background:#f7faf4;border-left:4px solid var(--groen);white-space:pre-wrap;line-height:1.5;}
+blockquote.answer.unverified{background:#fdf6ec;border-left-color:var(--oranje);}
+.note{font-size:.85rem;color:var(--oranje);margin-bottom:12px;}
+.no-answer{color:#666;margin-bottom:12px;}
+.source,.related{margin-top:12px;font-size:.9rem;}
+.related ul{margin:4px 0 0;padding-left:18px;}
+a{color:var(--rijk-licht);}
+.loading{margin-top:12px;color:#555;font-style:italic;}
+.error{margin-top:12px;color:#b00020;}
+.composer{display:flex;gap:8px;padding:16px 24px;background:#fff;border-top:1px solid var(--rand);}
+.composer input{flex:1;padding:12px 14px;border:1px solid var(--rand);border-radius:8px;font-size:1rem;}
+.composer button{padding:12px 20px;background:var(--rijk-blauw);color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;}
+.composer button:disabled{opacity:.5;cursor:default;}
+.composer button:hover:not(:disabled){background:#0f3258;}
+.badge{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;}
+.badge.ai{background:#e6f0fa;color:var(--rijk-blauw);}
+.badge.demo{background:#fdecec;color:#b00020;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <h1>Voorlichter-assistent <span id="mode-badge"></span></h1>
+    <p>Antwoorden letterlijk overgenomen van NederlandWereldwijd.nl — testomgeving over de volledige site</p>
+  </header>
+  <div class="keybar">
+    <span>🔑</span>
+    <input id="apikey" type="password" placeholder="Plak je ANTHROPIC_API_KEY voor echte AI-antwoorden (optioneel)" />
+    <span class="status" id="keystatus">Demo-modus (geen AI)</span>
+  </div>
+  <main class="conversation" id="conv">
+    <p class="empty" id="loadmsg">Corpus laden…</p>
+    <div class="samples" id="samples"></div>
+  </main>
+  <form class="composer" id="form">
+    <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus />
+    <button type="submit" id="send" disabled>Laden…</button>
+  </form>
+</div>
+<script>
+const MODEL="claude-sonnet-4-6";
+const STOP=new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
+const SAMPLES=[
+ "Hoe lang duurt het om een paspoort aan te vragen in het buitenland?",
+ "Wat kost een paspoort vanuit het buitenland?",
+ "Wat is een BSN?",
+ "Mijn rijbewijs is gestolen in het buitenland, wat nu?",
+ "Ik ben mijn DigiD-wachtwoord vergeten",
+ "Wat is een apostille?"
+];
+let CORPUS=[], PTOKENS=[];
+
+function tokenize(t){return t.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>2&&!STOP.has(w));}
+function tokensOf(p){return new Set(p.url.split(/[-\/]/).concat(tokenize(p.title)).map(s=>s.toLowerCase()));}
+function rank(q){
+  const qt=tokenize(q);if(!qt.length)return [];
+  const scored=[];
+  for(let i=0;i<CORPUS.length;i++){let o=0;for(const t of qt)if(PTOKENS[i].has(t))o++;if(o)scored.push([o,i]);}
+  scored.sort((a,b)=>b[0]-a[0]);
+  return scored.slice(0,5).map(x=>x[1]);
+}
+function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
+
+const conv=document.getElementById("conv"),keyInput=document.getElementById("apikey"),keyStatus=document.getElementById("keystatus"),modeBadge=document.getElementById("mode-badge"),sendBtn=document.getElementById("send");
+keyInput.value=localStorage.getItem("anthropic_key")||"";
+function refreshMode(){const has=keyInput.value.trim().length>10;keyStatus.textContent=has?"AI-modus actief":"Demo-modus (geen AI)";modeBadge.innerHTML=has?'<span class="badge ai">AI</span>':'<span class="badge demo">DEMO</span>';}
+keyInput.addEventListener("input",()=>{localStorage.setItem("anthropic_key",keyInput.value);refreshMode();});
+refreshMode();
+
+const samples=document.getElementById("samples");
+SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.onclick=()=>{document.getElementById("input").value=s;document.getElementById("form").requestSubmit();};samples.appendChild(b);});
+
+(async function load(){
+  try{
+    const r=await fetch("data/corpus.json");
+    if(!r.ok)throw new Error("corpus.json niet gevonden ("+r.status+")");
+    CORPUS=await r.json();
+    PTOKENS=CORPUS.map(tokensOf);
+    document.getElementById("loadmsg").textContent="Corpus geladen: "+CORPUS.length+" pagina's van NederlandWereldwijd.nl. Stel een vraag — bijvoorbeeld:";
+    sendBtn.disabled=false;sendBtn.textContent="Vraag stellen";
+  }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
+})();
+
+document.getElementById("form").addEventListener("submit",async(e)=>{
+  e.preventDefault();
+  if(sendBtn.disabled)return;
+  const input=document.getElementById("input");const q=input.value.trim();if(!q)return;input.value="";
+  const turn=addTurn(q);
+  const cands=rank(q);
+  if(!cands.length){renderResult(turn,{restated_question:q,answer:"",found:false,note:"Geen passende pagina gevonden voor deze vraag.",source:null,related:[]});return;}
+  const key=keyInput.value.trim();
+  try{const result=key.length>10?await askClaude(q,cands,key):demoAnswer(q,cands);renderResult(turn,result);}
+  catch(err){turn.querySelector(".slot").innerHTML='<div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div>';}
+});
+
+function demoAnswer(q,cands){
+  const p=CORPUS[cands[0]];const paras=p.text.split("\n").filter(x=>x.length>40);
+  return {restated_question:q,answer:paras.slice(0,2).join("\n"),found:true,verified:true,demo:true,
+    note:"DEMO-modus: begin van de best-matchende pagina, niet door AI geselecteerd. Voer een API-sleutel in voor een echt, op de vraag toegesneden letterlijk antwoord.",
+    source:{title:p.title,url:p.url},related:cands.slice(1).map(i=>({title:CORPUS[i].title,url:CORPUS[i].url}))};
+}
+
+async function askClaude(q,cands,key){
+  const listing=cands.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${CORPUS[idx].text}`).join("\n\n---\n\n");
+  const system="Je helpt een voorlichter van het klantcontactcentrum van NederlandWereldwijd. Je krijgt de vraag en enkele genummerde pagina's van NederlandWereldwijd.nl met hun letterlijke tekst. Kies de pagina die het antwoord het best bevat en neem het relevante gedeelte LETTERLIJK over uit die tekst — verzin niets, parafraseer niet, voeg niets toe. Citeer aaneengesloten passages exact. Antwoord UITSLUITEND met JSON: {\"restated_question\":\"<vraag kort geherformuleerd>\",\"primary_index\":<nummer of null>,\"answer\":\"<letterlijk fragment>\",\"found\":<true|false>,\"related_indices\":[<max 3 andere nummers>],\"note\":\"<korte toelichting of leeg>\"}";
+  const body={model:MODEL,max_tokens:1200,system,messages:[{role:"user",content:`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`}]};
+  const resp=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(body)});
+  if(!resp.ok){throw new Error("Claude API "+resp.status+": "+(await resp.text()).slice(0,200));}
+  const data=await resp.json();
+  const text=data.content.map(c=>c.text||"").join("");
+  const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error("Geen JSON in modelantwoord");
+  const r=JSON.parse(m[0]);
+  const pidx=Number.isInteger(r.primary_index)?cands[r.primary_index]:null;
+  const answer=(r.answer||"").trim();
+  const found=!!r.found&&answer.length>0&&pidx!==null;
+  const verified=found&&normalize(CORPUS[pidx].text).includes(normalize(answer));
+  const related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)).map(i=>({title:CORPUS[i].title,url:CORPUS[i].url}));
+  return {restated_question:r.restated_question||q,answer:found?answer:"",found,verified,
+    note:found?(verified?null:"Let op: dit fragment kon niet letterlijk worden teruggevonden op de bronpagina. Controleer de bron zelf."):(r.note||"Op de gevonden pagina's staat geen letterlijk antwoord op deze vraag."),
+    source:pidx!==null?{title:CORPUS[pidx].title,url:CORPUS[pidx].url}:null,related};
+}
+
+function addTurn(q){
+  document.querySelector(".empty")?.remove();document.getElementById("samples")?.remove();
+  const art=document.createElement("article");art.className="turn";
+  art.innerHTML=`<div class="user-question"><span class="label">Gestelde vraag</span>${escapeHtml(q)}</div><div class="slot"><div class="loading">Bezig met opzoeken…</div></div>`;
+  conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
+}
+function renderResult(turn,r){
+  const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
+  let h=`<div class="bot-answer"><div class="restated"><span class="label">Je vraag (zoals begrepen) ${badge}</span>${escapeHtml(r.restated_question)}</div>`;
+  if(r.answer)h+=`<blockquote class="answer ${r.verified?'verified':'unverified'}">${escapeHtml(r.answer)}</blockquote>`;
+  else h+=`<div class="no-answer">Geen letterlijk antwoord gevonden.</div>`;
+  if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
+  if(r.source)h+=`<div class="source"><span class="label">Bron</span><a href="${r.source.url}" target="_blank" rel="noreferrer">${escapeHtml(r.source.title)}</a></div>`;
+  if(r.related&&r.related.length)h+=`<div class="related"><span class="label">Andere relevante bronnen</span><ul>${r.related.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul></div>`;
+  h+=`</div>`;
+  turn.querySelector(".slot").innerHTML=h;turn.scrollIntoView({behavior:"smooth",block:"end"});
+}
+function escapeHtml(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+</script>
+</body>
+</html>
