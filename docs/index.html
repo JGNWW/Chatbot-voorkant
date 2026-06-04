@@ -106,10 +106,16 @@ const PROVIDERS={
   gemini:{label:"Google Gemini (gratis)",models:["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"],keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
     async call(key,model,system,user){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-      const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:{temperature:0,maxOutputTokens:3000,responseMimeType:"application/json"}};
+      const cfg={temperature:0,maxOutputTokens:8000,responseMimeType:"application/json"};
+      // 2.5-modellen "denken" standaard; die redeneer-tokens vullen anders de limiet. Uitzetten.
+      if(model.indexOf("2.5")>=0)cfg.thinkingConfig={thinkingBudget:0};
+      const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:cfg};
       const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("Gemini "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();return (d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");}},
+      const d=await r.json();
+      const txt=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
+      if(!txt&&d.candidates?.[0]?.finishReason)throw new Error("Gemini gaf geen tekst terug ("+d.candidates[0].finishReason+"). Probeer opnieuw of kies een ander model.");
+      return txt;}},
   openai:{label:"OpenAI (ChatGPT)",models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],keyUrl:"https://platform.openai.com/api-keys",keyHint:"Sleutel via platform.openai.com (betaald)",
     async call(key,model,system,user){
       const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
