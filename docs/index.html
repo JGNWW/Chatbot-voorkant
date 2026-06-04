@@ -36,6 +36,14 @@ blockquote.answer.unverified{background:#fdf6ec;border-left-color:var(--oranje);
 .section{margin-top:16px;font-size:.9rem;}
 .section ul{margin:4px 0 0;padding-left:18px;}
 .section .label{margin-bottom:6px;}
+.clarify{margin:12px 0;padding:12px 14px;background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px;}
+.clarify .label{color:var(--rijk-blauw);}
+.clarify button{display:block;text-align:left;width:100%;margin-top:6px;background:#fff;border:1px solid #cfe0f2;border-radius:6px;padding:8px 10px;font-size:.88rem;cursor:pointer;}
+.clarify button:hover{background:#f5f9fd;}
+.followups{margin-top:16px;}
+.followups .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.followups button{background:#fff;border:1px solid var(--rand);border-radius:16px;padding:6px 12px;font-size:.82rem;cursor:pointer;}
+.followups button:hover{background:#f0f5fa;border-color:var(--rijk-licht);}
 a{color:var(--rijk-licht);}
 .loading{margin-top:12px;color:#555;font-style:italic;}
 .error{margin-top:12px;color:#b00020;}
@@ -74,12 +82,14 @@ a{color:var(--rijk-licht);}
 <script>
 const SYSTEM=`Je helpt een voorlichter van het klantcontactcentrum van NederlandWereldwijd. Je krijgt de vraag van de burger en enkele genummerde pagina's van NederlandWereldwijd.nl met hun LETTERLIJKE tekst.
 
-Stel een antwoord samen dat bestaat uit twee delen:
-1. "bridge": één korte, natuurlijke inleidende zin die de vraag herpakt en naadloos overloopt in het citaat. Bijvoorbeeld bij de vraag "Hoe vraag ik een ID-kaart aan?" → "U vraagt een ID-kaart aan door:". Deze zin mag je zelf formuleren; eindig hem zo dat het eerste citaat er logisch op aansluit.
-2. "citations": één of meer LETTERLIJKE citaten uit de paginatekst(en) die samen de vraag beantwoorden. Citeer EXACT zoals het er staat — verzin niets, parafraseer niet, vat niet samen, verander geen woorden. Je mag citaten uit verschillende pagina's combineren als dat de vraag beter beantwoordt. Houd elk citaat een aaneengesloten stuk tekst.
+Stel een antwoord samen dat bestaat uit:
+1. "bridge": één korte, natuurlijke inleidende zin die de vraag herpakt en GRAMMATICAAL NAADLOOS overloopt in het eerste citaat. Schrijf deze zin PAS NADAT je de citaten hebt gekozen, zodat hij precies op het eerste citaat aansluit. Eindig niet op een dubbele punt als het citaat begint met een vraag of een zin die daar niet logisch op volgt.
+2. "citations": één of meer LETTERLIJKE citaten uit de paginatekst(en) die samen de vraag beantwoorden. Citeer EXACT zoals het er staat — verzin niets, parafraseer niet, vat niet samen, verander geen woorden. Begin en eindig elk citaat op een natuurlijke zinsgrens (niet midden in een zin) zodat het na de inleiding logisch doorloopt. Elk citaat is een aaneengesloten stuk tekst. Je mag citaten uit verschillende pagina's combineren.
+3. "clarifications": vragen die de voorlichter aan de burger moet stellen om een PRECIEZER antwoord te geven, als het antwoord daarvan afhangt. Veel antwoorden hangen af van het LAND waar de aanvrager woont. Geef per verduidelijking een "question" (wat de voorlichter moet uitvragen) en een "prefill" (een begin van een vervolgvraag dat de voorlichter kan aanvullen, bv. "Visum voor Nederland aanvragen vanuit "). Laat leeg als alles al duidelijk is.
+4. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen):
-{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"text":"<letterlijk citaat>"}],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"text":"<letterlijk citaat>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
@@ -130,8 +140,12 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 
+const inputEl=document.getElementById("input");
+function askText(t){inputEl.value=t;document.getElementById("form").requestSubmit();}
+function prefill(t){inputEl.value=t;inputEl.focus();inputEl.setSelectionRange(t.length,t.length);}
+
 const samples=document.getElementById("samples");
-SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.onclick=()=>{document.getElementById("input").value=s;document.getElementById("form").requestSubmit();};samples.appendChild(b);});
+SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.onclick=()=>askText(s);samples.appendChild(b);});
 
 (async function load(){
   try{
@@ -144,16 +158,16 @@ SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.o
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
 })();
 
-document.getElementById("form").addEventListener("submit",async(e)=>{
-  e.preventDefault();if(sendBtn.disabled)return;
-  const input=document.getElementById("input");const q=input.value.trim();if(!q)return;input.value="";
+async function runQuestion(q){
+  if(sendBtn.disabled||!q)return;
   const turn=addTurn(q);
   const cands=rank(q);
   if(!cands.length){renderResult(turn,{restated_question:q,bridge:"",citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]});return;}
   const key=keyInput.value.trim();
   try{const result=key.length>10?await askAI(q,cands,key):demoAnswer(q,cands);renderResult(turn,result);}
   catch(err){turn.querySelector(".slot").innerHTML='<div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div>';}
-});
+}
+document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";runQuestion(q);});
 
 function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
 
@@ -185,7 +199,9 @@ async function askAI(q,cands,key){
   let note=r.note||"";
   if(citations.length&&!allVerified)note="Let op: niet elk citaat kon letterlijk worden teruggevonden op de bronpagina (oranje gemarkeerd). Controleer de bron.";
   if(!citations.length&&!note)note="Op de gevonden pagina's staat geen letterlijk antwoord op deze vraag.";
-  return {restated_question:r.restated_question||q,bridge:r.bridge||"",citations,used,related,note};
+  const clarifications=(Array.isArray(r.clarifications)?r.clarifications:[]).map(c=>({question:(c.question||"").trim(),prefill:(c.prefill||"").trim()})).filter(c=>c.question);
+  const followups=(Array.isArray(r.followups)?r.followups:[]).map(f=>(f||"").trim()).filter(Boolean);
+  return {restated_question:r.restated_question||q,bridge:r.bridge||"",citations,used,related,note,clarifications,followups};
 }
 
 function addTurn(q){
@@ -207,10 +223,25 @@ function renderResult(turn,r){
     }
   }else h+=`<div class="no-answer">Geen letterlijk antwoord gevonden.</div>`;
   if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
+  const clar=r.clarifications||[];
+  if(clar.length){
+    h+=`<div class="clarify"><span class="label">Voor een preciezer antwoord — vraag na</span>`;
+    clar.forEach((c,i)=>{h+=`<button data-prefill="${escapeHtml(c.prefill||c.question)}">${escapeHtml(c.question)}</button>`;});
+    h+=`</div>`;
+  }
   if(r.used&&r.used.length)h+=`<div class="section"><span class="label">Lees meer — gebruikte bronnen</span>${sourceList(r.used)}</div>`;
   if(r.related&&r.related.length)h+=`<div class="section"><span class="label">Misschien ook relevant</span>${sourceList(r.related)}</div>`;
+  const fups=r.followups||[];
+  if(fups.length){
+    h+=`<div class="followups"><span class="label">Mogelijke vervolgvragen</span><div class="chips">`;
+    fups.forEach(f=>{h+=`<button data-q="${escapeHtml(f)}">${escapeHtml(f)}</button>`;});
+    h+=`</div></div>`;
+  }
   h+=`</div>`;
-  turn.querySelector(".slot").innerHTML=h;turn.scrollIntoView({behavior:"smooth",block:"end"});
+  const slot=turn.querySelector(".slot");slot.innerHTML=h;
+  slot.querySelectorAll(".followups button").forEach(b=>b.onclick=()=>askText(b.getAttribute("data-q")));
+  slot.querySelectorAll(".clarify button").forEach(b=>b.onclick=()=>prefill(b.getAttribute("data-prefill")));
+  turn.scrollIntoView({behavior:"smooth",block:"end"});
 }
 function escapeHtml(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
 </script>
