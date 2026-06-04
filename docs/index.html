@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Voorlichter Chatbot — NederlandWereldwijd (testomgeving)</title>
 <style>
-:root{--rijk-blauw:#154273;--rijk-licht:#007bc7;--groen:#39870c;--oranje:#d3780c;--grijs:#f3f3f3;--rand:#d6d6d6;}
+:root{--rijk-blauw:#154273;--rijk-licht:#007bc7;--cap-blauw:#1f7ec4;--vraag-bg:#cfe6fb;--vraag-tekst:#14375e;--groen:#39870c;--oranje:#d3780c;--grijs:#f3f3f3;--rand:#d6d6d6;}
 *{box-sizing:border-box;}
 body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--grijs);color:#1a1a1a;}
 .app{max-width:760px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
@@ -23,12 +23,20 @@ body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;backgrou
 .samples button{background:#fff;border:1px solid var(--rand);border-radius:16px;padding:6px 12px;font-size:.8rem;cursor:pointer;}
 .turn{margin-bottom:28px;}
 .label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:#6a6a6a;margin-bottom:4px;}
-.user-question{background:var(--rijk-licht);color:#fff;padding:12px 16px;border-radius:10px 10px 10px 0;font-weight:600;}
-.user-question .label{color:rgba(255,255,255,.8);}
-.bot-answer{margin-top:14px;background:#fff;border:1px solid var(--rand);border-radius:0 10px 10px 10px;padding:16px;}
+.turn{margin-bottom:22px;}
+.row{display:flex;margin-bottom:14px;gap:10px;align-items:flex-end;}
+.row.user{justify-content:flex-end;}
+.bubble{position:relative;max-width:80%;padding:12px 16px;border-radius:16px;line-height:1.45;}
+.bubble.vraag{background:var(--vraag-bg);color:var(--vraag-tekst);border-bottom-right-radius:4px;font-weight:600;}
+.bubble.vraag::after{content:"";position:absolute;right:-7px;bottom:8px;border-width:8px 0 0 10px;border-style:solid;border-color:transparent transparent transparent var(--vraag-bg);}
+.avatar{width:44px;height:44px;border-radius:50%;flex:0 0 44px;background:#fff;border:1px solid var(--rand);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+.bubble.antwoord{background:#fff;border:1px solid var(--rand);border-bottom-left-radius:4px;max-width:84%;padding:14px 16px;}
+.bubble.antwoord::after{content:"";position:absolute;left:-8px;bottom:8px;border-width:8px 10px 0 0;border-style:solid;border-color:transparent #fff transparent transparent;}
+.bubble.antwoord::before{content:"";position:absolute;left:-9px;bottom:7px;border-width:9px 11px 0 0;border-style:solid;border-color:transparent var(--rand) transparent transparent;}
 .restated{font-style:italic;color:#333;margin-bottom:12px;}
 .bridge{margin:0 0 10px;font-weight:600;}
-blockquote.answer{margin:0 0 8px;padding:12px 16px;background:#f7faf4;border-left:4px solid var(--groen);white-space:pre-wrap;line-height:1.5;}
+blockquote.answer{margin:0 0 8px;padding:12px 16px;background:#f7faf4;border-left:4px solid var(--groen);white-space:pre-wrap;line-height:1.5;border-radius:4px;}
 blockquote.answer.unverified{background:#fdf6ec;border-left-color:var(--oranje);}
 .cite-src{font-size:.72rem;color:#6a6a6a;margin:0 0 12px 4px;}
 .note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
@@ -165,7 +173,7 @@ async function runQuestion(q){
   if(!cands.length){renderResult(turn,{restated_question:q,bridge:"",citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]});return;}
   const key=keyInput.value.trim();
   try{const result=key.length>10?await askAI(q,cands,key):demoAnswer(q,cands);renderResult(turn,result);}
-  catch(err){turn.querySelector(".slot").innerHTML='<div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div>';}
+  catch(err){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';}
 }
 document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";runQuestion(q);});
 
@@ -207,13 +215,14 @@ async function askAI(q,cands,key){
 function addTurn(q){
   document.querySelector(".empty")?.remove();document.getElementById("samples")?.remove();
   const art=document.createElement("article");art.className="turn";
-  art.innerHTML=`<div class="user-question"><span class="label">Gestelde vraag</span>${escapeHtml(q)}</div><div class="slot"><div class="loading">Bezig met opzoeken…</div></div>`;
+  art.innerHTML=`<div class="row user"><div class="bubble vraag">${escapeHtml(q)}</div></div>`
+    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading">Bezig met opzoeken…</div></div></div></div>`;
   conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
 }
 function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
 function renderResult(turn,r){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
-  let h=`<div class="bot-answer"><div class="restated"><span class="label">Je vraag (zoals begrepen) ${badge}</span>${escapeHtml(r.restated_question)}</div>`;
+  let h=`<div class="bubble antwoord"><div class="restated"><span class="label">Je vraag (zoals begrepen) ${badge}</span>${escapeHtml(r.restated_question)}</div>`;
   if(r.bridge)h+=`<p class="bridge">${escapeHtml(r.bridge)}</p>`;
   if(r.citations&&r.citations.length){
     const multi=r.used&&r.used.length>1;
