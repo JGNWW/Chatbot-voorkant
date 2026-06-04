@@ -140,17 +140,37 @@ function tokensOf(p){return new Set(p.url.split(/[-\/]/).concat(tokenize(searchT
 function rank(q){const qt=tokenize(q);if(!qt.length)return [];const s=[];for(let i=0;i<CORPUS.length;i++){let o=0;for(const t of qt)if(PTOKENS[i].has(t))o++;if(o)s.push([o,i]);}s.sort((a,b)=>b[0]-a[0]);return s.slice(0,TOPK).map(x=>x[1]);}
 function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
 
-// Tolerant JSON uitlezen: codeblok-fences eraf, eerste {...} pakken, nette melding bij afkapping.
+// Repareer afgekapte JSON: knip terug tot na de laatst afgesloten haak en sluit
+// de nog openstaande haken. Afgemaakte citaten blijven zo behouden.
+function tryRepairJSON(raw){
+  const a=raw.indexOf("{");if(a<0)return null;
+  const s=raw.slice(a);
+  let inStr=false,esc=false;const stack=[];let cut=-1,cutStack=null;
+  for(let i=0;i<s.length;i++){
+    const ch=s[i];
+    if(inStr){if(esc)esc=false;else if(ch==="\\")esc=true;else if(ch==='"')inStr=false;continue;}
+    if(ch==='"'){inStr=true;continue;}
+    if(ch==='{')stack.push('}');
+    else if(ch==='[')stack.push(']');
+    else if(ch==='}'||ch===']'){stack.pop();cut=i+1;cutStack=stack.slice();}
+  }
+  if(cut<0)return null;
+  let fixed=s.slice(0,cut).replace(/,\s*$/,"");
+  for(let k=cutStack.length-1;k>=0;k--)fixed+=cutStack[k];
+  try{return JSON.parse(fixed);}catch(e){return null;}
+}
+// Tolerant JSON uitlezen: fences eraf, normaal parsen, anders repareren, anders nette melding.
 function parseModelJSON(text){
   let t=(text||"").trim();
   const fence=t.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if(fence)t=fence[1].trim();
-  const m=t.match(/\{[\s\S]*\}/);
-  if(!m){
-    if(t.indexOf("{")>=0)throw new Error("Het antwoord werd afgebroken (te lang). Probeer de vraag opnieuw te stellen.");
-    throw new Error("Geen JSON in modelantwoord. Ruwe output: "+(text||"").slice(0,150));
-  }
-  return JSON.parse(m[0]);
+  const a=t.indexOf("{");
+  if(a<0)throw new Error("Geen JSON in modelantwoord. Ruwe output: "+(text||"").slice(0,150));
+  const m=t.slice(a).match(/\{[\s\S]*\}/);
+  if(m){try{return JSON.parse(m[0]);}catch(e){/* val door naar reparatie */}}
+  const rep=tryRepairJSON(t);
+  if(rep){rep.__partial=true;return rep;}
+  throw new Error("Het antwoord werd afgebroken (te lang). Probeer de vraag opnieuw te stellen.");
 }
 // Zoek een (kort) exact fragment in de tekst; bij geen exacte match een witruimte-tolerante poging.
 function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
@@ -243,6 +263,7 @@ async function askAI(q,cands,key){
   const used=[...usedSet].map(srcOf);
   let related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
   let note=r.note||"";
+  if(r.__partial&&citations.length)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
   if(!citations.length){
     // Geen citaat gevonden: toon toch de beste kandidaten als bron.
     if(!related.length)related=cands.slice(0,3).map(srcOf);
