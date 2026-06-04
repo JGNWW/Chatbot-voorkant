@@ -92,12 +92,12 @@ const SYSTEM=`Je helpt een voorlichter van het klantcontactcentrum van Nederland
 
 Stel een antwoord samen dat bestaat uit:
 1. "bridge": één korte, natuurlijke inleidende zin die de vraag herpakt en GRAMMATICAAL NAADLOOS overloopt in het eerste citaat. Schrijf deze zin PAS NADAT je de citaten hebt gekozen, zodat hij precies op het eerste citaat aansluit. Eindig niet op een dubbele punt als het citaat begint met een vraag of een zin die daar niet logisch op volgt.
-2. "citations": één of meer LETTERLIJKE citaten uit de paginatekst(en) die samen de vraag beantwoorden. Citeer EXACT zoals het er staat — verzin niets, parafraseer niet, vat niet samen, verander geen woorden. Begin en eindig elk citaat op een natuurlijke zinsgrens (niet midden in een zin) zodat het na de inleiding logisch doorloopt. Elk citaat is een aaneengesloten stuk tekst. Je mag citaten uit verschillende pagina's combineren.
+2. "citations": de relevante passages die samen de vraag beantwoorden. Geef NIET de volledige tekst, maar per passage alleen een VERWIJZING: "source_index" (paginanummer), "start" (de eerste 4 tot 8 woorden van de passage, EXACT overgenomen uit de paginatekst) en "end" (de laatste 4 tot 8 woorden van de passage, EXACT overgenomen). De app knipt zelf het stuk tussen start en end uit de pagina. Begin en eindig op een natuurlijke zinsgrens; de passage moet aaneengesloten in de tekst staan. Kopieer "start" en "end" exact (zelfde woorden, leestekens en hoofdletters) zodat ze letterlijk terug te vinden zijn. Je mag passages uit verschillende pagina's combineren.
 3. "clarifications": vragen die de voorlichter aan de burger moet stellen om een PRECIEZER antwoord te geven, als het antwoord daarvan afhangt. Veel antwoorden hangen af van het LAND waar de aanvrager woont. Geef per verduidelijking een "question" (wat de voorlichter moet uitvragen) en een "prefill" (een begin van een vervolgvraag dat de voorlichter kan aanvullen, bv. "Visum voor Nederland aanvragen vanuit "). Laat leeg als alles al duidelijk is.
 4. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
 
-Antwoord UITSLUITEND met JSON (geen tekst eromheen):
-{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"text":"<letterlijk citaat>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
+{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
@@ -106,20 +106,20 @@ const PROVIDERS={
   gemini:{label:"Google Gemini (gratis)",models:["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"],keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
     async call(key,model,system,user){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-      const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:{temperature:0,maxOutputTokens:2000}};
+      const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:{temperature:0,maxOutputTokens:3000,responseMimeType:"application/json"}};
       const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("Gemini "+r.status+": "+(await r.text()).slice(0,200));
       const d=await r.json();return (d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");}},
   openai:{label:"OpenAI (ChatGPT)",models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],keyUrl:"https://platform.openai.com/api-keys",keyHint:"Sleutel via platform.openai.com (betaald)",
     async call(key,model,system,user){
-      const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:2000,messages:[{role:"system",content:system},{role:"user",content:user}]})});
+      const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
       if(!r.ok)throw new Error("OpenAI "+r.status+": "+(await r.text()).slice(0,200));
       const d=await r.json();return d.choices?.[0]?.message?.content||"";}},
   anthropic:{label:"Anthropic (Claude)",models:["claude-sonnet-4-6","claude-haiku-4-5-20251001"],keyUrl:"https://console.anthropic.com/settings/keys",keyHint:"Sleutel via console.anthropic.com (betaald)",
     async call(key,model,system,user){
-      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:2000,system,messages:[{role:"user",content:user}]})});
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:3000,system,messages:[{role:"user",content:user},{role:"assistant",content:"{"}]})});
       if(!r.ok)throw new Error("Claude "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();return (d.content||[]).map(c=>c.text||"").join("");}}
+      const d=await r.json();return "{"+(d.content||[]).map(c=>c.text||"").join("");}}
 };
 
 const STOP=new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
@@ -133,6 +133,39 @@ function searchText(p){return [p.title,p.summary||p.desc||p.text.slice(0,200),p.
 function tokensOf(p){return new Set(p.url.split(/[-\/]/).concat(tokenize(searchText(p))).map(s=>s.toLowerCase()));}
 function rank(q){const qt=tokenize(q);if(!qt.length)return [];const s=[];for(let i=0;i<CORPUS.length;i++){let o=0;for(const t of qt)if(PTOKENS[i].has(t))o++;if(o)s.push([o,i]);}s.sort((a,b)=>b[0]-a[0]);return s.slice(0,TOPK).map(x=>x[1]);}
 function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
+
+// Tolerant JSON uitlezen: codeblok-fences eraf, eerste {...} pakken, nette melding bij afkapping.
+function parseModelJSON(text){
+  let t=(text||"").trim();
+  const fence=t.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if(fence)t=fence[1].trim();
+  const m=t.match(/\{[\s\S]*\}/);
+  if(!m){
+    if(t.indexOf("{")>=0)throw new Error("Het antwoord werd afgebroken (te lang). Probeer de vraag opnieuw te stellen.");
+    throw new Error("Geen JSON in modelantwoord. Ruwe output: "+(text||"").slice(0,150));
+  }
+  return JSON.parse(m[0]);
+}
+// Zoek een (kort) exact fragment in de tekst; bij geen exacte match een witruimte-tolerante poging.
+function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function findFrom(text,phrase,from){
+  if(!phrase)return null;from=from||0;
+  let i=text.indexOf(phrase,from);
+  if(i>=0)return {i,len:phrase.length};
+  const words=phrase.trim().split(/\s+/).map(escRe);
+  if(!words.length)return null;
+  const m=new RegExp(words.join("\\s+"),"i").exec(text.slice(from));
+  return m?{i:from+m.index,len:m[0].length}:null;
+}
+// Knip op basis van start/end-verwijzing het exacte, aaneengesloten stuk uit de paginatekst.
+function extractQuote(text,start,end){
+  const s=findFrom(text,(start||"").trim(),0);
+  if(!s)return null;
+  const ep=(end||"").trim();
+  if(ep){const e=findFrom(text,ep,s.i);if(e&&e.i+e.len>s.i){let q=text.slice(s.i,e.i+e.len);return q.length>2000?q.slice(0,2000):q;}}
+  const nl=text.indexOf("\n",s.i);
+  return text.slice(s.i, nl>s.i?nl:Math.min(text.length,s.i+600)).trim();
+}
 
 const conv=document.getElementById("conv"),provSel=document.getElementById("provider"),modelSel=document.getElementById("model"),keyInput=document.getElementById("apikey"),keyLink=document.getElementById("keylink"),keyStatus=document.getElementById("keystatus"),modeBadge=document.getElementById("mode-badge"),sendBtn=document.getElementById("send");
 
@@ -191,22 +224,25 @@ async function askAI(q,cands,key){
   const listing=cands.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${CORPUS[idx].text}`).join("\n\n---\n\n");
   const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
   const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SYSTEM,user);
-  const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error("Geen JSON in modelantwoord. Ruwe output: "+text.slice(0,150));
-  const r=JSON.parse(m[0]);
+  const r=parseModelJSON(text);
   const rawCites=Array.isArray(r.citations)?r.citations:[];
-  const citations=[];const usedSet=new Set();
+  const citations=[];const usedSet=new Set();let notFound=0;
   for(const c of rawCites){
-    const local=c.source_index;const gi=Number.isInteger(local)?cands[local]:null;
-    const t=(c.text||"").trim();if(!t||gi===null)continue;
-    const verified=normalize(CORPUS[gi].text).includes(normalize(t));
-    citations.push({text:t,verified,src:srcOf(gi)});usedSet.add(gi);
+    const local=c.source_index;const gi=Number.isInteger(local)?cands[local]:null;if(gi===null)continue;
+    // Knip het exacte stuk zelf uit de pagina o.b.v. de start/end-verwijzing -> altijd letterlijk.
+    const quote=extractQuote(CORPUS[gi].text,c.start,c.end);
+    if(!quote){notFound++;continue;}
+    citations.push({text:quote,verified:true,src:srcOf(gi)});usedSet.add(gi);
   }
   const used=[...usedSet].map(srcOf);
-  const related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
-  const allVerified=citations.length>0&&citations.every(c=>c.verified);
+  let related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
   let note=r.note||"";
-  if(citations.length&&!allVerified)note="Let op: niet elk citaat kon letterlijk worden teruggevonden op de bronpagina (oranje gemarkeerd). Controleer de bron.";
-  if(!citations.length&&!note)note="Op de gevonden pagina's staat geen letterlijk antwoord op deze vraag.";
+  if(!citations.length){
+    // Geen citaat gevonden: toon toch de beste kandidaten als bron.
+    if(!related.length)related=cands.slice(0,3).map(srcOf);
+    if(notFound)note="De passage kon niet exact op de bronpagina worden teruggevonden. Bekijk de bron hieronder.";
+    else if(!note)note="Op de gevonden pagina's staat geen letterlijk antwoord op deze vraag. Bekijk de bron hieronder.";
+  }
   const clarifications=(Array.isArray(r.clarifications)?r.clarifications:[]).map(c=>({question:(c.question||"").trim(),prefill:(c.prefill||"").trim()})).filter(c=>c.question);
   const followups=(Array.isArray(r.followups)?r.followups:[]).map(f=>(f||"").trim()).filter(Boolean);
   return {restated_question:r.restated_question||q,bridge:r.bridge||"",citations,used,related,note,clarifications,followups};
