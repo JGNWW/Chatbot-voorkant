@@ -125,7 +125,23 @@ const PROVIDERS={
     async call(key,model,system,user){
       const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:3000,system,messages:[{role:"user",content:user},{role:"assistant",content:"{"}]})});
       if(!r.ok)throw new Error("Claude "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();return "{"+(d.content||[]).map(c=>c.text||"").join("");}}
+      const d=await r.json();return "{"+(d.content||[]).map(c=>c.text||"").join("");}},
+  openrouter:{label:"OpenRouter (veel modellen)",keyUrl:"https://openrouter.ai/keys",keyHint:"Sleutel via openrouter.ai (gratis modellen beschikbaar)",
+    fallbackModels:["deepseek/deepseek-chat-v3-0324:free","meta-llama/llama-3.3-70b-instruct:free","openai/gpt-4o-mini"],
+    async loadModels(){
+      const r=await fetch("https://openrouter.ai/api/v1/models");
+      const d=await r.json();
+      const free=(d.data||[]).filter(m=>m.id.endsWith(":free")).map(m=>m.id);
+      const pref=["deepseek","llama-3.3","gemini","qwen","mistral"];
+      free.sort((a,b)=>{const ra=pref.findIndex(x=>a.includes(x)),rb=pref.findIndex(x=>b.includes(x));return (ra<0?99:ra)-(rb<0?99:rb)||a.localeCompare(b);});
+      const popular=["openai/gpt-4o-mini","anthropic/claude-3.5-sonnet","google/gemini-2.5-flash"];
+      return [...free,...popular];},
+    async call(key,model,system,user){
+      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]})});
+      if(!r.ok)throw new Error("OpenRouter "+r.status+": "+(await r.text()).slice(0,200));
+      const d=await r.json();
+      if(d.error)throw new Error("OpenRouter: "+(d.error.message||JSON.stringify(d.error)).slice(0,200));
+      return d.choices?.[0]?.message?.content||"";}}
 };
 
 const STOP=new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
@@ -198,7 +214,21 @@ const conv=document.getElementById("conv"),provSel=document.getElementById("prov
 Object.entries(PROVIDERS).forEach(([id,p])=>{const o=document.createElement("option");o.value=id;o.textContent=p.label;provSel.appendChild(o);});
 provSel.value=localStorage.getItem("provider")||"gemini";
 
-function fillModels(){const p=PROVIDERS[provSel.value];modelSel.innerHTML="";p.models.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;modelSel.appendChild(o);});const saved=localStorage.getItem("model_"+provSel.value);modelSel.value=p.models.includes(saved)?saved:p.models[0];localStorage.setItem("model_"+provSel.value,modelSel.value);}
+async function fillModels(){
+  const p=PROVIDERS[provSel.value];
+  let models=p.models||[];
+  if(p.loadModels){
+    modelSel.innerHTML="<option>laden…</option>";modelSel.disabled=true;
+    try{models=await p.loadModels();}catch(e){models=p.fallbackModels||[];}
+    modelSel.disabled=false;
+  }
+  modelSel.innerHTML="";
+  models.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;modelSel.appendChild(o);});
+  const saved=localStorage.getItem("model_"+provSel.value);
+  modelSel.value=models.includes(saved)?saved:models[0];
+  localStorage.setItem("model_"+provSel.value,modelSel.value);
+  refreshMode();
+}
 function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)||"";}
 function refreshMode(){const p=PROVIDERS[provSel.value];keyLink.href=p.keyUrl;keyInput.placeholder=p.keyHint;const has=keyInput.value.trim().length>10;keyStatus.textContent=has?("AI-modus actief — "+p.label+" / "+modelSel.value):("Demo-modus (geen AI). Tip: "+p.keyHint);modeBadge.innerHTML=has?'<span class="badge ai">AI</span>':'<span class="badge demo">DEMO</span>';}
 
