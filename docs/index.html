@@ -27,12 +27,15 @@ body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;backgrou
 .user-question .label{color:rgba(255,255,255,.8);}
 .bot-answer{margin-top:14px;background:#fff;border:1px solid var(--rand);border-radius:0 10px 10px 10px;padding:16px;}
 .restated{font-style:italic;color:#333;margin-bottom:12px;}
-blockquote.answer{margin:0 0 12px;padding:14px 16px;background:#f7faf4;border-left:4px solid var(--groen);white-space:pre-wrap;line-height:1.5;}
+.bridge{margin:0 0 10px;font-weight:600;}
+blockquote.answer{margin:0 0 8px;padding:12px 16px;background:#f7faf4;border-left:4px solid var(--groen);white-space:pre-wrap;line-height:1.5;}
 blockquote.answer.unverified{background:#fdf6ec;border-left-color:var(--oranje);}
-.note{font-size:.85rem;color:var(--oranje);margin-bottom:12px;}
+.cite-src{font-size:.72rem;color:#6a6a6a;margin:0 0 12px 4px;}
+.note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
 .no-answer{color:#666;margin-bottom:12px;}
-.source,.related{margin-top:12px;font-size:.9rem;}
-.related ul{margin:4px 0 0;padding-left:18px;}
+.section{margin-top:16px;font-size:.9rem;}
+.section ul{margin:4px 0 0;padding-left:18px;}
+.section .label{margin-bottom:6px;}
 a{color:var(--rijk-licht);}
 .loading{margin-top:12px;color:#555;font-style:italic;}
 .error{margin-top:12px;color:#b00020;}
@@ -69,62 +72,52 @@ a{color:var(--rijk-licht);}
   </form>
 </div>
 <script>
-const SYSTEM="Je helpt een voorlichter van het klantcontactcentrum van NederlandWereldwijd. Je krijgt de vraag en enkele genummerde pagina's van NederlandWereldwijd.nl met hun letterlijke tekst. Kies de pagina die het antwoord het best bevat en neem het relevante gedeelte LETTERLIJK over uit die tekst — verzin niets, parafraseer niet, voeg niets toe. Citeer aaneengesloten passages exact. Antwoord UITSLUITEND met JSON (zonder uitleg eromheen): {\"restated_question\":\"<vraag kort geherformuleerd>\",\"primary_index\":<nummer of null>,\"answer\":\"<letterlijk fragment>\",\"found\":<true|false>,\"related_indices\":[<max 3 andere nummers>],\"note\":\"<korte toelichting of leeg>\"}";
+const SYSTEM=`Je helpt een voorlichter van het klantcontactcentrum van NederlandWereldwijd. Je krijgt de vraag van de burger en enkele genummerde pagina's van NederlandWereldwijd.nl met hun LETTERLIJKE tekst.
+
+Stel een antwoord samen dat bestaat uit twee delen:
+1. "bridge": één korte, natuurlijke inleidende zin die de vraag herpakt en naadloos overloopt in het citaat. Bijvoorbeeld bij de vraag "Hoe vraag ik een ID-kaart aan?" → "U vraagt een ID-kaart aan door:". Deze zin mag je zelf formuleren; eindig hem zo dat het eerste citaat er logisch op aansluit.
+2. "citations": één of meer LETTERLIJKE citaten uit de paginatekst(en) die samen de vraag beantwoorden. Citeer EXACT zoals het er staat — verzin niets, parafraseer niet, vat niet samen, verander geen woorden. Je mag citaten uit verschillende pagina's combineren als dat de vraag beter beantwoordt. Houd elk citaat een aaneengesloten stuk tekst.
+
+Antwoord UITSLUITEND met JSON (geen tekst eromheen):
+{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"text":"<letterlijk citaat>"}],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+
+Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
 // ---- AI-providers (allemaal rechtstreeks vanuit de browser, met je eigen sleutel) ----
 const PROVIDERS={
-  gemini:{
-    label:"Google Gemini (gratis)",
-    models:["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"],
-    keyUrl:"https://aistudio.google.com/apikey",
-    keyHint:"Gratis sleutel via Google AI Studio",
+  gemini:{label:"Google Gemini (gratis)",models:["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"],keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
     async call(key,model,system,user){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-      const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:{temperature:0,maxOutputTokens:1500}};
+      const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:{temperature:0,maxOutputTokens:2000}};
       const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("Gemini "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();
-      return (d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
-    }
-  },
-  openai:{
-    label:"OpenAI (ChatGPT)",
-    models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],
-    keyUrl:"https://platform.openai.com/api-keys",
-    keyHint:"Sleutel via platform.openai.com (betaald)",
+      const d=await r.json();return (d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");}},
+  openai:{label:"OpenAI (ChatGPT)",models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],keyUrl:"https://platform.openai.com/api-keys",keyHint:"Sleutel via platform.openai.com (betaald)",
     async call(key,model,system,user){
-      const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:1500,messages:[{role:"system",content:system},{role:"user",content:user}]})});
+      const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:2000,messages:[{role:"system",content:system},{role:"user",content:user}]})});
       if(!r.ok)throw new Error("OpenAI "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();
-      return d.choices?.[0]?.message?.content||"";
-    }
-  },
-  anthropic:{
-    label:"Anthropic (Claude)",
-    models:["claude-sonnet-4-6","claude-haiku-4-5-20251001"],
-    keyUrl:"https://console.anthropic.com/settings/keys",
-    keyHint:"Sleutel via console.anthropic.com (betaald)",
+      const d=await r.json();return d.choices?.[0]?.message?.content||"";}},
+  anthropic:{label:"Anthropic (Claude)",models:["claude-sonnet-4-6","claude-haiku-4-5-20251001"],keyUrl:"https://console.anthropic.com/settings/keys",keyHint:"Sleutel via console.anthropic.com (betaald)",
     async call(key,model,system,user){
-      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:1500,system,messages:[{role:"user",content:user}]})});
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:2000,system,messages:[{role:"user",content:user}]})});
       if(!r.ok)throw new Error("Claude "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();
-      return (d.content||[]).map(c=>c.text||"").join("");
-    }
-  }
+      const d=await r.json();return (d.content||[]).map(c=>c.text||"").join("");}}
 };
 
 const STOP=new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
-const SAMPLES=["Hoe lang duurt het om een paspoort aan te vragen in het buitenland?","Wat kost een paspoort vanuit het buitenland?","Wat is een BSN?","Mijn rijbewijs is gestolen in het buitenland, wat nu?","Ik ben mijn DigiD-wachtwoord vergeten","Wat is een apostille?"];
+const SAMPLES=["Hoe vraag ik een ID-kaart aan vanuit het buitenland?","Wat kost een paspoort vanuit het buitenland?","Wat is een BSN?","Mijn rijbewijs is gestolen in het buitenland, wat nu?","Ik ben mijn DigiD-wachtwoord vergeten","Wat is een apostille?"];
+const TOPK=5; // aantal kandidaat-pagina's dat naar het AI-model gaat
 let CORPUS=[],PTOKENS=[];
 
 function tokenize(t){return t.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>2&&!STOP.has(w));}
-function tokensOf(p){return new Set(p.url.split(/[-\/]/).concat(tokenize(p.title)).map(s=>s.toLowerCase()));}
-function rank(q){const qt=tokenize(q);if(!qt.length)return [];const s=[];for(let i=0;i<CORPUS.length;i++){let o=0;for(const t of qt)if(PTOKENS[i].has(t))o++;if(o)s.push([o,i]);}s.sort((a,b)=>b[0]-a[0]);return s.slice(0,5).map(x=>x[1]);}
+// Zoek-index per pagina = titel + samenvatting (AI of meta-omschrijving) + url-slug.
+function searchText(p){return [p.title,p.summary||p.desc||p.text.slice(0,200),p.url].join(" ");}
+function tokensOf(p){return new Set(p.url.split(/[-\/]/).concat(tokenize(searchText(p))).map(s=>s.toLowerCase()));}
+function rank(q){const qt=tokenize(q);if(!qt.length)return [];const s=[];for(let i=0;i<CORPUS.length;i++){let o=0;for(const t of qt)if(PTOKENS[i].has(t))o++;if(o)s.push([o,i]);}s.sort((a,b)=>b[0]-a[0]);return s.slice(0,TOPK).map(x=>x[1]);}
 function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
 
 const conv=document.getElementById("conv"),provSel=document.getElementById("provider"),modelSel=document.getElementById("model"),keyInput=document.getElementById("apikey"),keyLink=document.getElementById("keylink"),keyStatus=document.getElementById("keystatus"),modeBadge=document.getElementById("mode-badge"),sendBtn=document.getElementById("send");
 
-// Provider-dropdown vullen.
 Object.entries(PROVIDERS).forEach(([id,p])=>{const o=document.createElement("option");o.value=id;o.textContent=p.label;provSel.appendChild(o);});
 provSel.value=localStorage.getItem("provider")||"gemini";
 
@@ -145,7 +138,8 @@ SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.o
     const r=await fetch("data/corpus.json");
     if(!r.ok)throw new Error("corpus.json niet gevonden ("+r.status+")");
     CORPUS=await r.json();PTOKENS=CORPUS.map(tokensOf);
-    document.getElementById("loadmsg").textContent="Corpus geladen: "+CORPUS.length+" pagina's van NederlandWereldwijd.nl. Stel een vraag — bijvoorbeeld:";
+    const withSum=CORPUS.filter(p=>p.summary).length;
+    document.getElementById("loadmsg").textContent="Corpus geladen: "+CORPUS.length+" pagina's"+(withSum?(" ("+withSum+" met AI-samenvatting)"):"")+". Stel een vraag — bijvoorbeeld:";
     sendBtn.disabled=false;sendBtn.textContent="Vraag stellen";
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
 })();
@@ -155,17 +149,20 @@ document.getElementById("form").addEventListener("submit",async(e)=>{
   const input=document.getElementById("input");const q=input.value.trim();if(!q)return;input.value="";
   const turn=addTurn(q);
   const cands=rank(q);
-  if(!cands.length){renderResult(turn,{restated_question:q,answer:"",found:false,note:"Geen passende pagina gevonden voor deze vraag.",source:null,related:[]});return;}
+  if(!cands.length){renderResult(turn,{restated_question:q,bridge:"",citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]});return;}
   const key=keyInput.value.trim();
   try{const result=key.length>10?await askAI(q,cands,key):demoAnswer(q,cands);renderResult(turn,result);}
   catch(err){turn.querySelector(".slot").innerHTML='<div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div>';}
 });
 
+function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
+
 function demoAnswer(q,cands){
   const p=CORPUS[cands[0]];const paras=p.text.split("\n").filter(x=>x.length>40);
-  return {restated_question:q,answer:paras.slice(0,2).join("\n"),found:true,verified:true,demo:true,
-    note:"DEMO-modus: begin van de best-matchende pagina, niet door AI geselecteerd. Kies een provider en vul een sleutel in voor een echt, op de vraag toegesneden letterlijk antwoord.",
-    source:{title:p.title,url:p.url},related:cands.slice(1).map(i=>({title:CORPUS[i].title,url:CORPUS[i].url}))};
+  return {restated_question:q,bridge:"",demo:true,
+    citations:[{text:paras.slice(0,2).join("\n"),verified:true,src:srcOf(cands[0])}],
+    note:"DEMO-modus: begin van de best-matchende pagina, niet door AI geselecteerd of geciteerd. Vul een sleutel in voor een echte inleiding + letterlijke citaten.",
+    used:[srcOf(cands[0])],related:cands.slice(1).map(srcOf)};
 }
 
 async function askAI(q,cands,key){
@@ -174,14 +171,21 @@ async function askAI(q,cands,key){
   const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SYSTEM,user);
   const m=text.match(/\{[\s\S]*\}/);if(!m)throw new Error("Geen JSON in modelantwoord. Ruwe output: "+text.slice(0,150));
   const r=JSON.parse(m[0]);
-  const pidx=Number.isInteger(r.primary_index)?cands[r.primary_index]:null;
-  const answer=(r.answer||"").trim();
-  const found=!!r.found&&answer.length>0&&pidx!==null;
-  const verified=found&&normalize(CORPUS[pidx].text).includes(normalize(answer));
-  const related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)).map(i=>({title:CORPUS[i].title,url:CORPUS[i].url}));
-  return {restated_question:r.restated_question||q,answer:found?answer:"",found,verified,
-    note:found?(verified?null:"Let op: dit fragment kon niet letterlijk worden teruggevonden op de bronpagina. Controleer de bron zelf."):(r.note||"Op de gevonden pagina's staat geen letterlijk antwoord op deze vraag."),
-    source:pidx!==null?{title:CORPUS[pidx].title,url:CORPUS[pidx].url}:null,related};
+  const rawCites=Array.isArray(r.citations)?r.citations:[];
+  const citations=[];const usedSet=new Set();
+  for(const c of rawCites){
+    const local=c.source_index;const gi=Number.isInteger(local)?cands[local]:null;
+    const t=(c.text||"").trim();if(!t||gi===null)continue;
+    const verified=normalize(CORPUS[gi].text).includes(normalize(t));
+    citations.push({text:t,verified,src:srcOf(gi)});usedSet.add(gi);
+  }
+  const used=[...usedSet].map(srcOf);
+  const related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
+  const allVerified=citations.length>0&&citations.every(c=>c.verified);
+  let note=r.note||"";
+  if(citations.length&&!allVerified)note="Let op: niet elk citaat kon letterlijk worden teruggevonden op de bronpagina (oranje gemarkeerd). Controleer de bron.";
+  if(!citations.length&&!note)note="Op de gevonden pagina's staat geen letterlijk antwoord op deze vraag.";
+  return {restated_question:r.restated_question||q,bridge:r.bridge||"",citations,used,related,note};
 }
 
 function addTurn(q){
@@ -190,14 +194,21 @@ function addTurn(q){
   art.innerHTML=`<div class="user-question"><span class="label">Gestelde vraag</span>${escapeHtml(q)}</div><div class="slot"><div class="loading">Bezig met opzoeken…</div></div>`;
   conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
 }
+function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
 function renderResult(turn,r){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
   let h=`<div class="bot-answer"><div class="restated"><span class="label">Je vraag (zoals begrepen) ${badge}</span>${escapeHtml(r.restated_question)}</div>`;
-  if(r.answer)h+=`<blockquote class="answer ${r.verified?'verified':'unverified'}">${escapeHtml(r.answer)}</blockquote>`;
-  else h+=`<div class="no-answer">Geen letterlijk antwoord gevonden.</div>`;
+  if(r.bridge)h+=`<p class="bridge">${escapeHtml(r.bridge)}</p>`;
+  if(r.citations&&r.citations.length){
+    const multi=r.used&&r.used.length>1;
+    for(const c of r.citations){
+      h+=`<blockquote class="answer ${c.verified?'verified':'unverified'}">${escapeHtml(c.text)}</blockquote>`;
+      if(multi)h+=`<div class="cite-src">— ${escapeHtml(c.src.title)}</div>`;
+    }
+  }else h+=`<div class="no-answer">Geen letterlijk antwoord gevonden.</div>`;
   if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
-  if(r.source)h+=`<div class="source"><span class="label">Bron</span><a href="${r.source.url}" target="_blank" rel="noreferrer">${escapeHtml(r.source.title)}</a></div>`;
-  if(r.related&&r.related.length)h+=`<div class="related"><span class="label">Andere relevante bronnen</span><ul>${r.related.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul></div>`;
+  if(r.used&&r.used.length)h+=`<div class="section"><span class="label">Lees meer — gebruikte bronnen</span>${sourceList(r.used)}</div>`;
+  if(r.related&&r.related.length)h+=`<div class="section"><span class="label">Misschien ook relevant</span>${sourceList(r.related)}</div>`;
   h+=`</div>`;
   turn.querySelector(".slot").innerHTML=h;turn.scrollIntoView({behavior:"smooth",block:"end"});
 }

@@ -14,7 +14,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 SITEMAP_URL = "https://www.nederlandwereldwijd.nl/paginas/sitemap.xml"
-OUT = Path(__file__).resolve().parent.parent / "site" / "data" / "corpus.json"
+OUT = Path(__file__).resolve().parent.parent / "docs" / "data" / "corpus.json"
 CONCURRENCY = 12
 MAX_TEXT = 5000
 LOC_RE = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>", re.IGNORECASE)
@@ -26,15 +26,18 @@ async def fetch_urls(client: httpx.AsyncClient) -> list[str]:
     return [u for u in LOC_RE.findall(r.text) if not u.endswith(".xml")]
 
 
-def extract(html: str, url: str) -> tuple[str, str]:
+def extract(html: str, url: str) -> tuple[str, str, str]:
     soup = BeautifulSoup(html, "lxml")
     title = soup.title.get_text(strip=True) if soup.title else url
+    # Meta-omschrijving = beknopte, redactioneel geschreven samenvatting (zoek-index).
+    desc_tag = soup.find("meta", attrs={"name": "description"})
+    desc = desc_tag.get("content", "").strip() if desc_tag else ""
     for tag in soup(["script", "style", "noscript", "nav", "header", "footer"]):
         tag.decompose()
     main = soup.find("main") or soup.find("article") or soup.body
     text = main.get_text(separator="\n", strip=True) if main else ""
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    return title, "\n".join(lines)[:MAX_TEXT]
+    return title, desc, "\n".join(lines)[:MAX_TEXT]
 
 
 async def crawl():
@@ -55,9 +58,9 @@ async def crawl():
                     try:
                         r = await client.get(url, timeout=25)
                         r.raise_for_status()
-                        title, text = extract(r.text, url)
+                        title, desc, text = extract(r.text, url)
                         if text:
-                            corpus.append({"url": url, "title": title, "text": text})
+                            corpus.append({"url": url, "title": title, "desc": desc, "text": text})
                         break
                     except Exception:
                         if attempt == 1:
