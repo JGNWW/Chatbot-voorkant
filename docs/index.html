@@ -22,7 +22,7 @@ body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;backgrou
 .keybar{background:#0f3258;color:#fff;padding:10px 24px;font-size:.82rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .keybar select,.keybar input{padding:7px 10px;border:none;border-radius:6px;font-size:.85rem;}
 .keybar input{flex:1;min-width:180px;}
-.keybar a{color:#9fd0ff;font-size:.78rem;white-space:nowrap;}
+.keybar a{color:#cfe6fb;font-size:.78rem;white-space:nowrap;}
 .keybar .status{font-size:.78rem;width:100%;}
 .conversation{flex:1;padding:24px;overflow-y:auto;}
 .empty{color:#666;font-style:italic;}
@@ -74,6 +74,58 @@ a{color:var(--rijk-licht);}
 .badge{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;}
 .badge.ai{background:#e6f0fa;color:var(--rijk-blauw);}
 .badge.demo{background:#fdecec;color:#b00020;}
+/* Welkomststaat (lege conversatie) */
+.welcome{font-style:normal;color:#33485c;line-height:1.5;}
+.welcome strong{color:var(--rijk-blauw);}
+.welcome .hint{display:block;margin-top:6px;color:#666;font-style:italic;font-size:.92em;}
+/* Typing-indicator (drie stuiterende puntjes) */
+.typing{display:inline-flex;gap:4px;align-items:center;vertical-align:middle;margin-right:6px;}
+.typing i{width:7px;height:7px;border-radius:50%;background:#9bb0c4;display:inline-block;animation:typing 1.2s infinite ease-in-out;}
+.typing i:nth-child(2){animation-delay:.2s;}
+.typing i:nth-child(3){animation-delay:.4s;}
+@keyframes typing{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-4px);opacity:1;}}
+/* Kopieer-knop per citaat */
+blockquote.answer{position:relative;padding-right:44px;}
+.copy-cite{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.85);border:1px solid var(--rand);border-radius:6px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#5a6b7b;opacity:0;transition:opacity .12s;}
+blockquote.answer:hover .copy-cite,.copy-cite:focus-visible{opacity:1;}
+.copy-cite:hover{background:#fff;color:var(--rijk-blauw);}
+.copy-cite.ok{opacity:1;color:var(--groen);border-color:var(--groen);}
+/* Inklapbare bron-secties */
+details.section>summary{cursor:pointer;list-style:none;}
+details.section>summary::-webkit-details-marker{display:none;}
+details.section>summary .label{display:inline-block;margin-bottom:0;}
+details.section>summary::before{content:"\25B8";color:#9aa6b2;margin-right:6px;font-size:.7rem;}
+details.section[open]>summary::before{content:"\25BE";}
+details.section>summary:hover .label{color:var(--rijk-blauw);}
+/* Antwoord-footer: bronnen/acties visueel scheiden van het antwoord zelf */
+.answer-footer{margin-top:18px;padding-top:14px;border-top:1px solid var(--rand);}
+.answer-footer>:first-child{margin-top:0;}
+.answer-actions{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap;}
+.answer-actions .spacer{flex:1;}
+.act-btn{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--rand);border-radius:16px;padding:5px 11px;font-size:.78rem;cursor:pointer;color:#33485c;}
+.act-btn:hover{background:#f0f5fa;border-color:var(--rijk-licht);}
+.act-btn.ok{border-color:var(--groen);color:var(--groen);}
+/* Feedback (klopt dit antwoord?) */
+.feedback{display:inline-flex;gap:6px;align-items:center;font-size:.78rem;color:#6a6a6a;}
+.fb-btn{background:#fff;border:1px solid var(--rand);border-radius:50%;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;line-height:1;}
+.fb-btn:hover{background:#f0f5fa;}
+.fb-btn.sel-up{background:#e9f6e3;border-color:var(--groen);}
+.fb-btn.sel-down{background:#fdecec;border-color:#b00020;}
+/* Toegankelijkheid: zichtbare focus voor toetsenbordnavigatie */
+:focus-visible{outline:2px solid var(--rijk-licht);outline-offset:2px;}
+/* Responsive: smalle schermen */
+@media (max-width:560px){
+  .header{padding:16px;}
+  .composer{padding:12px 16px;}
+  .conversation{padding:16px;}
+  .keybar{padding:10px 16px;}
+  .header h1{font-size:1.15rem;padding-right:104px;}
+  .header p{font-size:.78rem;}
+  .bubble{max-width:88%;}
+  .bubble.antwoord{max-width:94%;}
+  .composer button{padding:12px 14px;}
+  .answer-actions{gap:8px;}
+}
 </style>
 </head>
 <body>
@@ -95,7 +147,7 @@ a{color:var(--rijk-licht);}
     <span class="status" id="semstatus">zoeken laden…</span>
   </div>
   <main class="conversation" id="conv">
-    <p class="empty" id="loadmsg">Corpus laden…</p>
+    <p class="empty welcome" id="loadmsg">Corpus laden…</p>
     <div class="samples" id="samples"></div>
   </main>
   <form class="composer" id="form">
@@ -355,7 +407,8 @@ document.getElementById("reset").addEventListener("click",()=>{
     if(!r.ok)throw new Error("corpus.json niet gevonden ("+r.status+")");
     CORPUS=await r.json();PTOKENS=CORPUS.map(tokensOf);
     const withSum=CORPUS.filter(p=>p.summary).length;
-    document.getElementById("loadmsg").textContent="Corpus geladen: "+CORPUS.length+" pagina's"+(withSum?(" ("+withSum+" met AI-samenvatting)"):"")+". Stel een vraag — bijvoorbeeld:";
+    document.getElementById("loadmsg").innerHTML="<strong>Welkom bij de Voorlichter-assistent.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
+      +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Stel een vraag — bijvoorbeeld:</span>";
     sendBtn.disabled=false;sendBtn.textContent="Vraag stellen";
     initSemantic();
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
@@ -448,23 +501,45 @@ function addTurn(q){
   document.querySelector(".empty")?.remove();document.getElementById("samples")?.remove();
   const art=document.createElement("article");art.className="turn";
   art.innerHTML=`<div class="row user"><div class="bubble vraag">${escapeHtml(q)}</div></div>`
-    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading">Bezig met opzoeken…</div></div></div></div>`;
+    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="typing" aria-hidden="true"><i></i><i></i><i></i></span>Bezig met opzoeken…</div></div></div></div>`;
   conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
 }
 function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
 function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ol>`;}
+const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
+const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
+// Kopieer tekst naar het klembord, met korte visuele bevestiging op de knop.
+function copyText(t,btn){
+  const flash=()=>{if(!btn)return;const o=btn.innerHTML,hadLabel=/span/.test(o);btn.classList.add("ok");btn.innerHTML=ICON_OK+(hadLabel?"<span>Gekopieerd</span>":"");setTimeout(()=>{btn.innerHTML=o;btn.classList.remove("ok");},1400);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(flash).catch(()=>fallbackCopy(t,flash));
+  else fallbackCopy(t,flash);
+}
+function fallbackCopy(t,cb){const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);cb&&cb();}
+// Het hele antwoord als platte tekst (inleiding + citaten met bron) — handig om door te geven aan de burger.
+function answerPlainText(r){
+  const parts=[];if(r.bridge)parts.push(r.bridge);
+  (r.citations||[]).forEach(c=>{parts.push("“"+c.text+"”"+(c.src?` (${c.src.title} — ${c.src.url})`:""));});
+  return parts.join("\n\n");
+}
+// Feedback lokaal opslaan, zodat we later kunnen zien waar de assistent fout zat.
+function logFeedback(r,verdict,btn){
+  const wrap=btn.parentNode;wrap.querySelectorAll(".fb-btn").forEach(b=>b.classList.remove("sel-up","sel-down"));
+  btn.classList.add(verdict>0?"sel-up":"sel-down");
+  try{const k="vk_feedback",arr=JSON.parse(localStorage.getItem(k)||"[]");arr.push({q:r.restated_question||"",verdict,hadAnswer:!!(r.citations&&r.citations.length),ts:Date.now()});localStorage.setItem(k,JSON.stringify(arr.slice(-200)));}catch(e){}
+}
 function renderResult(turn,r){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
   let h=`<div class="bubble antwoord"><div class="restated"><span class="label">Je vraag (zoals begrepen) ${badge}</span>${escapeHtml(r.restated_question)}</div>`;
   if(r.bridge)h+=`<p class="bridge">${escapeHtml(r.bridge)}</p>`;
   // Nummer elke gebruikte bron, zodat we de verwijzing inline bij het citaat kunnen tonen (zoals Postbus42).
   const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
-  if(r.citations&&r.citations.length){
-    for(const c of r.citations){
+  const hasCites=r.citations&&r.citations.length;
+  if(hasCites){
+    r.citations.forEach((c,i)=>{
       const n=num[c.src.url];
       const ref=n?` <a class="cite-ref" href="${c.src.url}" target="_blank" rel="noreferrer" title="${escapeHtml(c.src.title)}">[${n}]</a>`:"";
-      h+=`<blockquote class="answer ${c.verified?'verified':'unverified'}">${escapeHtml(c.text)}${ref}</blockquote>`;
-    }
+      h+=`<blockquote class="answer ${c.verified?'verified':'unverified'}"><button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>${escapeHtml(c.text)}${ref}</blockquote>`;
+    });
   }else h+=`<div class="no-answer">Geen antwoord gevonden op de website van NederlandWereldwijd.</div>`;
   if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
   const clar=r.clarifications||[];
@@ -473,18 +548,28 @@ function renderResult(turn,r){
     clar.forEach((c,i)=>{h+=`<button data-prefill="${escapeHtml(c.prefill||c.question)}">${escapeHtml(c.question)}</button>`;});
     h+=`</div>`;
   }
-  if(r.used&&r.used.length)h+=`<div class="section"><span class="label">Lees meer — gebruikte bronnen</span>${numberedSourceList(r.used)}</div>`;
-  if(r.related&&r.related.length)h+=`<div class="section"><span class="label">Misschien ook relevant</span>${sourceList(r.related)}</div>`;
+  // Footer: bronnen (inklapbaar), vervolgvragen en acties — visueel gescheiden van het antwoord.
+  let f="";
+  if(r.used&&r.used.length)f+=`<details class="section" open><summary><span class="label">Gebruikte bronnen (${r.used.length})</span></summary>${numberedSourceList(r.used)}</details>`;
+  if(r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   const fups=r.followups||[];
   if(fups.length){
-    h+=`<div class="followups"><span class="label">Mogelijke vervolgvragen</span><div class="chips">`;
-    fups.forEach(f=>{h+=`<button data-q="${escapeHtml(f)}">${escapeHtml(f)}</button>`;});
-    h+=`</div></div>`;
+    f+=`<div class="followups"><span class="label">Mogelijke vervolgvragen</span><div class="chips">`;
+    fups.forEach(fu=>{f+=`<button data-q="${escapeHtml(fu)}">${escapeHtml(fu)}</button>`;});
+    f+=`</div></div>`;
   }
-  h+=`</div>`;
+  f+=`<div class="answer-actions">`;
+  if(hasCites)f+=`<button class="act-btn copy-answer" title="Kopieer het hele antwoord met bron">${ICON_COPY}<span>Kopieer antwoord</span></button>`;
+  f+=`<span class="spacer"></span><span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">👍</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">👎</button></span></div>`;
+  h+=`<div class="answer-footer">${f}</div></div>`;
   const slot=turn.querySelector(".slot");slot.innerHTML=h;
   slot.querySelectorAll(".followups button").forEach(b=>b.onclick=()=>askText(b.getAttribute("data-q")));
   slot.querySelectorAll(".clarify button").forEach(b=>b.onclick=()=>prefill(b.getAttribute("data-prefill")));
+  slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=()=>copyText(r.citations[+b.getAttribute("data-ci")].text,b));
+  const ca=slot.querySelector(".copy-answer");if(ca)ca.onclick=()=>copyText(answerPlainText(r),ca);
+  const up=slot.querySelector(".fb-up"),dn=slot.querySelector(".fb-down");
+  if(up)up.onclick=()=>logFeedback(r,1,up);
+  if(dn)dn.onclick=()=>logFeedback(r,-1,dn);
   turn.scrollIntoView({behavior:"smooth",block:"end"});
 }
 function escapeHtml(s){return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
