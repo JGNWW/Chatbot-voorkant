@@ -9,7 +9,9 @@
 *{box-sizing:border-box;}
 body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--grijs);color:#1a1a1a;}
 .app{max-width:760px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
-.header{background:var(--rijk-blauw);color:#fff;padding:18px 24px;}
+.header{background:var(--rijk-blauw);color:#fff;padding:18px 24px;position:relative;}
+.reset{position:absolute;top:14px;right:16px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:16px;padding:5px 12px;font-size:.78rem;cursor:pointer;}
+.reset:hover{background:rgba(255,255,255,.28);}
 .header h1{margin:0;font-size:1.3rem;}
 .header p{margin:4px 0 0;font-size:.82rem;opacity:.85;}
 .keybar{background:#0f3258;color:#fff;padding:10px 24px;font-size:.82rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
@@ -72,6 +74,7 @@ a{color:var(--rijk-licht);}
 <body>
 <div class="app">
   <header class="header">
+    <button id="reset" class="reset" title="Wis de gesprekscontext">Nieuw gesprek</button>
     <h1>Voorlichter-assistent <span id="mode-badge"></span></h1>
     <p>Antwoorden letterlijk overgenomen van NederlandWereldwijd.nl — testomgeving over de volledige site</p>
   </header>
@@ -105,6 +108,12 @@ Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
 {"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
+
+// Herschrijft een (mogelijk elliptische) vervolgvraag tot een zelfstandige vraag, met gesprekscontext.
+const CONDENSE_SYSTEM=`Je krijgt de samenvatting van een lopend gesprek tussen een voorlichter en een AI over overheidsvragen, plus een nieuwe vraag. Herschrijf de NIEUWE vraag tot één zelfstandige, op zichzelf staande vraag die ook zonder de context te begrijpen is (vul ontbrekend onderwerp aan uit de context). Betreft de nieuwe vraag duidelijk een nieuw onderwerp, geef hem dan vrijwel ongewijzigd terug. Antwoord UITSLUITEND met JSON: {"standalone_question":"<de zelfstandige vraag>"}`;
+
+// Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
+let history=[];
 
 // ---- AI-providers (allemaal rechtstreeks vanuit de browser, met je eigen sleutel) ----
 const PROVIDERS={
@@ -283,6 +292,11 @@ function prefill(t){inputEl.value=t;inputEl.focus();inputEl.setSelectionRange(t.
 const samples=document.getElementById("samples");
 SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.onclick=()=>askText(s);samples.appendChild(b);});
 
+document.getElementById("reset").addEventListener("click",()=>{
+  history=[];
+  conv.innerHTML='<p class="empty">Nieuw gesprek. Stel een vraag.</p>';
+});
+
 (async function load(){
   try{
     const r=await fetch("data/corpus.json");
@@ -295,13 +309,34 @@ SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.o
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
 })();
 
-async function runQuestion(q){
-  if(sendBtn.disabled||!q)return;
-  const turn=addTurn(q);
+async function condenseQuestion(rawQ){
+  if(!history.length)return rawQ;
+  const key=keyInput.value.trim();
+  if(key.length<=10)return rawQ; // demo-modus: geen herschrijving mogelijk
+  const ctx=history.slice(-2).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n");
+  try{
+    const text=await PROVIDERS[provSel.value].call(key,modelSel.value,CONDENSE_SYSTEM,`Gesprek tot nu toe:\n${ctx}\n\nNieuwe vraag: ${rawQ}`);
+    const sq=(parseModelJSON(text).standalone_question||"").trim();
+    return sq||rawQ;
+  }catch(e){return rawQ;}
+}
+
+async function runQuestion(rawQ){
+  if(sendBtn.disabled||!rawQ)return;
+  const turn=addTurn(rawQ);               // toon de vraag zoals gesteld
+  const q=await condenseQuestion(rawQ);   // maak er een zelfstandige vraag van (met context)
   const cands=await rankFor(q);
   if(!cands.length){renderResult(turn,{restated_question:q,bridge:"",citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]});return;}
   const key=keyInput.value.trim();
-  try{const result=key.length>10?await askAI(q,cands,key):demoAnswer(q,cands);renderResult(turn,result);}
+  try{
+    const result=key.length>10?await askAI(q,cands,key):demoAnswer(q,cands);
+    renderResult(turn,result);
+    if(result.citations&&result.citations.length){
+      const summary=((result.bridge?result.bridge+" ":"")+(result.citations[0].text||"")).slice(0,220);
+      history.push({q:result.restated_question||q,summary});
+      if(history.length>6)history.shift();
+    }
+  }
   catch(err){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';}
 }
 document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";runQuestion(q);});
