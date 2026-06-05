@@ -100,7 +100,10 @@ const SYSTEM=`Je helpt een voorlichter van het klantcontactcentrum van Nederland
 
 Stel een antwoord samen dat bestaat uit:
 1. "bridge": één korte, natuurlijke inleidende zin die de vraag herpakt en GRAMMATICAAL NAADLOOS overloopt in het eerste citaat. Schrijf deze zin PAS NADAT je de citaten hebt gekozen, zodat hij precies op het eerste citaat aansluit. Eindig niet op een dubbele punt als het citaat begint met een vraag of een zin die daar niet logisch op volgt.
-2. "citations": de relevante passages die samen de vraag beantwoorden. Geef NIET de volledige tekst, maar per passage alleen een VERWIJZING: "source_index" (paginanummer), "start" (de eerste 4 tot 8 woorden van de passage, EXACT overgenomen uit de paginatekst) en "end" (de laatste 4 tot 8 woorden van de passage, EXACT overgenomen). De app knipt zelf het stuk tussen start en end uit de pagina. Begin en eindig op een natuurlijke zinsgrens; de passage moet aaneengesloten in de tekst staan. Kopieer "start" en "end" exact (zelfde woorden, leestekens en hoofdletters) zodat ze letterlijk terug te vinden zijn. Je mag passages uit verschillende pagina's combineren.
+2. "citations": de relevante passages die samen de vraag beantwoorden. Geef NIET de volledige tekst, maar per passage alleen een VERWIJZING: "source_index" (paginanummer), "start" (de eerste 4 tot 8 woorden van de passage, EXACT overgenomen uit de paginatekst) en "end" (de laatste 4 tot 8 woorden van de passage, EXACT overgenomen). De app knipt zelf het stuk tussen start en end uit de pagina. Begin en eindig op een natuurlijke zinsgrens; de passage moet aaneengesloten in de tekst staan. Kopieer "start" en "end" exact (zelfde woorden, leestekens en hoofdletters) zodat ze letterlijk terug te vinden zijn. Je mag passages uit verschillende pagina's combineren. REGELS voor goede citaten:
+   - Citeer alleen VOLLEDIGE, op zichzelf staande zinnen of alinea's met inhoud. Citeer NOOIT een los kopje, sectietitel, knoptekst of navigatielabel (korte regels zonder werkwoord, zoals "Buitenland", "Let op:" of "Tijdelijke aanvraaglocaties").
+   - Kies zo WEINIG citaten als nodig. Voeg alleen een tweede of derde citaat toe als dat ECHT nieuwe, aanvullende informatie geeft. Geen overlappende of herhalende citaten.
+   - De citaten mogen NIET hetzelfde zeggen als de "bridge"; de bridge leidt in, de citaten geven de feitelijke inhoud. Vermijd dubbeling.
 3. "clarifications": vragen die de voorlichter aan de burger moet stellen om een PRECIEZER antwoord te geven, als het antwoord daarvan afhangt. Veel antwoorden hangen af van het LAND waar de aanvrager woont. Geef per verduidelijking een "question" (wat de voorlichter moet uitvragen) en een "prefill" (een begin van een vervolgvraag dat de voorlichter kan aanvullen, bv. "Visum voor Nederland aanvragen vanuit "). Laat leeg als alles al duidelijk is.
 4. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
 
@@ -256,6 +259,41 @@ function extractQuote(text,start,end){
   const nl=text.indexOf("\n",s.i);
   return text.slice(s.i, nl>s.i?nl:Math.min(text.length,s.i+600)).trim();
 }
+// Een regel is een kopje/label als hij kort is en niet op een zin-einde eindigt.
+function looksLikeHeading(line){
+  const t=(line||"").trim();const w=t.split(/\s+/);
+  return t.length>0 && w.length<=6 && !/[.!?]$/.test(t);
+}
+// Te zwak om als citaat te tonen: vrijwel leeg, of een kort kopje/label zonder echte zin.
+function isWeakQuote(q){
+  const t=(q||"").trim();
+  if(t.length<12)return true;        // vrijwel niets
+  if(t.includes("\n"))return false;  // meerregelig = inhoud
+  return looksLikeHeading(t);        // korte regel zonder zin-einde = kopje/label
+}
+// Begint het citaat met een los kopje? Voeg dan de eerstvolgende inhoudsregel toe.
+function expandHeading(text,quote){
+  const t=(quote||"").trim();
+  if(t.includes("\n")||!looksLikeHeading(t))return quote;
+  // Het kopje moet als HELE regel voorkomen (niet als deel van een woord, bv. "Buitenlandse Zaken").
+  const lines=text.split("\n");const li=lines.findIndex(l=>l.trim()===t);
+  if(li<0)return quote;
+  for(let j=li+1;j<lines.length;j++){
+    const c=lines[j].trim();
+    if(c.length>=25||/[.!?]$/.test(c)){       // eerste echte inhoudsregel
+      let take=c.slice(0,500);const m=take.match(/[.!?](\s|$)/);if(m)take=take.slice(0,m.index+1);
+      return t+" "+take.trim();               // letterlijk: kopje gevolgd door de eerste inhoudszin
+    }
+  }
+  return quote;
+}
+// Sterke overlap tussen twee citaten (de één bevat (vrijwel) de ander).
+function quotesOverlap(a,b){
+  const x=a.toLowerCase().trim(),y=b.toLowerCase().trim();
+  if(x.includes(y)||y.includes(x))return true;
+  const sh=x.length<y.length?x:y,lo=x.length<y.length?y:x;
+  return sh.length>=40 && lo.includes(sh.slice(0,Math.floor(sh.length*0.8)));
+}
 
 const conv=document.getElementById("conv"),provSel=document.getElementById("provider"),modelSel=document.getElementById("model"),keyInput=document.getElementById("apikey"),keyLink=document.getElementById("keylink"),keyStatus=document.getElementById("keystatus"),modeBadge=document.getElementById("mode-badge"),sendBtn=document.getElementById("send");
 
@@ -361,8 +399,11 @@ async function askAI(q,cands,key){
   for(const c of rawCites){
     const local=c.source_index;const gi=Number.isInteger(local)?cands[local]:null;if(gi===null)continue;
     // Knip het exacte stuk zelf uit de pagina o.b.v. de start/end-verwijzing -> altijd letterlijk.
-    const quote=extractQuote(CORPUS[gi].text,c.start,c.end);
+    let quote=extractQuote(CORPUS[gi].text,c.start,c.end);
     if(!quote){notFound++;continue;}
+    quote=expandHeading(CORPUS[gi].text,quote);   // los kopje? vul aan met de inhoud eronder
+    if(isWeakQuote(quote)){notFound++;continue;}  // nog steeds te kort/kopje -> overslaan
+    if(citations.some(x=>quotesOverlap(x.text,quote)))continue; // dubbel/overlappend -> overslaan
     citations.push({text:quote,verified:true,src:srcOf(gi)});usedSet.add(gi);
   }
   const used=[...usedSet].map(srcOf);
