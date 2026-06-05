@@ -408,17 +408,26 @@ async function askAI(q,cands,key){
   }
   const used=[...usedSet].map(srcOf);
   let related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
+  let bridge=r.bridge||"";
   let note=r.note||"";
+  let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[]).map(c=>({question:(c.question||"").trim(),prefill:(c.prefill||"").trim()})).filter(c=>c.question);
+  let followups=(Array.isArray(r.followups)?r.followups:[]).map(f=>(f||"").trim()).filter(Boolean);
   if(r.__partial&&citations.length)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
   if(!citations.length){
-    // Geen citaat gevonden: toon toch de beste kandidaten als bron.
-    if(!related.length)related=cands.slice(0,3).map(srcOf);
-    if(notFound)note="De passage kon niet exact op de bronpagina worden teruggevonden. Bekijk de bron hieronder.";
-    else if(!note)note="Op de gevonden pagina's staat geen letterlijk antwoord op deze vraag. Bekijk de bron hieronder.";
+    // Zonder onderbouwend citaat tonen we GEEN vrije AI-tekst (geen bridge, geen note),
+    // zodat het model niet alsnog een eigen antwoord verzint.
+    bridge="";
+    if(notFound){
+      // Het model wilde wel citeren maar de passage was niet exact terug te vinden:
+      // er bestaat waarschijnlijk wél een antwoord -> verwijs naar de bron.
+      if(!related.length)related=cands.slice(0,3).map(srcOf);
+      note="De passage kon niet exact op de bronpagina worden teruggevonden. Bekijk de bron hieronder.";
+    }else{
+      // Het model vond niets relevants op de pagina's: alleen 'Geen antwoord gevonden'.
+      related=[];clarifications=[];followups=[];note="";
+    }
   }
-  const clarifications=(Array.isArray(r.clarifications)?r.clarifications:[]).map(c=>({question:(c.question||"").trim(),prefill:(c.prefill||"").trim()})).filter(c=>c.question);
-  const followups=(Array.isArray(r.followups)?r.followups:[]).map(f=>(f||"").trim()).filter(Boolean);
-  return {restated_question:r.restated_question||q,bridge:r.bridge||"",citations,used,related,note,clarifications,followups};
+  return {restated_question:r.restated_question||q,bridge,citations,used,related,note,clarifications,followups};
 }
 
 function addTurn(q){
@@ -442,7 +451,7 @@ function renderResult(turn,r){
       const ref=n?` <a class="cite-ref" href="${c.src.url}" target="_blank" rel="noreferrer" title="${escapeHtml(c.src.title)}">[${n}]</a>`:"";
       h+=`<blockquote class="answer ${c.verified?'verified':'unverified'}">${escapeHtml(c.text)}${ref}</blockquote>`;
     }
-  }else h+=`<div class="no-answer">Geen letterlijk antwoord gevonden.</div>`;
+  }else h+=`<div class="no-answer">Geen antwoord gevonden op de website van NederlandWereldwijd.</div>`;
   if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
   const clar=r.clarifications||[];
   if(clar.length){
