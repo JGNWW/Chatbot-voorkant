@@ -39,6 +39,10 @@ body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;backgrou
 blockquote.answer{margin:0 0 8px;padding:12px 16px;background:#f7faf4;border-left:4px solid var(--groen);white-space:pre-wrap;line-height:1.5;border-radius:4px;}
 blockquote.answer.unverified{background:#fdf6ec;border-left-color:var(--oranje);}
 .cite-src{font-size:.72rem;color:#6a6a6a;margin:0 0 12px 4px;}
+.cite-ref{font-size:.72rem;font-weight:700;text-decoration:none;color:var(--cap-blauw);vertical-align:super;white-space:nowrap;}
+.cite-ref:hover{text-decoration:underline;}
+ol.srclist{margin:4px 0 0;padding-left:20px;}
+ol.srclist li{margin:2px 0;}
 .note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
 .no-answer{color:#666;margin-bottom:12px;}
 .section{margin-top:16px;font-size:.9rem;}
@@ -77,6 +81,7 @@ a{color:var(--rijk-licht);}
     <input id="apikey" type="password" placeholder="Plak je API-sleutel (optioneel)" />
     <a id="keylink" href="#" target="_blank" rel="noreferrer">sleutel ophalen</a>
     <span class="status" id="keystatus"></span>
+    <span class="status" id="semstatus">zoeken laden…</span>
   </div>
   <main class="conversation" id="conv">
     <p class="empty" id="loadmsg">Corpus laden…</p>
@@ -155,6 +160,40 @@ function searchText(p){return [p.title,p.summary||p.desc||p.text.slice(0,200),p.
 function tokensOf(p){return new Set(p.url.split(/[-\/]/).concat(tokenize(searchText(p))).map(s=>s.toLowerCase()));}
 function rank(q){const qt=tokenize(q);if(!qt.length)return [];const s=[];for(let i=0;i<CORPUS.length;i++){let o=0;for(const t of qt)if(PTOKENS[i].has(t))o++;if(o)s.push([o,i]);}s.sort((a,b)=>b[0]-a[0]);return s.slice(0,TOPK).map(x=>x[1]);}
 function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
+
+// ---- Semantisch zoeken (embeddings in de browser, zelfde model als de vooraf berekende vectoren) ----
+const SEM={ready:false,meta:null,vecs:null,extractor:null,modelPromise:null};
+function setSearchStatus(t){const el=document.getElementById("semstatus");if(el)el.textContent=t;}
+async function initSemantic(){
+  try{
+    const [mR,bR]=await Promise.all([fetch("data/embeddings.json"),fetch("data/embeddings.bin")]);
+    if(!mR.ok||!bR.ok)throw new Error("geen embeddings");
+    SEM.meta=await mR.json();
+    SEM.vecs=new Int8Array(await bR.arrayBuffer());
+    if(SEM.vecs.length!==SEM.meta.count*SEM.meta.dim)throw new Error("embeddings passen niet bij corpus");
+    setSearchStatus("semantisch model laden…");
+    SEM.modelPromise=(async()=>{
+      const tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
+      tf.env.allowLocalModels=false;
+      SEM.extractor=await tf.pipeline("feature-extraction",SEM.meta.model);
+      SEM.ready=true;setSearchStatus("semantisch zoeken ✓");
+    })().catch(e=>{SEM.ready=false;setSearchStatus("trefwoord-zoeken (semantisch niet geladen)");});
+  }catch(e){SEM.ready=false;setSearchStatus("trefwoord-zoeken");}
+}
+async function semanticRank(q){
+  await SEM.modelPromise;
+  if(!SEM.ready)return rank(q);
+  const out=await SEM.extractor([SEM.meta.query_prefix+q],{pooling:"mean",normalize:true});
+  const qv=out.data,dim=SEM.meta.dim,n=SEM.meta.count,v=SEM.vecs;
+  const scored=new Array(n);
+  for(let i=0;i<n;i++){let dot=0;const off=i*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];scored[i]=[dot,i];}
+  scored.sort((a,b)=>b[0]-a[0]);
+  return scored.slice(0,TOPK).map(x=>x[1]);
+}
+async function rankFor(q){
+  if(SEM.meta){try{const r=await semanticRank(q);if(r.length)return r;}catch(e){/* val terug op trefwoord */}}
+  return rank(q);
+}
 
 // Repareer afgekapte JSON: knip terug tot na de laatst afgesloten haak en sluit
 // de nog openstaande haken. Afgemaakte citaten blijven zo behouden.
@@ -252,13 +291,14 @@ SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.o
     const withSum=CORPUS.filter(p=>p.summary).length;
     document.getElementById("loadmsg").textContent="Corpus geladen: "+CORPUS.length+" pagina's"+(withSum?(" ("+withSum+" met AI-samenvatting)"):"")+". Stel een vraag — bijvoorbeeld:";
     sendBtn.disabled=false;sendBtn.textContent="Vraag stellen";
+    initSemantic();
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
 })();
 
 async function runQuestion(q){
   if(sendBtn.disabled||!q)return;
   const turn=addTurn(q);
-  const cands=rank(q);
+  const cands=await rankFor(q);
   if(!cands.length){renderResult(turn,{restated_question:q,bridge:"",citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]});return;}
   const key=keyInput.value.trim();
   try{const result=key.length>10?await askAI(q,cands,key):demoAnswer(q,cands);renderResult(turn,result);}
@@ -313,15 +353,18 @@ function addTurn(q){
   conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
 }
 function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
+function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ol>`;}
 function renderResult(turn,r){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
   let h=`<div class="bubble antwoord"><div class="restated"><span class="label">Je vraag (zoals begrepen) ${badge}</span>${escapeHtml(r.restated_question)}</div>`;
   if(r.bridge)h+=`<p class="bridge">${escapeHtml(r.bridge)}</p>`;
+  // Nummer elke gebruikte bron, zodat we de verwijzing inline bij het citaat kunnen tonen (zoals Postbus42).
+  const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   if(r.citations&&r.citations.length){
-    const multi=r.used&&r.used.length>1;
     for(const c of r.citations){
-      h+=`<blockquote class="answer ${c.verified?'verified':'unverified'}">${escapeHtml(c.text)}</blockquote>`;
-      if(multi)h+=`<div class="cite-src">— ${escapeHtml(c.src.title)}</div>`;
+      const n=num[c.src.url];
+      const ref=n?` <a class="cite-ref" href="${c.src.url}" target="_blank" rel="noreferrer" title="${escapeHtml(c.src.title)}">[${n}]</a>`:"";
+      h+=`<blockquote class="answer ${c.verified?'verified':'unverified'}">${escapeHtml(c.text)}${ref}</blockquote>`;
     }
   }else h+=`<div class="no-answer">Geen letterlijk antwoord gevonden.</div>`;
   if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
@@ -331,7 +374,7 @@ function renderResult(turn,r){
     clar.forEach((c,i)=>{h+=`<button data-prefill="${escapeHtml(c.prefill||c.question)}">${escapeHtml(c.question)}</button>`;});
     h+=`</div>`;
   }
-  if(r.used&&r.used.length)h+=`<div class="section"><span class="label">Lees meer — gebruikte bronnen</span>${sourceList(r.used)}</div>`;
+  if(r.used&&r.used.length)h+=`<div class="section"><span class="label">Lees meer — gebruikte bronnen</span>${numberedSourceList(r.used)}</div>`;
   if(r.related&&r.related.length)h+=`<div class="section"><span class="label">Misschien ook relevant</span>${sourceList(r.related)}</div>`;
   const fups=r.followups||[];
   if(fups.length){

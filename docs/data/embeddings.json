@@ -1,0 +1,1 @@
+{"model":"Xenova/multilingual-e5-small","dim":384,"count":4421,"doc_prefix":"passage: ","query_prefix":"query: ","quant":"int8/127","note":"volgorde komt overeen met corpus.json"}

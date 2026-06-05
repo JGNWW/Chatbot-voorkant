@@ -15,12 +15,30 @@ NederlandWereldwijd-site. Geen server nodig.
 4. Klik **Save**. Na ~1 minuut staat de site op:
    `https://jgnww.github.io/chatbot-voorkant/`
 
+## Semantisch zoeken (embeddings)
+
+De zoekmachine werkt op **betekenis** in plaats van losse trefwoorden:
+
+- Per pagina is er een vooraf berekende vector (`docs/data/embeddings.bin`,
+  int8, ~1,7 MB) van titel + samenvatting, met het model
+  `Xenova/multilingual-e5-small`.
+- In de browser wordt datzelfde model (via transformers.js, ~eenmalige download)
+  geladen om de **vraag** te embedden; daarna kiest cosine-similariteit de best
+  passende pagina's.
+- Lukt het model niet te laden, dan valt de app terug op trefwoord-zoeken. De
+  status staat bovenin ("semantisch zoeken ✓" of "trefwoord-zoeken").
+
+Embeddings (her)genereren na een nieuwe crawl:
+
+```bash
+cd /tmp && mkdir embgen && cd embgen && npm init -y && npm i @huggingface/transformers@3
+cp <repo>/scripts/embed.mjs . && node embed.mjs   # schrijft docs/data/embeddings.bin + .json
+```
+
 ## Hoe het antwoord wordt opgebouwd
 
-1. **Zoeken over samenvattingen** — per pagina is er een beknopte samenvatting
-   (de meta-omschrijving `desc`, of een AI-samenvatting `summary` als die is
-   gegenereerd). De zoekmachine matcht de vraag tegen die samenvattingen +
-   titels, niet tegen de volledige tekst.
+1. **Semantisch zoeken** — de vraag wordt vergeleken met de paginavectoren
+   (zie hierboven); de best passende pagina's gaan door naar het model.
 2. **Volledige pagina's laden** — de best passende pagina's (hun volledige
    tekst zit al in `corpus.json`) gaan naar het AI-model.
 3. **Antwoord samenstellen** — het model levert:
