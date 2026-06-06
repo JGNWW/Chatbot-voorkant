@@ -126,7 +126,13 @@ body.viewer-open .viewer{transform:translateX(0);}
 .viewer-open:hover{background:rgba(255,255,255,.15);}
 .viewer-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:50%;width:30px;height:30px;cursor:pointer;flex:0 0 auto;font-size:.85rem;line-height:1;}
 .viewer-close:hover{background:rgba(255,255,255,.28);}
-.viewer-body{padding:18px 20px;overflow-y:auto;line-height:1.6;font-size:.92rem;color:#222;white-space:pre-wrap;word-wrap:break-word;}
+.viewer-body{padding:18px 20px;overflow-y:auto;line-height:1.55;font-size:.92rem;color:#222;word-wrap:break-word;}
+.viewer-body .vp{margin:0 0 3px;white-space:pre-wrap;}
+.viewer-body .vh{font-weight:700;color:var(--rijk-blauw);margin:16px 0 5px;line-height:1.25;white-space:pre-wrap;}
+.viewer-body .vh:first-child{margin-top:0;}
+.viewer-body .vh1{font-size:1.22rem;}
+.viewer-body .vh2{font-size:1.08rem;}
+.viewer-body .vh3{font-size:.98rem;color:#33495f;}
 .viewer-body mark.hl{background:#ffec70;padding:1px 1px;border-radius:2px;box-shadow:0 0 0 3px #ffec70;}
 .viewer-note{color:var(--oranje);font-size:.85rem;margin-bottom:12px;font-style:italic;}
 .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55;border:0;}
@@ -617,8 +623,8 @@ const viewerEl=document.getElementById("viewer"),viewerTitle=document.getElement
 let viewerLastFocus=null;
 // Maak van een zin een whitespace-tolerant patroon (spatie/nieuwe regel maken niet uit).
 function rxPhrase(p){return p.trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+");}
-// Zoek het citaat in de paginatekst en wikkel het in <mark>. Valt terug op begin..eind als de hele passage niet 1-op-1 matcht.
-function buildSourceHTML(fullText,quote){
+// Zoek het citaat-bereik [start,eind) in de paginatekst. Valt terug op begin..eind als de hele passage niet 1-op-1 matcht.
+function matchRange(fullText,quote){
   let m=null;const q=(quote||"").trim();
   if(q){
     try{m=new RegExp(rxPhrase(q)).exec(fullText);}catch(e){}
@@ -627,9 +633,28 @@ function buildSourceHTML(fullText,quote){
       if(w.length>=8){try{m=new RegExp(rxPhrase(w.slice(0,4).join(" "))+"[\\s\\S]*?"+rxPhrase(w.slice(-4).join(" "))).exec(fullText);}catch(e){}}
     }
   }
-  if(!m)return {html:escapeHtml(fullText),found:false};
-  const a=fullText.slice(0,m.index),hit=m[0],b=fullText.slice(m.index+hit.length);
-  return {html:escapeHtml(a)+'<mark class="hl" id="hl">'+escapeHtml(hit)+'</mark>'+escapeHtml(b),found:true};
+  return m?[m.index,m.index+m[0].length]:[-1,-1];
+}
+// Render de paginatekst regel voor regel: koppen (uit page.headings) krijgen kop-opmaak, het citaat blijft geel gearceerd.
+function buildSourceHTML(fullText,quote,headings){
+  const [ms,me]=matchRange(fullText,quote);
+  const hmap=new Map();(headings||[]).forEach(([lvl,t])=>{if(t&&!hmap.has(t))hmap.set(t,lvl);});
+  const lines=fullText.split("\n");
+  let off=0,firstMark=true,out="";
+  for(const line of lines){
+    const ls=off,le=off+line.length;off=le+1; // +1 voor de \n
+    // Citaat-deel binnen deze regel markeren (indien aanwezig).
+    let content;
+    if(me<0||ms>=le||me<=ls){content=escapeHtml(line);}
+    else{
+      const a=Math.max(ms,ls)-ls,b=Math.min(me,le)-ls;
+      const id=firstMark?' id="hl"':'';firstMark=false;
+      content=escapeHtml(line.slice(0,a))+'<mark class="hl"'+id+'>'+escapeHtml(line.slice(a,b))+'</mark>'+escapeHtml(line.slice(b));
+    }
+    const lvl=hmap.get(line);
+    out+=lvl?`<div class="vh vh${lvl}">${content}</div>`:`<div class="vp">${content}</div>`;
+  }
+  return {html:out,found:ms>=0};
 }
 // Bouw een URL met text-fragment, zodat de browser op de live pagina naar het citaat springt en het markeert.
 function textFragmentUrl(url,quote){
@@ -641,7 +666,7 @@ function textFragmentUrl(url,quote){
 function openViewer(srcIdx,quote,url,title){
   const page=Number.isInteger(srcIdx)?CORPUS[srcIdx]:null;
   const text=page?page.text:"";
-  const built=buildSourceHTML(text,quote);
+  const built=buildSourceHTML(text,quote,page&&page.headings);
   viewerTitle.textContent=title||(page&&page.title)||"Bronpagina";
   viewerOpen.href=textFragmentUrl(url||(page&&page.url),quote);
   viewerBody.innerHTML=(built.found?"":'<div class="viewer-note">Dit citaat kon niet exact op de pagina worden gemarkeerd; hieronder staat de volledige paginatekst.</div>')+built.html;

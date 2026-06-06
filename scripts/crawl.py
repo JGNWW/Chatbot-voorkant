@@ -26,7 +26,7 @@ async def fetch_urls(client: httpx.AsyncClient) -> list[str]:
     return [u for u in LOC_RE.findall(r.text) if not u.endswith(".xml")]
 
 
-def extract(html: str, url: str) -> tuple[str, str, str]:
+def extract(html: str, url: str) -> tuple[str, str, str, list]:
     soup = BeautifulSoup(html, "lxml")
     title = soup.title.get_text(strip=True) if soup.title else url
     # Meta-omschrijving = beknopte, redactioneel geschreven samenvatting (zoek-index).
@@ -35,9 +35,16 @@ def extract(html: str, url: str) -> tuple[str, str, str]:
     for tag in soup(["script", "style", "noscript", "nav", "header", "footer"]):
         tag.decompose()
     main = soup.find("main") or soup.find("article") or soup.body
+    # Koppen (h1-h3) bewaren als [niveau, tekst] zodat de preview de structuur kan tonen.
+    headings: list = []
+    if main:
+        for h in main.find_all(["h1", "h2", "h3"]):
+            t = " ".join(h.get_text(separator=" ", strip=True).split())
+            if t:
+                headings.append([int(h.name[1]), t])
     text = main.get_text(separator="\n", strip=True) if main else ""
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    return title, desc, "\n".join(lines)[:MAX_TEXT]
+    return title, desc, "\n".join(lines)[:MAX_TEXT], headings
 
 
 async def crawl():
@@ -58,9 +65,9 @@ async def crawl():
                     try:
                         r = await client.get(url, timeout=25)
                         r.raise_for_status()
-                        title, desc, text = extract(r.text, url)
+                        title, desc, text, headings = extract(r.text, url)
                         if text:
-                            corpus.append({"url": url, "title": title, "desc": desc, "text": text})
+                            corpus.append({"url": url, "title": title, "desc": desc, "text": text, "headings": headings})
                         break
                     except Exception:
                         if attempt == 1:
