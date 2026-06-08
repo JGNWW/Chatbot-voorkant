@@ -133,10 +133,15 @@ ol.srclist li{margin:2px 0;}
 .clarify .label{color:var(--rijk-blauw);}
 .clarify button{display:block;text-align:left;width:100%;margin-top:6px;background:#fff;border:1px solid var(--blauw-licht);border-radius:6px;padding:8px 10px;font-size:.88rem;cursor:pointer;}
 .clarify button:hover{background:#f5f9fd;}
-.followups{margin-top:16px;}
-.followups .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
-.followups button{background:#fff;border:1px solid var(--rand);border-radius:14px;padding:8px 14px;font-size:.85rem;cursor:pointer;color:var(--rijk-blauw);font-family:inherit;transition:background .12s,border-color .12s;}
-.followups button:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
+/* Vervolgvragen als Perplexity-achtige lijst: volle breedte, scheidingslijntjes, plus-icoon rechts */
+.followups{margin-top:18px;}
+.fup-list{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--rand);}
+.fup-list li{margin:0;}
+.fup-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--rand);padding:13px 2px;cursor:pointer;font-family:inherit;font-size:.95rem;color:var(--ink);transition:color .12s;}
+.fup-row:hover{color:var(--rijk-licht);}
+.fup-q{flex:1;line-height:1.4;}
+.fup-plus{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;color:var(--rijk-licht);transition:background .12s;}
+.fup-row:hover .fup-plus{background:var(--blauw-bg);}
 a{color:var(--rijk-licht);}
 .loading{margin-top:12px;color:#555;font-style:italic;}
 .error{margin-top:12px;color:var(--rood);}
@@ -520,7 +525,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 7";
+const APP_VERSION="build 8";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
@@ -721,6 +726,7 @@ function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" ta
 function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ol>`;}
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
+const ICON_PLUS='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 // Kopieer tekst naar het klembord, met korte visuele bevestiging op de knop.
 function copyText(t,btn){
   const flash=()=>{if(!btn)return;const o=btn.innerHTML,hadLabel=/span/.test(o);btn.classList.add("ok");btn.innerHTML=ICON_OK+(hadLabel?"<span>Gekopieerd</span>":"");setTimeout(()=>{btn.innerHTML=o;btn.classList.remove("ok");},1400);};
@@ -792,15 +798,15 @@ function renderResult(turn,r){
     clar.forEach((c,i)=>{h+=`<button data-prefill="${escapeHtml(c.prefill||c.question)}">${escapeHtml(c.question)}</button>`;});
     h+=`</div>`;
   }
-  // Footer: alleen 'misschien ook relevant', vervolgvragen en acties — de gebruikte bron staat al bij elke passage.
+  // Footer: vervolgvragen (Perplexity-stijl), daaronder 'misschien ook relevant' en acties.
   let f="";
-  if(r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   const fups=r.followups||[];
   if(fups.length){
-    f+=`<div class="followups"><span class="label">Mogelijke vervolgvragen</span><div class="chips">`;
-    fups.forEach(fu=>{f+=`<button data-q="${escapeHtml(fu)}">${escapeHtml(fu)}</button>`;});
-    f+=`</div></div>`;
+    f+=`<div class="followups"><span class="label">Mogelijke vervolgvragen</span><ul class="fup-list">`;
+    fups.forEach(fu=>{f+=`<li><button class="fup-row" data-q="${escapeHtml(fu)}"><span class="fup-q">${escapeHtml(fu)}</span><span class="fup-plus">${ICON_PLUS}</span></button></li>`;});
+    f+=`</ul></div>`;
   }
+  if(r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   f+=`<div class="answer-actions">`;
   if(hasCites)f+=`<button class="act-btn copy-answer" title="Kopieer het hele antwoord met bron">${ICON_COPY}<span>Kopieer antwoord</span></button>`;
   f+=`<span class="spacer"></span><span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">👍</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">👎</button></span></div>`;
