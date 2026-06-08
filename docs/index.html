@@ -90,13 +90,30 @@ body.is-welcome .empty{margin-top:0;}
 .avatar{width:38px;height:38px;border-radius:50%;flex:0 0 38px;background:#fff;border:1px solid var(--rand);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;margin-top:2px;}
 .avatar img{width:100%;height:100%;object-fit:cover;transform:scale(1.18);}
 .bubble.antwoord{background:#fff;border:1px solid var(--rand);border-radius:18px;border-top-left-radius:6px;max-width:88%;padding:16px 18px;box-shadow:0 1px 2px rgba(20,40,70,.04);}
-.restated{font-style:italic;color:var(--ink-licht);margin-bottom:12px;}
-.bridge{margin:0 0 10px;font-weight:600;}
-blockquote.answer{margin:0 0 8px;padding:14px 18px;background:#f4f8f0;border-left:4px solid var(--groen);white-space:pre-wrap;line-height:1.6;border-radius:10px;}
-blockquote.answer.unverified{background:#fdf6ec;border-left-color:var(--oranje);}
-.cite-src{font-size:.72rem;color:var(--ink-licht);margin:0 0 12px 4px;}
-.cite-ref{font-size:.72rem;font-weight:700;text-decoration:none;color:var(--cap-blauw);vertical-align:super;white-space:nowrap;}
-.cite-ref:hover{text-decoration:underline;}
+.restated-sub{font-size:.86rem;color:var(--ink-licht);margin:0 0 12px;line-height:1.45;}
+.restated-sub .rs-label{font-weight:600;}
+.bridge{margin:0 0 12px;font-weight:600;color:var(--ink);}
+/* Passage = één citaat als nette, gestructureerde tekst met een bron-kaartje eronder */
+.passage{position:relative;margin:0 0 18px;}
+.cite-body{border-left:3px solid var(--blauw-licht);padding:2px 40px 2px 16px;}
+.passage.verified .cite-body{border-left-color:var(--rijk-licht);}
+.passage.unverified .cite-body{border-left-color:var(--oranje);}
+.cite-body.clickable-cite{cursor:pointer;transition:background .12s;border-radius:0 8px 8px 0;}
+.cite-body.clickable-cite:hover{background:var(--blauw-bg);}
+.cite-h{font-weight:700;color:var(--rijk-blauw);font-size:1.04rem;margin:0 0 5px;line-height:1.3;}
+.cite-h:not(:first-child){margin-top:12px;}
+.cite-p{margin:0 0 7px;line-height:1.6;}
+.cite-p:last-child{margin-bottom:0;}
+/* Bron-kaartje direct onder de passage (bron dicht bij de bewering) */
+.src-card{display:inline-flex;align-items:center;gap:8px;margin:9px 0 0 16px;padding:6px 10px 6px 7px;border:1px solid var(--rand);border-radius:12px;background:#fff;cursor:pointer;max-width:100%;transition:background .12s,border-color .12s;}
+.src-card:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
+.src-badge{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--rijk-licht);color:#fff;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+.passage.unverified .src-badge{background:var(--oranje);}
+.src-info{display:inline-flex;align-items:center;gap:5px;min-width:0;color:var(--rijk-blauw);}
+.src-title{font-weight:600;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;}
+.src-go{font-size:.78rem;color:var(--ink-licht);white-space:nowrap;}
+.src-live{flex:0 0 auto;margin-left:2px;color:var(--ink-licht);text-decoration:none;font-size:.95rem;padding:0 3px;border-radius:6px;}
+.src-live:hover{color:var(--rijk-licht);}
 ol.srclist{margin:4px 0 0;padding-left:20px;}
 ol.srclist li{margin:2px 0;}
 .note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
@@ -136,9 +153,8 @@ a{color:var(--rijk-licht);}
 @keyframes shimmer{to{background-position:-200% 0;}}
 @media (prefers-reduced-motion:reduce){.shimmer{animation:none;color:var(--ink-licht);-webkit-text-fill-color:currentColor;}}
 /* Kopieer-knop per citaat */
-blockquote.answer{position:relative;padding-right:44px;}
-.copy-cite{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.85);border:1px solid var(--rand);border-radius:6px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#5a6b7b;opacity:0;transition:opacity .12s;}
-blockquote.answer:hover .copy-cite,.copy-cite:focus-visible{opacity:1;}
+.copy-cite{position:absolute;top:0;right:0;background:rgba(255,255,255,.9);border:1px solid var(--rand);border-radius:8px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#5a6b7b;opacity:0;transition:opacity .12s;z-index:2;}
+.passage:hover .copy-cite,.copy-cite:focus-visible{opacity:1;}
 .copy-cite:hover{background:#fff;color:var(--rijk-blauw);}
 .copy-cite.ok{opacity:1;color:var(--groen);border-color:var(--groen);}
 /* Inklapbare bron-secties */
@@ -166,8 +182,6 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 :focus-visible{outline:2px solid var(--rijk-licht);outline-offset:2px;}
 /* Citaat klikbaar -> bronpagina-paneel */
 .clickable-cite{cursor:pointer;}
-.clickable-cite:hover{background:#eef6e6;}
-.clickable-cite.unverified:hover{background:#fbeed7;}
 /* Bron-viewer: in-flow rechterkolom op breed scherm (duwt niets weg, geen overflow) */
 .viewer{flex:0 0 0;overflow:hidden;background:#fff;border-left:1px solid var(--rand);transition:flex-basis .25s ease;}
 body.viewer-open .viewer{flex-basis:clamp(360px,34vw,540px);}
@@ -714,18 +728,35 @@ function logFeedback(r,verdict,btn){
   btn.classList.add(verdict>0?"sel-up":"sel-down");
   try{const k="vk_feedback",arr=JSON.parse(localStorage.getItem(k)||"[]");arr.push({q:r.restated_question||"",verdict,hadAnswer:!!(r.citations&&r.citations.length),ts:Date.now()});localStorage.setItem(k,JSON.stringify(arr.slice(-200)));}catch(e){}
 }
+// Render de tekst van een passage mét structuur: paginakoppen als subkop, de rest als alinea's.
+function citeBodyHTML(c){
+  const heads=new Set((((CORPUS[c.srcIdx]||{}).headings)||[]).map(h=>h[1]));
+  const lines=(c.text||"").split("\n").map(s=>s.trim()).filter(Boolean);
+  let html="";
+  for(const ln of lines){html+=heads.has(ln)?`<div class="cite-h">${escapeHtml(ln)}</div>`:`<p class="cite-p">${escapeHtml(ln)}</p>`;}
+  return html||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
+}
+const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
 function renderResult(turn,r){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
-  let h=`<div class="bubble antwoord"><div class="restated"><span class="label">Je vraag (zoals begrepen) ${badge}</span>${escapeHtml(r.restated_question)}</div>`;
-  if(r.bridge)h+=`<p class="bridge">${escapeHtml(r.bridge)}</p>`;
-  // Nummer elke gebruikte bron, zodat we de verwijzing inline bij het citaat kunnen tonen (zoals Postbus42).
-  const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   const hasCites=r.citations&&r.citations.length;
+  let h=`<div class="bubble antwoord">`;
+  h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
+  if(r.bridge)h+=`<p class="bridge">${escapeHtml(r.bridge)}</p>`;
+  const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   if(hasCites){
     r.citations.forEach((c,i)=>{
-      const n=num[c.src.url];
-      const ref=n?` <a class="cite-ref" href="${c.src.url}" target="_blank" rel="noreferrer" title="${escapeHtml(c.src.title)}">[${n}]</a>`:"";
-      h+=`<blockquote class="answer ${c.verified?'verified':'unverified'} clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken"><button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>${escapeHtml(c.text)}${ref}</blockquote>`;
+      const n=num[c.src.url]||(i+1);
+      const live=textFragmentUrl(c.src&&c.src.url,c.text,((CORPUS[c.srcIdx]||{}).headings));
+      h+=`<div class="passage ${c.verified?'verified':'unverified'}" data-ci="${i}">`
+        +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
+        +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(c)}</div>`
+        +`<div class="src-card" data-ci="${i}" role="button" tabindex="0" title="Bekijk dit stuk op de bronpagina">`
+          +`<span class="src-badge">${n}</span>`
+          +`<span class="src-info">${ICON_DOC}<span class="src-title">${escapeHtml(c.src?c.src.title:"Bron")}</span></span>`
+          +`<span class="src-go">Bekijk op de pagina</span>`
+          +`<a class="src-live" href="${live}" target="_blank" rel="noreferrer" title="Open de live pagina met het citaat gemarkeerd" aria-label="Open live pagina">↗</a>`
+        +`</div></div>`;
     });
   }else h+=`<div class="no-answer">Geen antwoord gevonden op de website van NederlandWereldwijd.</div>`;
   if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
@@ -735,9 +766,8 @@ function renderResult(turn,r){
     clar.forEach((c,i)=>{h+=`<button data-prefill="${escapeHtml(c.prefill||c.question)}">${escapeHtml(c.question)}</button>`;});
     h+=`</div>`;
   }
-  // Footer: bronnen (inklapbaar), vervolgvragen en acties — visueel gescheiden van het antwoord.
+  // Footer: alleen 'misschien ook relevant', vervolgvragen en acties — de gebruikte bron staat al bij elke passage.
   let f="";
-  if(r.used&&r.used.length)f+=`<details class="section" open><summary><span class="label">Gebruikte bronnen (${r.used.length})</span></summary>${numberedSourceList(r.used)}</details>`;
   if(r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   const fups=r.followups||[];
   if(fups.length){
@@ -753,9 +783,10 @@ function renderResult(turn,r){
   slot.querySelectorAll(".followups button").forEach(b=>b.onclick=()=>askText(b.getAttribute("data-q")));
   slot.querySelectorAll(".clarify button").forEach(b=>b.onclick=()=>prefill(b.getAttribute("data-prefill")));
   slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(r.citations[+b.getAttribute("data-ci")].text,b);});
-  slot.querySelectorAll("blockquote.clickable-cite").forEach(bq=>bq.onclick=e=>{
-    if(e.target.closest(".copy-cite")||e.target.closest("a"))return; // kopieer-knop en bron-link houden hun eigen functie
-    const c=r.citations[+bq.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);
+  const openCite=el=>{const c=r.citations[+el.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);};
+  slot.querySelectorAll(".cite-body.clickable-cite, .src-card").forEach(el=>{
+    el.onclick=e=>{if(e.target.closest(".copy-cite")||e.target.closest("a"))return;openCite(el);};
+    el.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&el.classList.contains("src-card")){e.preventDefault();openCite(el);}};
   });
   const ca=slot.querySelector(".copy-answer");if(ca)ca.onclick=()=>copyText(answerPlainText(r),ca);
   const up=slot.querySelector(".fb-up"),dn=slot.querySelector(".fb-down");
