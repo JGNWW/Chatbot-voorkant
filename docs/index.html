@@ -93,6 +93,9 @@ body.is-welcome .empty{margin-top:0;}
 .restated-sub{font-size:.86rem;color:var(--ink-licht);margin:0 0 12px;line-height:1.45;}
 .restated-sub .rs-label{font-weight:600;}
 .bridge{margin:0 0 12px;font-weight:600;color:var(--ink);}
+/* Tussenkopje dat opeenvolgende citaten groepeert (door de AI bepaald) */
+.passage-heading{font-size:1rem;font-weight:700;color:var(--rijk-blauw);margin:20px 0 9px;padding-bottom:6px;border-bottom:1px solid var(--rand);}
+.bridge+.passage-heading{margin-top:6px;}
 /* Passage = één citaat als nette, gestructureerde tekst met een bron-kaartje eronder */
 .passage{position:relative;margin:0 0 18px;}
 .cite-body{border-left:3px solid var(--blauw-licht);padding:2px 40px 2px 16px;}
@@ -291,11 +294,12 @@ Stel een antwoord samen dat bestaat uit:
    - Citeer alleen VOLLEDIGE, op zichzelf staande zinnen of alinea's met inhoud. Citeer NOOIT een los kopje, sectietitel, knoptekst of navigatielabel (korte regels zonder werkwoord, zoals "Buitenland", "Let op:" of "Tijdelijke aanvraaglocaties").
    - Kies zo WEINIG citaten als nodig. Voeg alleen een tweede of derde citaat toe als dat ECHT nieuwe, aanvullende informatie geeft. Geen overlappende of herhalende citaten.
    - De citaten mogen NIET hetzelfde zeggen als de "bridge"; de bridge leidt in, de citaten geven de feitelijke inhoud. Vermijd dubbeling.
+   - VOLGORDE & TUSSENKOPJES: zet de citaten in een logische leesvolgorde en groepeer ze met een "heading" per citaat onder korte tussenkopjes (bv. "Waar aanvragen", "Kosten", "Wat u nodig heeft", "Hoe lang het duurt", "Uitzonderingen"). Een tussenkopje is een KORT, beschrijvend label van 2 tot 4 woorden — GEEN zin en GEEN dubbele punt. Citaten die bij elkaar horen krijgen EXACT dezelfde "heading" (dan komen ze onder één kopje); een nieuw onderwerp krijgt een nieuwe heading. Houd een logische volgorde aan: eerst het kernantwoord, dan waar/hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. Laat de "heading" van het EERSTE citaat (het kernantwoord) LEEG, want de "bridge" leidt dat al in. Gebruik tussenkopjes alleen als het antwoord uit meerdere onderdelen bestaat; bij één kort, samenhangend antwoord laat je alle headings leeg.
 3. "clarifications": vragen die de voorlichter aan de burger moet stellen om een PRECIEZER antwoord te geven, als het antwoord daarvan afhangt. Veel antwoorden hangen af van het LAND waar de aanvrager woont. Geef per verduidelijking een "question" (wat de voorlichter moet uitvragen) en een "prefill" (een begin van een vervolgvraag dat de voorlichter kan aanvullen, bv. "Visum voor Nederland aanvragen vanuit "). Laat leeg als alles al duidelijk is.
 4. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
-{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"heading":"<kort tussenkopje of leeg>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
@@ -671,7 +675,8 @@ async function askAI(q,cands,key){
     quote=expandHeading(CORPUS[gi].text,quote);   // los kopje? vul aan met de inhoud eronder
     if(isWeakQuote(quote)){notFound++;continue;}  // nog steeds te kort/kopje -> overslaan
     if(citations.some(x=>quotesOverlap(x.text,quote)))continue; // dubbel/overlappend -> overslaan
-    citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi});usedSet.add(gi);
+    const heading=(c.heading||"").toString().trim().replace(/[:：]\s*$/,"").slice(0,60);
+    citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,heading});usedSet.add(gi);
   }
   const used=[...usedSet].map(srcOf);
   let related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
@@ -719,7 +724,8 @@ function fallbackCopy(t,cb){const ta=document.createElement("textarea");ta.value
 // Het hele antwoord als platte tekst (inleiding + citaten met bron) — handig om door te geven aan de burger.
 function answerPlainText(r){
   const parts=[];if(r.bridge)parts.push(r.bridge);
-  (r.citations||[]).forEach(c=>{parts.push("“"+c.text+"”"+(c.src?` (${c.src.title} — ${c.src.url})`:""));});
+  let lastH="";
+  (r.citations||[]).forEach(c=>{if(c.heading&&c.heading!==lastH){parts.push(c.heading.toUpperCase());lastH=c.heading;}parts.push("“"+c.text+"”"+(c.src?` (${c.src.title} — ${c.src.url})`:""));});
   return parts.join("\n\n");
 }
 // Feedback lokaal opslaan, zodat we later kunnen zien waar de assistent fout zat.
@@ -745,9 +751,12 @@ function renderResult(turn,r){
   if(r.bridge)h+=`<p class="bridge">${escapeHtml(r.bridge)}</p>`;
   const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   if(hasCites){
+    let lastHeading="";
     r.citations.forEach((c,i)=>{
       const n=num[c.src.url]||(i+1);
       const live=textFragmentUrl(c.src&&c.src.url,c.text,((CORPUS[c.srcIdx]||{}).headings));
+      // Tussenkopje: alleen tonen als de heading verandert (groepeert opeenvolgende citaten).
+      if(c.heading&&c.heading!==lastHeading){h+=`<h4 class="passage-heading">${escapeHtml(c.heading)}</h4>`;lastHeading=c.heading;}
       h+=`<div class="passage ${c.verified?'verified':'unverified'}" data-ci="${i}">`
         +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
         +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(c)}</div>`
