@@ -383,14 +383,32 @@ const PROVIDERS={
 
 const STOP=new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
 const SAMPLES=["Hoe vraag ik een ID-kaart aan vanuit het buitenland?","Wat kost een paspoort vanuit het buitenland?","Wat is een BSN?","Mijn rijbewijs is gestolen in het buitenland, wat nu?","Ik ben mijn DigiD-wachtwoord vergeten","Wat is een apostille?"];
-const TOPK=5; // aantal kandidaat-pagina's dat naar het AI-model gaat
-let CORPUS=[],PTOKENS=[];
+const TOPK=6; // aantal kandidaat-pagina's dat naar het AI-model gaat
+let CORPUS=[],PTOKENS=[],DF=null,NDOCS=0;
 
-function tokenize(t){return t.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>2&&!STOP.has(w));}
-// Zoek-index per pagina = titel + samenvatting (AI of meta-omschrijving) + url-slug.
-function searchText(p){return [p.title,p.summary||p.desc||p.text.slice(0,200),p.url].join(" ");}
-function tokensOf(p){return new Set(p.url.split(/[-\/]/).concat(tokenize(searchText(p))).map(s=>s.toLowerCase()));}
-function rank(q){const qt=tokenize(q);if(!qt.length)return [];const s=[];for(let i=0;i<CORPUS.length;i++){let o=0;for(const t of qt)if(PTOKENS[i].has(t))o++;if(o)s.push([o,i]);}s.sort((a,b)=>b[0]-a[0]);return s.slice(0,TOPK).map(x=>x[1]);}
+// Lichte Nederlandse stemmer: haalt veelvoorkomende uitgangen weg zodat varianten
+// op elkaar matchen ('verkracht'/'verkrachting', 'document'/'documenten').
+function stem(w){
+  if(w.length<5)return w;
+  for(const suf of ["ingen","ing","heden","heid","en","s"]){
+    if(w.length-suf.length>=4&&w.endsWith(suf))return w.slice(0,-suf.length);
+  }
+  return w;
+}
+function tokenize(t){return t.toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w=>w.length>2&&!STOP.has(w)).map(stem);}
+// Trefwoord-index per pagina = VOLLEDIGE tekst + titel + samenvatting + url-slug (gestemd).
+function tokensOf(p){return new Set(tokenize([p.url,p.title,p.summary||p.desc||"",p.text].join(" ")));}
+// Document-frequenties voor IDF: in hoeveel pagina's komt een stam voor.
+function buildDF(){DF=new Map();NDOCS=PTOKENS.length;for(const set of PTOKENS)for(const t of set)DF.set(t,(DF.get(t)||0)+1);}
+function idf(t){const df=(DF&&DF.get(t))||0;return df?Math.log(1+NDOCS/df):0;}
+// Trefwoord-ranking met IDF-weging: zeldzame woorden (zoals 'verkracht') tellen zwaar mee.
+function rank(q,limit){
+  if(!DF)buildDF();
+  const qt=[...new Set(tokenize(q))];if(!qt.length)return [];
+  const s=[];
+  for(let i=0;i<CORPUS.length;i++){let sc=0;for(const t of qt)if(PTOKENS[i].has(t))sc+=idf(t);if(sc>0)s.push([sc,i]);}
+  s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
+}
 function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
 
 // ---- Semantisch zoeken (embeddings in de browser, zelfde model als de vooraf berekende vectoren) ----
@@ -412,15 +430,15 @@ async function initSemantic(){
     })().catch(e=>{SEM.ready=false;setSearchStatus("trefwoord-zoeken (semantisch niet geladen)");});
   }catch(e){SEM.ready=false;setSearchStatus("trefwoord-zoeken");}
 }
-async function semanticRank(q){
+async function semanticRank(q,limit){
   await SEM.modelPromise;
-  if(!SEM.ready)return rank(q);
+  if(!SEM.ready)return rank(q,limit);
   const out=await SEM.extractor([SEM.meta.query_prefix+q],{pooling:"mean",normalize:true});
   const qv=out.data,dim=SEM.meta.dim,n=SEM.meta.count,v=SEM.vecs;
   const scored=new Array(n);
   for(let i=0;i<n;i++){let dot=0;const off=i*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];scored[i]=[dot,i];}
   scored.sort((a,b)=>b[0]-a[0]);
-  return scored.slice(0,TOPK).map(x=>x[1]);
+  return scored.slice(0,limit||TOPK).map(x=>x[1]);
 }
 // URL -> index, voor het opzoeken van bovenliggende (algemenere) pagina's.
 let URL2IDX=null;
@@ -436,10 +454,17 @@ function ancestorsOf(url){
 const SPECIFIC_RX=/voor het eerst|eerste keer|voor (mijn|uw|je|een) kind|verloren|gestolen|kwijt|vermist/i;
 const isSpecificPage=idx=>SPECIFIC_RX.test(CORPUS[idx].title||"");
 async function rankFor(q){
-  let cands;
-  if(SEM.meta){try{const r=await semanticRank(q);if(r.length)cands=r;}catch(e){/* val terug op trefwoord */}}
-  if(!cands)cands=rank(q);
-  if(!cands.length)return cands;
+  const K=10;
+  let sem=[];
+  if(SEM.meta){try{sem=await semanticRank(q,K);}catch(e){/* val terug op trefwoord */}}
+  const kw=rank(q,K);
+  if(!sem.length&&!kw.length)return [];
+  // Hybride: Reciprocal Rank Fusion van semantisch (synoniemen/parafrase) en trefwoord
+  // (exacte/zeldzame termen). Pagina's die in ÉÉN van beide hoog staan, komen boven.
+  const score=new Map();
+  const add=list=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+1/(20+r)));
+  add(sem);add(kw);
+  let cands=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]).slice(0,TOPK);
   // Voeg de algemene/hub-pagina van de beste treffer toe, zodat het model bij een
   // algemene vraag altijd een passage heeft die voor iedereen geldt (i.p.v. alleen
   // situatie-specifieke pagina's zoals "Voor het eerst…" of "voor uw kind").
@@ -567,7 +592,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 12";
+const APP_VERSION="build 13";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
