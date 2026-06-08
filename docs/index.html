@@ -432,6 +432,9 @@ function ancestorsOf(url){
   while(u.length>base.length){const cut=u.lastIndexOf("/");if(cut<base.length)break;u=u.slice(0,cut);if(u.length>base.length&&m.has(u))out.push(m.get(u));}
   return out;
 }
+// Pagina die een specifieke situatie aanneemt (eerste aanvraag, kind, verlies/diefstal).
+const SPECIFIC_RX=/voor het eerst|eerste keer|voor (mijn|uw|je|een) kind|verloren|gestolen|kwijt|vermist/i;
+const isSpecificPage=idx=>SPECIFIC_RX.test(CORPUS[idx].title||"");
 async function rankFor(q){
   let cands;
   if(SEM.meta){try{const r=await semanticRank(q);if(r.length)cands=r;}catch(e){/* val terug op trefwoord */}}
@@ -440,8 +443,11 @@ async function rankFor(q){
   // Voeg de algemene/hub-pagina van de beste treffer toe, zodat het model bij een
   // algemene vraag altijd een passage heeft die voor iedereen geldt (i.p.v. alleen
   // situatie-specifieke pagina's zoals "Voor het eerst…" of "voor uw kind").
-  const anc=ancestorsOf(CORPUS[cands[0]].url).filter(i=>!cands.includes(i));
-  if(anc.length)cands=[cands[0],...anc.slice(0,2),...cands.slice(1)];
+  const top=cands[0],rest=cands.slice(1);
+  const anc=ancestorsOf(CORPUS[top].url).filter(i=>!cands.includes(i)).slice(0,2);
+  // Is de beste treffer situatie-specifiek en bestaat er een algemene hub? Zet de hub dan vooraan.
+  if(anc.length&&isSpecificPage(top))cands=[anc[0],top,...anc.slice(1),...rest];
+  else if(anc.length)cands=[top,...anc,...rest];
   return cands;
 }
 
@@ -561,7 +567,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 11";
+const APP_VERSION="build 12";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
@@ -711,7 +717,12 @@ function demoAnswer(q,cands){
 }
 
 async function askAI(q,cands,key){
-  const listing=cands.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${CORPUS[idx].text}`).join("\n\n---\n\n");
+  // Markeer de algemene overzichtspagina(s) — pagina's die boven andere kandidaten staan in de site-hiërarchie.
+  const isHub=idx=>cands.some(o=>o!==idx&&ancestorsOf(CORPUS[o].url).includes(idx));
+  const listing=cands.map((idx,n)=>{
+    const tag=isHub(idx)?"  [ALGEMENE OVERZICHTSPAGINA — gebruik deze passage voor het kernantwoord bij een algemene vraag; NIET een situatie-specifieke pagina]":"";
+    return `[${n}] TITEL: ${CORPUS[idx].title}${tag}\nURL: ${CORPUS[idx].url}\nTEKST:\n${CORPUS[idx].text}`;
+  }).join("\n\n---\n\n");
   const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
   const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SYSTEM,user);
   const r=parseModelJSON(text);
