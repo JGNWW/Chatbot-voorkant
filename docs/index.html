@@ -49,6 +49,11 @@ body{margin:0;font-family:"Source Sans 3","Segoe UI",system-ui,-apple-system,san
 .keybar a{color:var(--rijk-licht);font-size:.78rem;white-space:nowrap;font-weight:600;}
 .keybar .status{font-size:.78rem;width:100%;color:var(--ink-licht);}
 .conversation{flex:1;padding:32px 28px;overflow-y:auto;}
+/* Welkomststaat: begroeting + composer samen verticaal gecentreerd (zoals ChatGPT) */
+body.is-welcome .conversation{flex:0 0 auto;margin-top:auto;overflow:visible;padding-bottom:8px;}
+body.is-welcome .composer{margin-bottom:auto;}
+body.is-welcome .welcome{margin-top:0;}
+body.is-welcome .empty{margin-top:0;}
 .empty{color:var(--ink-licht);font-style:italic;text-align:center;margin-top:8vh;}
 .samples{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:680px;margin-left:auto;margin-right:auto;}
 .samples button{background:#fff;border:1px solid var(--rand);border-radius:14px;padding:10px 16px;font-size:.88rem;cursor:pointer;color:var(--rijk-blauw);font-family:inherit;transition:background .12s,border-color .12s,transform .08s;}
@@ -105,12 +110,10 @@ a{color:var(--rijk-licht);}
 .welcome-logo{display:block;width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto 18px;border:1px solid var(--rand);box-shadow:0 4px 16px rgba(20,40,70,.1);}
 .welcome strong{color:var(--rijk-blauw);font-size:1.32rem;display:block;margin-bottom:6px;font-weight:700;}
 .welcome .hint{display:block;margin-top:14px;color:var(--ink-licht);font-style:normal;font-size:.92rem;}
-/* Typing-indicator (drie stuiterende puntjes) */
-.typing{display:inline-flex;gap:4px;align-items:center;vertical-align:middle;margin-right:6px;}
-.typing i{width:7px;height:7px;border-radius:50%;background:#9bb0c4;display:inline-block;animation:typing 1.2s infinite ease-in-out;}
-.typing i:nth-child(2){animation-delay:.2s;}
-.typing i:nth-child(3){animation-delay:.4s;}
-@keyframes typing{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-4px);opacity:1;}}
+/* Typing-indicator: shimmer over de tekst (modern, zoals Claude) */
+.shimmer{font-weight:600;background:linear-gradient(90deg,#aab6c4 20%,var(--rijk-blauw) 50%,#aab6c4 80%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:shimmer 1.5s linear infinite;}
+@keyframes shimmer{to{background-position:-200% 0;}}
+@media (prefers-reduced-motion:reduce){.shimmer{animation:none;color:var(--ink-licht);-webkit-text-fill-color:currentColor;}}
 /* Kopieer-knop per citaat */
 blockquote.answer{position:relative;padding-right:44px;}
 .copy-cite{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.85);border:1px solid var(--rand);border-radius:6px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#5a6b7b;opacity:0;transition:opacity .12s;}
@@ -145,15 +148,15 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 .clickable-cite:hover{background:#eef6e6;}
 .clickable-cite.unverified:hover{background:#fbeed7;}
 /* Bron-viewer (links inschuivend paneel) */
-.viewer{position:fixed;top:0;left:0;bottom:0;width:clamp(320px,42vw,600px);max-width:100%;background:#fff;box-shadow:2px 0 16px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .25s ease;z-index:60;}
+.viewer{position:fixed;top:0;left:0;bottom:0;width:clamp(320px,42vw,600px);max-width:100%;background:#fff;box-shadow:6px 0 40px rgba(20,40,70,.18);display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .25s ease;z-index:60;}
 body.viewer-open .viewer{transform:translateX(0);}
-.viewer-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--rijk-blauw);color:#fff;flex:0 0 auto;}
-.viewer-title{flex:1 1 auto;min-width:0;font-size:.88rem;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.viewer-open{flex:0 0 auto;color:var(--vraag-bg);font-size:.76rem;white-space:nowrap;text-decoration:none;border:1px solid rgba(255,255,255,.45);border-radius:14px;padding:4px 10px;}
-.viewer-open:hover{background:rgba(255,255,255,.15);}
-.viewer-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:50%;width:30px;height:30px;cursor:pointer;flex:0 0 auto;font-size:.85rem;line-height:1;}
-.viewer-close:hover{background:rgba(255,255,255,.28);}
-.viewer-body{padding:18px 20px;overflow-y:auto;line-height:1.55;font-size:.92rem;color:#222;word-wrap:break-word;}
+.viewer-head{display:flex;align-items:center;gap:10px;padding:14px 16px;background:rgba(255,255,255,.9);backdrop-filter:saturate(1.6) blur(8px);color:var(--rijk-blauw);border-bottom:1px solid var(--rand);flex:0 0 auto;}
+.viewer-title{flex:1 1 auto;min-width:0;font-size:.92rem;font-weight:700;line-height:1.3;color:var(--rijk-blauw);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.viewer-open{flex:0 0 auto;color:var(--rijk-licht);background:#fff;font-size:.76rem;font-weight:600;white-space:nowrap;text-decoration:none;border:1px solid var(--rand);border-radius:14px;padding:5px 12px;transition:background .12s,border-color .12s;}
+.viewer-open:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
+.viewer-close{background:#fff;color:var(--ink-licht);border:1px solid var(--rand);border-radius:50%;width:34px;height:34px;cursor:pointer;flex:0 0 auto;font-size:.85rem;line-height:1;transition:background .12s,color .12s;}
+.viewer-close:hover{background:var(--grijs);color:var(--rijk-blauw);}
+.viewer-body{padding:20px 22px;overflow-y:auto;line-height:1.65;font-size:.95rem;color:var(--ink);word-wrap:break-word;}
 .viewer-body .vp{margin:0 0 3px;white-space:pre-wrap;}
 .viewer-body .vh{font-weight:700;color:var(--rijk-blauw);margin:16px 0 5px;line-height:1.25;white-space:pre-wrap;}
 .viewer-body .vh:first-child{margin-top:0;}
@@ -186,7 +189,7 @@ body.viewer-open .viewer{transform:translateX(0);}
 }
 </style>
 </head>
-<body>
+<body class="is-welcome">
 <div class="app">
   <header class="header">
     <img class="brand-logo" src="assets/avatar.png" alt="" onerror="this.style.display='none'" />
@@ -470,6 +473,7 @@ SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.o
 
 document.getElementById("reset").addEventListener("click",()=>{
   history=[];
+  document.body.classList.add("is-welcome");
   conv.innerHTML='<p class="empty">Nieuw gesprek. Stel een vraag.</p>';
 });
 
@@ -570,10 +574,11 @@ async function askAI(q,cands,key){
 }
 
 function addTurn(q){
+  document.body.classList.remove("is-welcome");
   document.querySelector(".empty")?.remove();document.getElementById("samples")?.remove();
   const art=document.createElement("article");art.className="turn";
   art.innerHTML=`<div class="row user"><div class="bubble vraag">${escapeHtml(q)}</div></div>`
-    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="typing" aria-hidden="true"><i></i><i></i><i></i></span>Bezig met opzoeken…</div></div></div></div>`;
+    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span></div></div></div></div>`;
   conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
 }
 function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
