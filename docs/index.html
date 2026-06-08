@@ -309,10 +309,10 @@ Stel een antwoord samen dat bestaat uit:
 1. "citations": de relevante passages die samen de vraag beantwoorden. Geef NIET de volledige tekst, maar per passage alleen een VERWIJZING: "source_index" (paginanummer), "start" (de eerste 4 tot 8 woorden van de passage, EXACT overgenomen uit de paginatekst) en "end" (de laatste 4 tot 8 woorden van de passage, EXACT overgenomen). De app knipt zelf het stuk tussen start en end uit de pagina. Begin en eindig op een natuurlijke zinsgrens; de passage moet aaneengesloten in de tekst staan. Kopieer "start" en "end" exact (zelfde woorden, leestekens en hoofdletters) zodat ze letterlijk terug te vinden zijn. Je mag passages uit verschillende pagina's combineren. REGELS voor goede citaten:
    - Citeer alleen VOLLEDIGE, op zichzelf staande zinnen of alinea's met inhoud. Citeer NOOIT een los kopje, sectietitel, knoptekst of navigatielabel (korte regels zonder werkwoord, zoals "Buitenland", "Let op:" of "Tijdelijke aanvraaglocaties").
    - Kies zo WEINIG citaten als nodig. Voeg alleen een tweede of derde citaat toe als dat ECHT nieuwe, aanvullende informatie geeft. Geen overlappende of herhalende citaten.
-   - RELEVANTIE: kies citaten die de vraag van de burger DIRECT beantwoorden. Het EERSTE citaat geeft het meest directe, ALGEMENE antwoord op de vraag. Ga NIET uit van een specifieke situatie (zoals een aanvraag voor een KIND, een EERSTE aanvraag, of een verloren document) tenzij de vraag daar expliciet om gaat; kies anders de algemene pagina/passage die voor iedereen geldt.
+   - RELEVANTIE & GEEN AANNAMES: kies citaten die de vraag DIRECT en ALGEMEEN beantwoorden. Neem NOOIT een situatie aan die de burger niet zelf heeft genoemd. Bij een algemene vraag als "Hoe vraag ik een ID-kaart of paspoort aan?" mag je er dus NIET van uitgaan dat het een EERSTE aanvraag is, een aanvraag VOOR EEN KIND, of een vervanging na verlies/diefstal. Citeer dan een passage die voor IEDEREEN geldt (de algemene aanvraag- of overzichtspagina). Het EERSTE citaat (kernantwoord) mag NOOIT openen met een situatie-aanname zoals "Heeft u of uw kind…", "Voor het eerst…" of "Bent u uw paspoort verloren…". Staan er zowel een algemene als een situatie-specifieke pagina ("Voor het eerst…", "voor uw kind", "verloren of gestolen", of een specifiek land) tussen de pagina's, kies dan ALTIJD de algemene — tenzij de vraag duidelijk over die specifieke situatie gaat.
    - BEKNOPT: houd elk citaat KORT en gefocust — kies één samenhangende alinea (liefst 2 tot 5 zinnen) die precies het betreffende punt beantwoordt. Citeer NOOIT een hele paginasectie met meerdere tussenkopjes, opsommingen van links, "Bekijk…"- of "Lees…"-knopteksten, of losse "Let op:"-blokken. Stopt de relevante alinea waar een nieuw kopje of navigatietekst begint, zet "end" dan vóór dat kopje.
    - VOLGORDE & TUSSENKOPJES: zet de citaten in een logische leesvolgorde en groepeer ze met een "heading" per citaat onder korte tussenkopjes (bv. "Waar aanvragen", "Kosten", "Wat u nodig heeft", "Hoe lang het duurt", "Uitzonderingen"). Een tussenkopje is een KORT, beschrijvend label van 2 tot 4 woorden — GEEN zin en GEEN dubbele punt. Citaten die bij elkaar horen krijgen EXACT dezelfde "heading" (dan komen ze onder één kopje); een nieuw onderwerp krijgt een nieuwe heading. Houd een logische volgorde aan: eerst het kernantwoord, dan waar/hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. Laat de "heading" van het EERSTE citaat ALTIJD LEEG — dat citaat is het kernantwoord en wordt zonder kopje getoond. Gebruik dus GEEN kopje zoals "Kernantwoord". Gebruik tussenkopjes alleen als het antwoord uit meerdere onderdelen bestaat; bij één kort, samenhangend antwoord laat je alle headings leeg.
-2. "clarifications": vragen die de voorlichter aan de burger moet stellen om een PRECIEZER antwoord te geven, als het antwoord daarvan afhangt. Veel antwoorden hangen af van het LAND waar de aanvrager woont. Geef per verduidelijking een "question" (wat de voorlichter moet uitvragen) en een "prefill" (een begin van een vervolgvraag dat de voorlichter kan aanvullen, bv. "Visum voor Nederland aanvragen vanuit "). Laat leeg als alles al duidelijk is.
+2. "clarifications": als het juiste antwoord AFHANGT van de situatie van de burger, neem dan geen aanname maar zet hier de vraag/vragen die de voorlichter moet stellen. Veel antwoorden hangen af van: het LAND waar de aanvrager woont, of het een EERSTE aanvraag of een VERVANGING/VERLENGING is, en of het voor een VOLWASSENE of voor een KIND is. Geef per verduidelijking een "question" (wat de voorlichter uitvraagt) en een "prefill" (begin van een vervolgvraag dat de voorlichter aanvult, bv. "ID-kaart aanvragen vanuit "). Geef bij een situatie-afhankelijke vraag ALTIJD minstens één verduidelijking, zodat de voorlichter de juiste situatie kan uitvragen in plaats van dat jij iets aanneemt. Laat leeg als er echt niets te verduidelijken valt.
 3. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
@@ -422,9 +422,27 @@ async function semanticRank(q){
   scored.sort((a,b)=>b[0]-a[0]);
   return scored.slice(0,TOPK).map(x=>x[1]);
 }
+// URL -> index, voor het opzoeken van bovenliggende (algemenere) pagina's.
+let URL2IDX=null;
+function urlIndex(){if(!URL2IDX){URL2IDX=new Map();CORPUS.forEach((p,i)=>URL2IDX.set((p.url||"").replace(/\/+$/,""),i));}return URL2IDX;}
+// Bovenliggende pagina's (hub/overzicht) van een URL die ook echt in het corpus staan — niet de domeinroot.
+function ancestorsOf(url){
+  const m=urlIndex(),out=[];let u=(url||"").replace(/\/+$/,"");
+  const root=u.match(/^https?:\/\/[^/]+/);if(!root)return out;const base=root[0];
+  while(u.length>base.length){const cut=u.lastIndexOf("/");if(cut<base.length)break;u=u.slice(0,cut);if(u.length>base.length&&m.has(u))out.push(m.get(u));}
+  return out;
+}
 async function rankFor(q){
-  if(SEM.meta){try{const r=await semanticRank(q);if(r.length)return r;}catch(e){/* val terug op trefwoord */}}
-  return rank(q);
+  let cands;
+  if(SEM.meta){try{const r=await semanticRank(q);if(r.length)cands=r;}catch(e){/* val terug op trefwoord */}}
+  if(!cands)cands=rank(q);
+  if(!cands.length)return cands;
+  // Voeg de algemene/hub-pagina van de beste treffer toe, zodat het model bij een
+  // algemene vraag altijd een passage heeft die voor iedereen geldt (i.p.v. alleen
+  // situatie-specifieke pagina's zoals "Voor het eerst…" of "voor uw kind").
+  const anc=ancestorsOf(CORPUS[cands[0]].url).filter(i=>!cands.includes(i));
+  if(anc.length)cands=[cands[0],...anc.slice(0,2),...cands.slice(1)];
+  return cands;
 }
 
 // Repareer afgekapte JSON: knip terug tot na de laatst afgesloten haak en sluit
@@ -543,7 +561,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 10";
+const APP_VERSION="build 11";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
