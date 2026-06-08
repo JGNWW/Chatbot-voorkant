@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Voorlichter Chatbot — NederlandWereldwijd (testomgeving)</title>
+<title>Leo (voorlichter assistent) — NederlandWereldwijd (testomgeving)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
@@ -38,6 +38,7 @@ html,body{height:100%;}
 .brand-logo{width:40px;height:40px;border-radius:50%;flex:0 0 40px;object-fit:cover;border:1px solid var(--rand);background:#fff;}
 .brand-text{min-width:0;}
 .brand-text h1{margin:0;font-size:1rem;font-weight:700;color:var(--rijk-blauw);line-height:1.2;}
+.brand-sub{font-weight:400;font-size:.82em;color:var(--ink-licht);}
 .brand-text p{margin:1px 0 0;font-size:.74rem;color:var(--ink-licht);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .new-chat{display:flex;align-items:center;justify-content:center;gap:7px;margin:6px 14px 10px;padding:10px 14px;background:var(--rijk-licht);color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .12s;}
 .new-chat:hover{background:var(--rijk-donker);}
@@ -217,7 +218,7 @@ body.viewer-open .viewer{flex-basis:clamp(360px,34vw,540px);}
     <div class="sidebar-head">
       <img class="brand-logo" src="assets/avatar.png" alt="" onerror="this.style.display='none'" />
       <div class="brand-text">
-        <h1>Voorlichter-assistent</h1>
+        <h1>Leo <span class="brand-sub">(voorlichter assistent)</span></h1>
         <p>NederlandWereldwijd — testomgeving</p>
       </div>
     </div>
@@ -234,7 +235,7 @@ body.viewer-open .viewer{flex-basis:clamp(360px,34vw,540px);}
   <div class="chat">
     <div class="chat-topbar">
       <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Gesprekken tonen" title="Gesprekken"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-      <span class="chat-topbar-title">Voorlichter-assistent</span>
+      <span class="chat-topbar-title">Leo <span class="brand-sub">(voorlichter assistent)</span></span>
     </div>
     <div class="keybar hidden" id="keybar">
       <select id="provider" title="Kies AI-provider"></select>
