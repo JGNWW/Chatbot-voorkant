@@ -5,11 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Voorlichter Chatbot — NederlandWereldwijd (testomgeving)</title>
 <style>
-:root{--rijk-blauw:#154273;--rijk-licht:#007bc7;--cap-blauw:#1f7ec4;--vraag-bg:#cfe6fb;--vraag-tekst:#14375e;--groen:#39870c;--oranje:#d3780c;--grijs:#f3f3f3;--rand:#d6d6d6;}
+:root{
+  /* Rijksoverheid-palet, in lijn met het avatar-icoon (blauwe pet, navy contouren, gele hond) */
+  --rijk-blauw:#154273;   /* ro-darker  – header, koppen */
+  --rijk-licht:#007bc7;   /* ro-blue    – links, accenten */
+  --rijk-donker:#01689b;  /* ro-dark    – hover */
+  --cap-blauw:#007bc7;    /* pet-blauw  – bronverwijzingen */
+  --geel:#ffb612;         /* ro-yellow  – icoon-accent */
+  --oranje:#e17000;       /* ro-orange */
+  --groen:#39870c;        /* ro-green */
+  --rood:#d52b1e;         /* ro-red */
+  --vraag-bg:#d9ebf7;     /* ro-lighter – vraagbubbel */
+  --vraag-tekst:#154273;
+  --blauw-bg:#e6f0f7;     /* ro-bg      – lichte blauwe vlakken */
+  --blauw-licht:#b3d7ee;  /* ro-light   – zachte blauwe randen */
+  --grijs:#f3f3f3;        /* bg-alt */
+  --rand:#e5e5e5;         /* line-light */
+  --rand-sterk:#c9c9c9;   /* line */
+  --ink:#333333;
+  --ink-licht:#696969;
+}
 *{box-sizing:border-box;}
-body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--grijs);color:#1a1a1a;}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--grijs);color:var(--ink);}
 .app{max-width:760px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
-.header{background:var(--rijk-blauw);color:#fff;padding:18px 24px;position:relative;}
+.header{background:var(--rijk-blauw);color:#fff;padding:18px 24px;position:relative;border-bottom:3px solid var(--geel);}
 .header-actions{position:absolute;top:14px;right:16px;display:flex;gap:8px;align-items:center;}
 .reset{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:16px;padding:5px 12px;font-size:.78rem;cursor:pointer;}
 .reset:hover{background:rgba(255,255,255,.28);}
@@ -22,14 +41,14 @@ body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;backgrou
 .keybar{background:#0f3258;color:#fff;padding:10px 24px;font-size:.82rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .keybar select,.keybar input{padding:7px 10px;border:none;border-radius:6px;font-size:.85rem;}
 .keybar input{flex:1;min-width:180px;}
-.keybar a{color:#cfe6fb;font-size:.78rem;white-space:nowrap;}
+.keybar a{color:var(--vraag-bg);font-size:.78rem;white-space:nowrap;}
 .keybar .status{font-size:.78rem;width:100%;}
 .conversation{flex:1;padding:24px;overflow-y:auto;}
 .empty{color:#666;font-style:italic;}
 .samples{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;}
 .samples button{background:#fff;border:1px solid var(--rand);border-radius:16px;padding:6px 12px;font-size:.8rem;cursor:pointer;}
 .turn{margin-bottom:28px;}
-.label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:#6a6a6a;margin-bottom:4px;}
+.label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-licht);margin-bottom:4px;}
 .turn{margin-bottom:22px;}
 .row{display:flex;margin-bottom:14px;gap:10px;align-items:flex-end;}
 .row.user{justify-content:flex-end;}
@@ -45,7 +64,7 @@ body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;backgrou
 .bridge{margin:0 0 10px;font-weight:600;}
 blockquote.answer{margin:0 0 8px;padding:12px 16px;background:#f7faf4;border-left:4px solid var(--groen);white-space:pre-wrap;line-height:1.5;border-radius:4px;}
 blockquote.answer.unverified{background:#fdf6ec;border-left-color:var(--oranje);}
-.cite-src{font-size:.72rem;color:#6a6a6a;margin:0 0 12px 4px;}
+.cite-src{font-size:.72rem;color:var(--ink-licht);margin:0 0 12px 4px;}
 .cite-ref{font-size:.72rem;font-weight:700;text-decoration:none;color:var(--cap-blauw);vertical-align:super;white-space:nowrap;}
 .cite-ref:hover{text-decoration:underline;}
 ol.srclist{margin:4px 0 0;padding-left:20px;}
@@ -55,9 +74,9 @@ ol.srclist li{margin:2px 0;}
 .section{margin-top:16px;font-size:.9rem;}
 .section ul{margin:4px 0 0;padding-left:18px;}
 .section .label{margin-bottom:6px;}
-.clarify{margin:12px 0;padding:12px 14px;background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px;}
+.clarify{margin:12px 0;padding:12px 14px;background:var(--blauw-bg);border:1px solid var(--blauw-licht);border-radius:8px;}
 .clarify .label{color:var(--rijk-blauw);}
-.clarify button{display:block;text-align:left;width:100%;margin-top:6px;background:#fff;border:1px solid #cfe0f2;border-radius:6px;padding:8px 10px;font-size:.88rem;cursor:pointer;}
+.clarify button{display:block;text-align:left;width:100%;margin-top:6px;background:#fff;border:1px solid var(--blauw-licht);border-radius:6px;padding:8px 10px;font-size:.88rem;cursor:pointer;}
 .clarify button:hover{background:#f5f9fd;}
 .followups{margin-top:16px;}
 .followups .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
@@ -65,15 +84,15 @@ ol.srclist li{margin:2px 0;}
 .followups button:hover{background:#f0f5fa;border-color:var(--rijk-licht);}
 a{color:var(--rijk-licht);}
 .loading{margin-top:12px;color:#555;font-style:italic;}
-.error{margin-top:12px;color:#b00020;}
+.error{margin-top:12px;color:var(--rood);}
 .composer{display:flex;gap:8px;padding:16px 24px;background:#fff;border-top:1px solid var(--rand);}
 .composer input{flex:1;padding:12px 14px;border:1px solid var(--rand);border-radius:8px;font-size:1rem;}
 .composer button{padding:12px 20px;background:var(--rijk-blauw);color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;}
 .composer button:disabled{opacity:.5;cursor:default;}
 .composer button:hover:not(:disabled){background:#0f3258;}
 .badge{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;}
-.badge.ai{background:#e6f0fa;color:var(--rijk-blauw);}
-.badge.demo{background:#fdecec;color:#b00020;}
+.badge.ai{background:var(--blauw-bg);color:var(--rijk-blauw);}
+.badge.demo{background:#fdecec;color:var(--rood);}
 /* Welkomststaat (lege conversatie) */
 .welcome{font-style:normal;color:#33485c;line-height:1.5;}
 .welcome strong{color:var(--rijk-blauw);}
@@ -106,11 +125,11 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 .act-btn:hover{background:#f0f5fa;border-color:var(--rijk-licht);}
 .act-btn.ok{border-color:var(--groen);color:var(--groen);}
 /* Feedback (klopt dit antwoord?) */
-.feedback{display:inline-flex;gap:6px;align-items:center;font-size:.78rem;color:#6a6a6a;}
+.feedback{display:inline-flex;gap:6px;align-items:center;font-size:.78rem;color:var(--ink-licht);}
 .fb-btn{background:#fff;border:1px solid var(--rand);border-radius:50%;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;line-height:1;}
 .fb-btn:hover{background:#f0f5fa;}
 .fb-btn.sel-up{background:#e9f6e3;border-color:var(--groen);}
-.fb-btn.sel-down{background:#fdecec;border-color:#b00020;}
+.fb-btn.sel-down{background:#fdecec;border-color:var(--rood);}
 /* Toegankelijkheid: zichtbare focus voor toetsenbordnavigatie */
 :focus-visible{outline:2px solid var(--rijk-licht);outline-offset:2px;}
 /* Citaat klikbaar -> bronpagina-paneel */
@@ -122,7 +141,7 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 body.viewer-open .viewer{transform:translateX(0);}
 .viewer-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--rijk-blauw);color:#fff;flex:0 0 auto;}
 .viewer-title{flex:1 1 auto;min-width:0;font-size:.88rem;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.viewer-open{flex:0 0 auto;color:#cfe6fb;font-size:.76rem;white-space:nowrap;text-decoration:none;border:1px solid rgba(255,255,255,.45);border-radius:14px;padding:4px 10px;}
+.viewer-open{flex:0 0 auto;color:var(--vraag-bg);font-size:.76rem;white-space:nowrap;text-decoration:none;border:1px solid rgba(255,255,255,.45);border-radius:14px;padding:4px 10px;}
 .viewer-open:hover{background:rgba(255,255,255,.15);}
 .viewer-close{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:50%;width:30px;height:30px;cursor:pointer;flex:0 0 auto;font-size:.85rem;line-height:1;}
 .viewer-close:hover{background:rgba(255,255,255,.28);}
