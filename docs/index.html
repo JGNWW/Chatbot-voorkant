@@ -205,13 +205,19 @@ body.viewer-open .viewer{flex-basis:clamp(360px,34vw,540px);}
 .viewer-open:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
 .viewer-close{background:#fff;color:var(--ink-licht);border:1px solid var(--rand);border-radius:50%;width:34px;height:34px;cursor:pointer;flex:0 0 auto;font-size:.85rem;line-height:1;transition:background .12s,color .12s;}
 .viewer-close:hover{background:var(--grijs);color:var(--rijk-blauw);}
-.viewer-body{padding:20px 22px;overflow-y:auto;line-height:1.65;font-size:.95rem;color:var(--ink);word-wrap:break-word;}
-.viewer-body .vp{margin:0 0 3px;white-space:pre-wrap;}
-.viewer-body .vh{font-weight:700;color:var(--rijk-blauw);margin:16px 0 5px;line-height:1.25;white-space:pre-wrap;}
-.viewer-body .vh:first-child{margin-top:0;}
-.viewer-body .vh1{font-size:1.22rem;}
-.viewer-body .vh2{font-size:1.08rem;}
-.viewer-body .vh3{font-size:.98rem;color:#33495f;}
+.viewer-body{padding:20px 22px;overflow-x:hidden;overflow-y:auto;line-height:1.65;font-size:.95rem;color:var(--ink);white-space:normal;overflow-wrap:anywhere;}
+.viewer-body .vp{margin:0 0 11px;line-height:1.62;white-space:normal;}
+.viewer-body .vh{font-weight:700;color:var(--rijk-blauw);line-height:1.3;}
+.viewer-body .vh1{font-size:1.22rem;margin:0 0 8px;}
+.viewer-body .vh3{font-size:1rem;color:#33495f;margin:14px 0 5px;}
+/* H2-secties als nette uitklappers, met chevron */
+.viewer-body details.vsec{border-top:1px solid var(--rand);}
+.viewer-body summary.vh2{font-size:1.08rem;cursor:pointer;list-style:none;position:relative;padding:13px 0 13px 26px;margin:0;user-select:none;}
+.viewer-body summary.vh2::-webkit-details-marker{display:none;}
+.viewer-body summary.vh2::before{content:"›";position:absolute;left:7px;top:11px;font-size:1.25rem;line-height:1;color:var(--rijk-licht);transition:transform .15s;}
+.viewer-body details[open]>summary.vh2::before{transform:rotate(90deg);}
+.viewer-body summary.vh2:hover{color:var(--rijk-licht);}
+.viewer-body .vsec-body{padding:0 0 14px 2px;}
 .viewer-body mark.hl{background:#ffec70;padding:1px 1px;border-radius:2px;box-shadow:0 0 0 3px #ffec70;}
 .viewer-note{color:var(--oranje);font-size:.85rem;margin-bottom:12px;font-style:italic;}
 .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55;border:0;}
@@ -537,7 +543,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 9";
+const APP_VERSION="build 10";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
@@ -859,25 +865,57 @@ function matchRange(fullText,quote){
   }
   return m?[m.index,m.index+m[0].length]:[-1,-1];
 }
-// Render de paginatekst regel voor regel: koppen (uit page.headings) krijgen kop-opmaak, het citaat blijft geel gearceerd.
+// Nederlandse functiewoorden: eindigt een regel hierop, dan loopt de zin door (link-fragmentatie samenvoegen).
+const VW_FUNC=new Set("in op aan om de het een te voor van met bij uit naar of en dat die dan als tot over per is was zijn wordt worden deze dit door tussen onder boven na vanaf sinds tijdens zonder tegen volgens binnen buiten dan ook niet wel maar want omdat zodat zoals u we ik hij zij ze hun haar onze ons".split(" "));
+// Bepaalt of 'cur' een voortzetting is van de vorige regel (dan samenvoegen tot één alinea).
+function isContinuation(prev,cur){
+  const c=cur.replace(/^\s+/,"");if(!c)return false;
+  if(/^[a-zà-öø-ÿ]/.test(c))return true;                       // begint met kleine letter
+  if(/^[,;:.?!)\]»’'"+–—\/-]/.test(c))return true;   // begint met leesteken/sluiting
+  if(/^\(/.test(c))return true;                                 // begint met haakje openen
+  const p=prev.replace(/\s+$/,"");
+  if(/[(\[«\/–—-]$/.test(p))return true;             // vorige eindigt op open haakje/streepje
+  const m=p.toLowerCase().match(/([a-zà-öø-ÿ]+)$/);
+  if(m&&VW_FUNC.has(m[1]))return true;                          // vorige eindigt op een functiewoord
+  return false;
+}
+// Render de paginatekst als een echte pagina: losse regels worden samengevoegd tot alinea's,
+// H2-koppen worden uitklapbare secties (de sectie met het citaat staat open) en het citaat blijft geel.
 function buildSourceHTML(fullText,quote,headings){
   const [ms,me]=matchRange(fullText,quote);
+  const openAll=ms<0; // citaat niet gevonden -> alles open tonen
   const hmap=new Map();(headings||[]).forEach(([lvl,t])=>{if(t&&!hmap.has(t))hmap.set(t,lvl);});
   const lines=fullText.split("\n");
-  let off=0,firstMark=true,out="";
-  for(const line of lines){
-    const ls=off,le=off+line.length;off=le+1; // +1 voor de \n
-    // Citaat-deel binnen deze regel markeren (indien aanwezig).
-    let content;
-    if(me<0||ms>=le||me<=ls){content=escapeHtml(line);}
-    else{
-      const a=Math.max(ms,ls)-ls,b=Math.min(me,le)-ls;
-      const id=firstMark?' id="hl"':'';firstMark=false;
-      content=escapeHtml(line.slice(0,a))+'<mark class="hl"'+id+'>'+escapeHtml(line.slice(a,b))+'</mark>'+escapeHtml(line.slice(b));
-    }
-    const lvl=hmap.get(line);
-    out+=lvl?`<div class="vh vh${lvl}">${content}</div>`:`<div class="vp">${content}</div>`;
+  const starts=[];let off=0;for(const l of lines){starts.push(off);off+=l.length+1;}
+  // 1) Blokken: kop, of samengevoegde alinea (char-offsets blijven 1:1 omdat \n -> spatie).
+  const blocks=[];let i=0;
+  while(i<lines.length){
+    const line=lines[i],s=starts[i],e=s+line.length,lvl=hmap.get(line);
+    if(lvl){blocks.push({h:lvl,s,e});i++;continue;}
+    if(!line.trim()){i++;continue;}
+    let pe=e,last=line,j=i+1;
+    while(j<lines.length){const nl=lines[j];if(hmap.get(nl)||!nl.trim())break;if(!isContinuation(last,nl))break;pe=starts[j]+nl.length;last=nl;j++;}
+    blocks.push({h:0,s,e:pe});i=j;
   }
+  // 2) Render een tekstbereik met gele markering van het citaat (\n -> spatie).
+  let firstMark=true;
+  const span=(s,e)=>{
+    let html;
+    if(me<0||ms>=e||me<=s)html=escapeHtml(fullText.slice(s,e));
+    else{const a=Math.max(ms,s)-s,b=Math.min(me,e)-s,str=fullText.slice(s,e);const id=firstMark?' id="hl"':'';firstMark=false;
+      html=escapeHtml(str.slice(0,a))+'<mark class="hl"'+id+'>'+escapeHtml(str.slice(a,b))+'</mark>'+escapeHtml(str.slice(b));}
+    return html.replace(/\n/g," ");
+  };
+  const hits=(s,e)=>me>s&&ms<e;
+  // 3) Groepeer in H2-secties (uitklappers); inhoud vóór de eerste H2 = intro (altijd zichtbaar).
+  let out="",cur=null;
+  const flush=()=>{if(cur){out+=`<details class="vsec"${(cur.hit||openAll)?" open":""}><summary class="vh vh2">${cur.sum}</summary><div class="vsec-body">${cur.body}</div></details>`;cur=null;}};
+  for(const b of blocks){
+    if(b.h&&b.h<=2){flush();cur={sum:span(b.s,b.e),body:"",hit:hits(b.s,b.e)};}
+    else{const piece=b.h?`<div class="vh vh${b.h}">${span(b.s,b.e)}</div>`:`<p class="vp">${span(b.s,b.e)}</p>`;
+      if(cur){cur.body+=piece;if(hits(b.s,b.e))cur.hit=true;}else out+=piece;}
+  }
+  flush();
   return {html:out,found:ms>=0};
 }
 // Bouw een URL met text-fragment, zodat de browser op de live pagina naar het citaat springt en het markeert.
