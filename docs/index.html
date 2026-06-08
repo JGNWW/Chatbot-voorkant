@@ -806,8 +806,14 @@ function buildSourceHTML(fullText,quote,headings){
   return {html:out,found:ms>=0};
 }
 // Bouw een URL met text-fragment, zodat de browser op de live pagina naar het citaat springt en het markeert.
-function textFragmentUrl(url,quote){
-  const q=(quote||"").trim().replace(/\s+/g," ");if(!q||!url)return url||"#";
+// Belangrijk: een text-fragment kan niet over een blok-grens (kop -> paragraaf) heen matchen.
+// We strippen daarom eventuele kop-regels uit het citaat en gebruiken alleen woorden uit de lopende tekst.
+function textFragmentUrl(url,quote,headings){
+  if(!url)return "#";
+  let q=(quote||"").trim();if(!q)return url;
+  const hset=new Set((headings||[]).map(h=>h[1]));
+  const lines=q.split(/\n+/).map(s=>s.trim()).filter(s=>s&&!hset.has(s));
+  q=(lines.join(" ").replace(/\s+/g," ")||q.replace(/\s+/g," ")).trim();
   const w=q.split(" ");
   const frag=w.length<=10?encodeURIComponent(q):encodeURIComponent(w.slice(0,6).join(" "))+","+encodeURIComponent(w.slice(-6).join(" "));
   return url+"#:~:text="+frag;
@@ -817,7 +823,7 @@ function openViewer(srcIdx,quote,url,title){
   const text=page?page.text:"";
   const built=buildSourceHTML(text,quote,page&&page.headings);
   viewerTitle.textContent=title||(page&&page.title)||"Bronpagina";
-  viewerOpen.href=textFragmentUrl(url||(page&&page.url),quote);
+  viewerOpen.href=textFragmentUrl(url||(page&&page.url),quote,page&&page.headings);
   viewerBody.innerHTML=(built.found?"":'<div class="viewer-note">Dit citaat kon niet exact op de pagina worden gemarkeerd; hieronder staat de volledige paginatekst.</div>')+built.html;
   viewerLastFocus=document.activeElement;
   document.body.classList.add("viewer-open");viewerEl.setAttribute("aria-hidden","false");viewerBackdrop.hidden=false;
