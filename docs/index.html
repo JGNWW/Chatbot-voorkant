@@ -70,6 +70,7 @@ html,body{height:100%;}
 .keybar input{flex:1;min-width:180px;}
 .keybar a{color:var(--rijk-licht);font-size:.78rem;white-space:nowrap;font-weight:600;}
 .keybar .status{font-size:.78rem;width:100%;color:var(--ink-licht);}
+.keybar .status.build{width:auto;opacity:.55;font-size:.72rem;}
 .conversation{flex:1;padding:32px 28px;overflow-y:auto;}
 /* Welkomststaat: begroeting + composer samen verticaal gecentreerd (zoals ChatGPT) */
 body.is-welcome .conversation{flex:0 0 auto;margin-top:auto;overflow:visible;padding-bottom:8px;}
@@ -265,6 +266,7 @@ body.viewer-open .viewer{flex-basis:clamp(360px,34vw,540px);}
       <a id="keylink" href="#" target="_blank" rel="noreferrer">sleutel ophalen</a>
       <span class="status" id="keystatus"></span>
       <span class="status" id="semstatus">zoeken laden…</span>
+      <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
     </div>
     <main class="conversation" id="conv">
       <p class="empty welcome" id="loadmsg">Corpus laden…</p>
@@ -517,6 +519,9 @@ provSel.addEventListener("change",()=>{localStorage.setItem("provider",provSel.v
 modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.value,modelSel.value);refreshMode();});
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
+// Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
+const APP_VERSION="build 7";
+{const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
 const settingsToggle=document.getElementById("settings-toggle"),keybar=document.getElementById("keybar");
@@ -555,7 +560,7 @@ function showWelcome(){
   document.body.classList.add("is-welcome");
   conv.innerHTML="";
   const p=document.createElement("p");p.className="empty welcome";
-  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help bij je werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij.<span class="hint">Stel een vraag — bijvoorbeeld:</span>';
+  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij.<span class="hint">Stel een vraag — bijvoorbeeld:</span>';
   conv.appendChild(p);
   const s=document.createElement("div");s.className="samples";s.id="samples";
   SAMPLES.forEach(x=>{const b=document.createElement("button");b.textContent=x;b.onclick=()=>askText(x);s.appendChild(b);});
@@ -614,7 +619,7 @@ document.getElementById("reset").addEventListener("click",newConversation);
     if(!r.ok)throw new Error("corpus.json niet gevonden ("+r.status+")");
     CORPUS=await r.json();PTOKENS=CORPUS.map(tokensOf);
     const withSum=CORPUS.filter(p=>p.summary).length;
-    document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help bij je werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
+    document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
       +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Stel een vraag — bijvoorbeeld:</span>";
     sendBtn.disabled=false;
     initSemantic();
