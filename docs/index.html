@@ -321,6 +321,12 @@ const CONDENSE_SYSTEM=`Je krijgt de samenvatting van een lopend gesprek tussen e
 let history=[];
 
 // ---- AI-providers (allemaal rechtstreeks vanuit de browser, met je eigen sleutel) ----
+// Gedeelde aanroep voor OpenAI-compatibele providers (/v1/chat/completions met Bearer-sleutel).
+async function oaiChat(endpoint,key,model,system,user,name){
+  const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
+  if(!r.ok)throw new Error(name+" "+r.status+": "+(await r.text()).slice(0,200));
+  const d=await r.json();return d.choices?.[0]?.message?.content||"";
+}
 const PROVIDERS={
   gemini:{label:"Google Gemini (gratis)",models:["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"],keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
     async call(key,model,system,user){
@@ -335,6 +341,12 @@ const PROVIDERS={
       const txt=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
       if(!txt&&d.candidates?.[0]?.finishReason)throw new Error("Gemini gaf geen tekst terug ("+d.candidates[0].finishReason+"). Probeer opnieuw of kies een ander model.");
       return txt;}},
+  groq:{label:"Groq (gratis, snel)",models:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],keyUrl:"https://console.groq.com/keys",keyHint:"Gratis sleutel via console.groq.com",
+    call(key,model,system,user){return oaiChat("https://api.groq.com/openai/v1/chat/completions",key,model,system,user,"Groq");}},
+  cerebras:{label:"Cerebras (gratis, zeer snel)",models:["llama-3.3-70b","llama-3.1-8b"],keyUrl:"https://cloud.cerebras.ai/",keyHint:"Gratis sleutel via cloud.cerebras.ai",
+    call(key,model,system,user){return oaiChat("https://api.cerebras.ai/v1/chat/completions",key,model,system,user,"Cerebras");}},
+  mistral:{label:"Mistral (gratis, EU)",models:["mistral-small-latest","mistral-large-latest","open-mistral-nemo"],keyUrl:"https://console.mistral.ai/api-keys/",keyHint:"Gratis sleutel via console.mistral.ai",
+    call(key,model,system,user){return oaiChat("https://api.mistral.ai/v1/chat/completions",key,model,system,user,"Mistral");}},
   openai:{label:"OpenAI (ChatGPT)",models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],keyUrl:"https://platform.openai.com/api-keys",keyHint:"Sleutel via platform.openai.com (betaald)",
     async call(key,model,system,user){
       const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
@@ -525,7 +537,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 8";
+const APP_VERSION="build 9";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
@@ -726,7 +738,7 @@ function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" ta
 function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ol>`;}
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
-const ICON_PLUS='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+const ICON_ARROW='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 // Kopieer tekst naar het klembord, met korte visuele bevestiging op de knop.
 function copyText(t,btn){
   const flash=()=>{if(!btn)return;const o=btn.innerHTML,hadLabel=/span/.test(o);btn.classList.add("ok");btn.innerHTML=ICON_OK+(hadLabel?"<span>Gekopieerd</span>":"");setTimeout(()=>{btn.innerHTML=o;btn.classList.remove("ok");},1400);};
@@ -803,7 +815,7 @@ function renderResult(turn,r){
   const fups=r.followups||[];
   if(fups.length){
     f+=`<div class="followups"><span class="label">Mogelijke vervolgvragen</span><ul class="fup-list">`;
-    fups.forEach(fu=>{f+=`<li><button class="fup-row" data-q="${escapeHtml(fu)}"><span class="fup-q">${escapeHtml(fu)}</span><span class="fup-plus">${ICON_PLUS}</span></button></li>`;});
+    fups.forEach(fu=>{f+=`<li><button class="fup-row" data-q="${escapeHtml(fu)}"><span class="fup-q">${escapeHtml(fu)}</span><span class="fup-plus">${ICON_ARROW}</span></button></li>`;});
     f+=`</ul></div>`;
   }
   if(r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
