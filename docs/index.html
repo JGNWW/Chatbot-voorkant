@@ -532,7 +532,7 @@ function showWelcome(){
   document.body.classList.add("is-welcome");
   conv.innerHTML="";
   const p=document.createElement("p");p.className="empty welcome";
-  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Welkom bij de Voorlichter-assistent.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij.<span class="hint">Stel een vraag — bijvoorbeeld:</span>';
+  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help bij je werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij.<span class="hint">Stel een vraag — bijvoorbeeld:</span>';
   conv.appendChild(p);
   const s=document.createElement("div");s.className="samples";s.id="samples";
   SAMPLES.forEach(x=>{const b=document.createElement("button");b.textContent=x;b.onclick=()=>askText(x);s.appendChild(b);});
@@ -591,7 +591,7 @@ document.getElementById("reset").addEventListener("click",newConversation);
     if(!r.ok)throw new Error("corpus.json niet gevonden ("+r.status+")");
     CORPUS=await r.json();PTOKENS=CORPUS.map(tokensOf);
     const withSum=CORPUS.filter(p=>p.summary).length;
-    document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Welkom bij de Voorlichter-assistent.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
+    document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help bij je werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
       +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Stel een vraag — bijvoorbeeld:</span>";
     sendBtn.disabled=false;
     initSemantic();
