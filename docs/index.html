@@ -93,9 +93,6 @@ body.is-welcome .empty{margin-top:0;}
 .restated-sub{font-size:.86rem;color:var(--ink-licht);margin:0 0 12px;line-height:1.45;}
 .restated-sub .rs-label{font-weight:600;}
 .bridge{margin:0 0 12px;font-weight:600;color:var(--ink);}
-/* Verbindende zin tussen citaten + functie-label boven een citaat */
-.passage-lead{margin:18px 0 8px;font-weight:600;color:var(--ink);line-height:1.5;}
-.passage-label{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--rijk-licht);margin:0 0 5px 16px;}
 /* Passage = één citaat als nette, gestructureerde tekst met een bron-kaartje eronder */
 .passage{position:relative;margin:0 0 18px;}
 .cite-body{border-left:3px solid var(--blauw-licht);padding:2px 40px 2px 16px;}
@@ -294,14 +291,11 @@ Stel een antwoord samen dat bestaat uit:
    - Citeer alleen VOLLEDIGE, op zichzelf staande zinnen of alinea's met inhoud. Citeer NOOIT een los kopje, sectietitel, knoptekst of navigatielabel (korte regels zonder werkwoord, zoals "Buitenland", "Let op:" of "Tijdelijke aanvraaglocaties").
    - Kies zo WEINIG citaten als nodig. Voeg alleen een tweede of derde citaat toe als dat ECHT nieuwe, aanvullende informatie geeft. Geen overlappende of herhalende citaten.
    - De citaten mogen NIET hetzelfde zeggen als de "bridge"; de bridge leidt in, de citaten geven de feitelijke inhoud. Vermijd dubbeling.
-   - VOLGORDE: zet de citaten in een logische leesvolgorde zodat ze samen één lopend verhaal vormen: eerst het kernantwoord, dan voorwaarden of stappen, daarna kosten of termijnen, en uitzonderingen of aandachtspunten als laatste.
-   - Geef per citaat een "label": een kort functie-label (1–3 woorden) dat de ROL van het citaat aangeeft. Kies bij voorkeur uit: "Kernantwoord", "Voorwaarden", "Stappen", "Kosten", "Termijn", "Uitzondering", "Aanvragen", "Goed om te weten". Anders een eigen kort label.
-   - Geef per citaat een "lead": één korte verbindende zin die naar het citaat toeleidt (bv. "Daarnaast geldt:", "Over de kosten:", "Let op:"), zodat de citaten vloeiend op elkaar aansluiten. Houd de lead KORT en STRUCTUREEL: voeg er GEEN nieuwe feiten in toe — die staan in het citaat zelf. Laat de "lead" van het EERSTE citaat LEEG, want de "bridge" leidt dat al in.
 3. "clarifications": vragen die de voorlichter aan de burger moet stellen om een PRECIEZER antwoord te geven, als het antwoord daarvan afhangt. Veel antwoorden hangen af van het LAND waar de aanvrager woont. Geef per verduidelijking een "question" (wat de voorlichter moet uitvragen) en een "prefill" (een begin van een vervolgvraag dat de voorlichter kan aanvullen, bv. "Visum voor Nederland aanvragen vanuit "). Laat leeg als alles al duidelijk is.
 4. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
-{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"label":"<functie-label>","lead":"<verbindende zin of leeg>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+{"restated_question":"<de vraag kort en helder geherformuleerd>","bridge":"<korte inleidende zin>","citations":[{"source_index":<paginanummer>,"start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
@@ -677,9 +671,7 @@ async function askAI(q,cands,key){
     quote=expandHeading(CORPUS[gi].text,quote);   // los kopje? vul aan met de inhoud eronder
     if(isWeakQuote(quote)){notFound++;continue;}  // nog steeds te kort/kopje -> overslaan
     if(citations.some(x=>quotesOverlap(x.text,quote)))continue; // dubbel/overlappend -> overslaan
-    const label=(c.label||"").toString().trim().slice(0,40);
-    const lead=(c.lead||"").toString().trim().slice(0,180);
-    citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,label,lead});usedSet.add(gi);
+    citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi});usedSet.add(gi);
   }
   const used=[...usedSet].map(srcOf);
   let related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
@@ -727,7 +719,7 @@ function fallbackCopy(t,cb){const ta=document.createElement("textarea");ta.value
 // Het hele antwoord als platte tekst (inleiding + citaten met bron) — handig om door te geven aan de burger.
 function answerPlainText(r){
   const parts=[];if(r.bridge)parts.push(r.bridge);
-  (r.citations||[]).forEach((c,i)=>{if(c.lead&&(i>0||!r.bridge))parts.push(c.lead);parts.push("“"+c.text+"”"+(c.src?` (${c.src.title} — ${c.src.url})`:""));});
+  (r.citations||[]).forEach(c=>{parts.push("“"+c.text+"”"+(c.src?` (${c.src.title} — ${c.src.url})`:""));});
   return parts.join("\n\n");
 }
 // Feedback lokaal opslaan, zodat we later kunnen zien waar de assistent fout zat.
@@ -756,10 +748,7 @@ function renderResult(turn,r){
     r.citations.forEach((c,i)=>{
       const n=num[c.src.url]||(i+1);
       const live=textFragmentUrl(c.src&&c.src.url,c.text,((CORPUS[c.srcIdx]||{}).headings));
-      // Verbindende zin vóór het citaat (niet bij het eerste als de bridge dat al inleidt).
-      if(c.lead&&(i>0||!r.bridge))h+=`<p class="passage-lead">${escapeHtml(c.lead)}</p>`;
       h+=`<div class="passage ${c.verified?'verified':'unverified'}" data-ci="${i}">`
-        +(c.label?`<div class="passage-label">${escapeHtml(c.label)}</div>`:``)
         +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
         +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(c)}</div>`
         +`<div class="src-card" data-ci="${i}" role="button" tabindex="0" title="Bekijk dit stuk op de bronpagina">`
