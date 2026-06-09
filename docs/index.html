@@ -323,9 +323,9 @@ Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat 
 // Herschrijft een (mogelijk elliptische) vervolgvraag tot een zelfstandige vraag, met gesprekscontext.
 const CONDENSE_SYSTEM=`Je krijgt de samenvatting van een lopend gesprek tussen een voorlichter en een AI over overheidsvragen, plus een nieuwe vraag. Herschrijf de NIEUWE vraag tot één zelfstandige, op zichzelf staande vraag die ook zonder de context te begrijpen is (vul ontbrekend onderwerp aan uit de context). Betreft de nieuwe vraag duidelijk een nieuw onderwerp, geef hem dan vrijwel ongewijzigd terug. Antwoord UITSLUITEND met JSON: {"standalone_question":"<de zelfstandige vraag>"}`;
 // Stap 1: maak de vraag zelfstandig én genereer zoektermen (spreektaal -> ambtelijke/officiële termen) voor betere recall.
-const PREPARE_SYSTEM=`Je helpt bij het zoeken op NederlandWereldwijd.nl (Nederlandse overheid, consulaire zaken). Je krijgt de vraag van een burger en eventueel gesprekscontext. Geef UITSLUITEND JSON: {"standalone_question":"<de vraag zelfstandig leesbaar; vul ontbrekend onderwerp aan uit de context>","search_terms":["<term>", ...]}. "search_terms" zijn 5 tot 12 losse Nederlandse zoekwoorden die helpen de juiste overheidspagina te vinden: vertaal spreektaal naar de OFFICIËLE/ambtelijke term en voeg synoniemen toe. Voorbeelden: "ik ben bestolen" -> ["diefstal","beroofd","bestolen","aangifte","slachtoffer","politie"]; "trouwen in het buitenland" -> ["huwelijk","trouwen","buitenland","huwelijksakte","legalisatie"]. Geef alleen losse woorden, geen zinnen.`;
+const PREPARE_SYSTEM=`Je helpt bij het zoeken op NederlandWereldwijd.nl (Nederlandse overheid, consulaire zaken). Je krijgt de vraag van een burger en eventueel gesprekscontext. Bepaal de ONDERLIGGENDE INFORMATIEBEHOEFTE en interpreteer Nederlandse spreektaal/idiomen. Zo betekent "waar blijft mijn paspoort" NIET een locatievraag, maar "hoe lang duurt het / wanneer kan ik het ophalen". Herschrijf de vraag tot een heldere, zelfstandige informatiebehoefte. Geef UITSLUITEND JSON: {"standalone_question":"<de herschreven informatiebehoefte; vul ontbrekend onderwerp aan uit de context>","search_terms":["<term>", ...]}. "search_terms" zijn 5 tot 12 losse Nederlandse zoekwoorden die helpen de juiste overheidspagina te vinden: vertaal spreektaal naar de OFFICIËLE/ambtelijke term en voeg synoniemen toe. Voorbeelden: "waar blijft mijn paspoort" -> standalone_question "Hoe lang duurt het voordat ik mijn aangevraagde paspoort ontvang of kan ophalen?", search_terms ["doorlooptijd","levertijd","hoelang","ophalen","wachttijd","klaar"]; "ik ben bestolen" -> ["diefstal","beroofd","bestolen","aangifte","slachtoffer","politie"]; "trouwen in het buitenland" -> ["huwelijk","trouwen","buitenland","huwelijksakte","legalisatie"]. Geef alleen losse woorden in search_terms, geen zinnen.`;
 // Stap 2: kies uit een brede lijst kandidaat-pagina's de pagina's die de vraag écht beantwoorden (op intentie, niet op losse woorden).
-const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + korte omschrijving). Kies de pagina's die de vraag het BEST beantwoorden, gelet op de INTENTIE van de burger — niet op losse overeenkomende woorden. Regels: kies bij een ALGEMENE vraag de algemene/overzichtspagina; kies een situatie-specifieke of land-specifieke pagina ALLEEN als de vraag daar duidelijk over gaat; laat pagina's die niet echt passen weg. Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
+const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + korte omschrijving). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling, niet op losse overeenkomende woorden. Regels: heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). Voorbeeld: bij "hoe lang duurt het voor ik mijn paspoort krijg" kies je de pagina over de doorlooptijd/levertijd, niet de algemene paspoortpagina. Laat niet-passende pagina's weg. Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
 let history=[];
@@ -491,6 +491,13 @@ function withHub(cands){
   if(anc.length)return [top,...anc,...rest];
   return cands;
 }
+// Voeg bovenliggende hub-pagina's toe aan de kandidatenlijst (alleen voor recall, geen herordening),
+// zodat de AI-herrangschikking ook een algemene pagina kan kiezen als dat past.
+function hubCandidates(cands){
+  const extra=[];
+  for(const i of cands)for(const a of ancestorsOf(CORPUS[i].url))if(!cands.includes(a)&&!extra.includes(a))extra.push(a);
+  return [...cands,...extra];
+}
 // Eenvoudige retrieval (gebruikt in demo/zonder-sleutel pad).
 async function rankFor(q){return withHub(await hybrid(q,[],TOPK));}
 
@@ -610,7 +617,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 16";
+const APP_VERSION="build 17";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
@@ -760,10 +767,10 @@ async function runQuestion(rawQ){
   const key=keyInput.value.trim();const ai=key.length>10;
   let q,cands;
   if(ai){
-    // Expansie -> breed ophalen -> AI kiest de best passende pagina's -> hub toevoegen.
+    // Expansie -> breed ophalen (+hubs voor recall) -> AI kiest de best passende pagina's op intentie.
     const pre=await prepareQuery(rawQ);q=pre.q;
-    const broad=await hybrid(q,pre.terms,25);
-    cands=withHub(await rerankCandidates(q,broad));
+    const broad=hubCandidates(await hybrid(q,pre.terms,25));
+    cands=await rerankCandidates(q,broad);
   }else{
     q=await condenseQuestion(rawQ);
     cands=await rankFor(q);
@@ -794,12 +801,8 @@ function demoAnswer(q,cands){
 }
 
 async function askAI(q,cands,key){
-  // Markeer de algemene overzichtspagina(s) — pagina's die boven andere kandidaten staan in de site-hiërarchie.
-  const isHub=idx=>cands.some(o=>o!==idx&&ancestorsOf(CORPUS[o].url).includes(idx));
-  const listing=cands.map((idx,n)=>{
-    const tag=isHub(idx)?"  [ALGEMENE OVERZICHTSPAGINA — gebruik deze passage voor het kernantwoord bij een algemene vraag; NIET een situatie-specifieke pagina]":"";
-    return `[${n}] TITEL: ${CORPUS[idx].title}${tag}\nURL: ${CORPUS[idx].url}\nTEKST:\n${CORPUS[idx].text}`;
-  }).join("\n\n---\n\n");
+  // De pagina's staan al op volgorde van relevantie (na AI-herrangschikking).
+  const listing=cands.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${CORPUS[idx].text}`).join("\n\n---\n\n");
   const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
   const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SYSTEM,user);
   const r=parseModelJSON(text);
