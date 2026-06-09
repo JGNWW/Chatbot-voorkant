@@ -322,6 +322,10 @@ Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat 
 
 // Herschrijft een (mogelijk elliptische) vervolgvraag tot een zelfstandige vraag, met gesprekscontext.
 const CONDENSE_SYSTEM=`Je krijgt de samenvatting van een lopend gesprek tussen een voorlichter en een AI over overheidsvragen, plus een nieuwe vraag. Herschrijf de NIEUWE vraag tot één zelfstandige, op zichzelf staande vraag die ook zonder de context te begrijpen is (vul ontbrekend onderwerp aan uit de context). Betreft de nieuwe vraag duidelijk een nieuw onderwerp, geef hem dan vrijwel ongewijzigd terug. Antwoord UITSLUITEND met JSON: {"standalone_question":"<de zelfstandige vraag>"}`;
+// Stap 1: maak de vraag zelfstandig én genereer zoektermen (spreektaal -> ambtelijke/officiële termen) voor betere recall.
+const PREPARE_SYSTEM=`Je helpt bij het zoeken op NederlandWereldwijd.nl (Nederlandse overheid, consulaire zaken). Je krijgt de vraag van een burger en eventueel gesprekscontext. Geef UITSLUITEND JSON: {"standalone_question":"<de vraag zelfstandig leesbaar; vul ontbrekend onderwerp aan uit de context>","search_terms":["<term>", ...]}. "search_terms" zijn 5 tot 12 losse Nederlandse zoekwoorden die helpen de juiste overheidspagina te vinden: vertaal spreektaal naar de OFFICIËLE/ambtelijke term en voeg synoniemen toe. Voorbeelden: "ik ben bestolen" -> ["diefstal","beroofd","bestolen","aangifte","slachtoffer","politie"]; "trouwen in het buitenland" -> ["huwelijk","trouwen","buitenland","huwelijksakte","legalisatie"]. Geef alleen losse woorden, geen zinnen.`;
+// Stap 2: kies uit een brede lijst kandidaat-pagina's de pagina's die de vraag écht beantwoorden (op intentie, niet op losse woorden).
+const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + korte omschrijving). Kies de pagina's die de vraag het BEST beantwoorden, gelet op de INTENTIE van de burger — niet op losse overeenkomende woorden. Regels: kies bij een ALGEMENE vraag de algemene/overzichtspagina; kies een situatie-specifieke of land-specifieke pagina ALLEEN als de vraag daar duidelijk over gaat; laat pagina's die niet echt passen weg. Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
 let history=[];
@@ -464,28 +468,31 @@ function ancestorsOf(url){
 // Pagina die een specifieke situatie aanneemt (eerste aanvraag, kind, verlies/diefstal).
 const SPECIFIC_RX=/voor het eerst|eerste keer|voor (mijn|uw|je|een) kind|verloren|gestolen|kwijt|vermist/i;
 const isSpecificPage=idx=>SPECIFIC_RX.test(CORPUS[idx].title||"");
-async function rankFor(q){
-  const K=10;
+// Hybride kandidaten: Reciprocal Rank Fusion van semantisch (synoniemen/parafrase) en
+// trefwoord (exacte/zeldzame termen + zoektermen). Geen hub-logica; geeft top `limit`.
+async function hybrid(q,terms,limit){
+  const K=Math.max(limit,12);
   let sem=[];
   if(SEM.meta){try{sem=await semanticRank(q,K);}catch(e){/* val terug op trefwoord */}}
-  const kw=rank(q,K);
+  const kw=rank([q,...(terms||[])].join(" "),K);
   if(!sem.length&&!kw.length)return [];
-  // Hybride: Reciprocal Rank Fusion van semantisch (synoniemen/parafrase) en trefwoord
-  // (exacte/zeldzame termen). Pagina's die in ÉÉN van beide hoog staan, komen boven.
   const score=new Map();
   const add=list=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+1/(20+r)));
   add(sem);add(kw);
-  let cands=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]).slice(0,TOPK);
-  // Voeg de algemene/hub-pagina van de beste treffer toe, zodat het model bij een
-  // algemene vraag altijd een passage heeft die voor iedereen geldt (i.p.v. alleen
-  // situatie-specifieke pagina's zoals "Voor het eerst…" of "voor uw kind").
+  return [...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]).slice(0,limit);
+}
+// Voeg de algemene/hub-pagina van de beste treffer toe (en zet die vooraan als de beste
+// treffer situatie-specifiek is), zodat een algemene vraag altijd een algemene passage heeft.
+function withHub(cands){
+  if(!cands.length)return cands;
   const top=cands[0],rest=cands.slice(1);
   const anc=ancestorsOf(CORPUS[top].url).filter(i=>!cands.includes(i)).slice(0,2);
-  // Is de beste treffer situatie-specifiek en bestaat er een algemene hub? Zet de hub dan vooraan.
-  if(anc.length&&isSpecificPage(top))cands=[anc[0],top,...anc.slice(1),...rest];
-  else if(anc.length)cands=[top,...anc,...rest];
+  if(anc.length&&isSpecificPage(top))return [anc[0],top,...anc.slice(1),...rest];
+  if(anc.length)return [top,...anc,...rest];
   return cands;
 }
+// Eenvoudige retrieval (gebruikt in demo/zonder-sleutel pad).
+async function rankFor(q){return withHub(await hybrid(q,[],TOPK));}
 
 // Repareer afgekapte JSON: knip terug tot na de laatst afgesloten haak en sluit
 // de nog openstaande haken. Afgemaakte citaten blijven zo behouden.
@@ -603,7 +610,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 15";
+const APP_VERSION="build 16";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
@@ -721,15 +728,49 @@ async function condenseQuestion(rawQ){
   }catch(e){return rawQ;}
 }
 
+// Stap 1 (AI-modus): maak de vraag zelfstandig + genereer zoektermen voor betere recall.
+async function prepareQuery(rawQ){
+  const key=keyInput.value.trim();
+  if(key.length<=10)return {q:rawQ,terms:[]};
+  const ctx=history.length?("Gesprek tot nu toe:\n"+history.slice(-2).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n")+"\n\n"):"";
+  try{
+    const text=await PROVIDERS[provSel.value].call(key,modelSel.value,PREPARE_SYSTEM,ctx+"Vraag van de burger: "+rawQ);
+    const j=parseModelJSON(text);
+    const q=(j.standalone_question||"").trim()||rawQ;
+    const terms=Array.isArray(j.search_terms)?j.search_terms.map(t=>(""+t).trim()).filter(Boolean).slice(0,12):[];
+    return {q,terms};
+  }catch(e){return {q:rawQ,terms:[]};}
+}
+// Stap 2 (AI-modus): laat het model uit de brede kandidatenlijst de best passende pagina's kiezen.
+async function rerankCandidates(q,cands){
+  const key=keyInput.value.trim();
+  if(key.length<=10||cands.length<=TOPK)return cands.slice(0,TOPK);
+  const listing=cands.map((idx,n)=>`[${n}] ${CORPUS[idx].title}\n${(CORPUS[idx].desc||"").replace(/\s+/g," ").slice(0,200)}`).join("\n\n");
+  try{
+    const text=await PROVIDERS[provSel.value].call(key,modelSel.value,RERANK_SYSTEM,`Vraag van de burger:\n${q}\n\nKandidaat-pagina's:\n${listing}`);
+    const pick=(parseModelJSON(text).pages||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i));
+    const uniq=[...new Set(pick)].slice(0,TOPK);
+    return uniq.length?uniq:cands.slice(0,TOPK);
+  }catch(e){return cands.slice(0,TOPK);}
+}
+
 async function runQuestion(rawQ){
   if(sendBtn.disabled||!rawQ)return;
   const turn=addTurn(rawQ);               // toon de vraag zoals gesteld
-  const q=await condenseQuestion(rawQ);   // maak er een zelfstandige vraag van (met context)
-  const cands=await rankFor(q);
+  const key=keyInput.value.trim();const ai=key.length>10;
+  let q,cands;
+  if(ai){
+    // Expansie -> breed ophalen -> AI kiest de best passende pagina's -> hub toevoegen.
+    const pre=await prepareQuery(rawQ);q=pre.q;
+    const broad=await hybrid(q,pre.terms,25);
+    cands=withHub(await rerankCandidates(q,broad));
+  }else{
+    q=await condenseQuestion(rawQ);
+    cands=await rankFor(q);
+  }
   if(!cands.length){const nores={restated_question:q,citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
-  const key=keyInput.value.trim();
   try{
-    const result=key.length>10?await askAI(q,cands,key):demoAnswer(q,cands);
+    const result=ai?await askAI(q,cands,key):demoAnswer(q,cands);
     renderResult(turn,result);
     recordTurn(rawQ,result);
     if(result.citations&&result.citations.length){
