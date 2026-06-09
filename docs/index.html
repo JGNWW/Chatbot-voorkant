@@ -603,7 +603,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 14";
+const APP_VERSION="build 15";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
