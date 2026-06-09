@@ -420,7 +420,10 @@ async function initSemantic(){
     if(!mR.ok||!bR.ok)throw new Error("geen embeddings");
     SEM.meta=await mR.json();
     SEM.vecs=new Int8Array(await bR.arrayBuffer());
-    if(SEM.vecs.length!==SEM.meta.count*SEM.meta.dim)throw new Error("embeddings passen niet bij corpus");
+    // owner[v] = paginaindex (meerdere chunks per pagina). Oud formaat: 1 vector per pagina.
+    SEM.owner=Array.isArray(SEM.meta.owner)?Int32Array.from(SEM.meta.owner):null;
+    const nvec=SEM.owner?SEM.owner.length:SEM.meta.count;
+    if(SEM.vecs.length!==nvec*SEM.meta.dim)throw new Error("embeddings passen niet bij corpus");
     setSearchStatus("semantisch model laden…");
     SEM.modelPromise=(async()=>{
       const tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
@@ -434,9 +437,17 @@ async function semanticRank(q,limit){
   await SEM.modelPromise;
   if(!SEM.ready)return rank(q,limit);
   const out=await SEM.extractor([SEM.meta.query_prefix+q],{pooling:"mean",normalize:true});
-  const qv=out.data,dim=SEM.meta.dim,n=SEM.meta.count,v=SEM.vecs;
-  const scored=new Array(n);
-  for(let i=0;i<n;i++){let dot=0;const off=i*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];scored[i]=[dot,i];}
+  const qv=out.data,dim=SEM.meta.dim,v=SEM.vecs,owner=SEM.owner;
+  let scored;
+  if(owner){
+    // Meerdere chunks per pagina: bewaar de hoogste chunk-score per pagina.
+    const best=new Map();
+    for(let k=0,nv=owner.length;k<nv;k++){let dot=0;const off=k*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];const pg=owner[k],c=best.get(pg);if(c===undefined||dot>c)best.set(pg,dot);}
+    scored=[...best.entries()].map(([pg,sc])=>[sc,pg]);
+  }else{
+    const n=SEM.meta.count;scored=new Array(n);
+    for(let i=0;i<n;i++){let dot=0;const off=i*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];scored[i]=[dot,i];}
+  }
   scored.sort((a,b)=>b[0]-a[0]);
   return scored.slice(0,limit||TOPK).map(x=>x[1]);
 }
@@ -592,7 +603,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 13";
+const APP_VERSION="build 14";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
