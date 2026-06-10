@@ -154,6 +154,11 @@ a{color:var(--rijk-licht);}
 .loading{margin-top:12px;color:#555;font-style:italic;}
 .error{margin-top:12px;color:var(--rood);}
 .composer{padding:12px 24px 20px;background:linear-gradient(to top,#fff 70%,rgba(255,255,255,0));position:sticky;bottom:0;}
+.suggest{max-width:860px;margin:0 auto 8px;background:#fff;border:1px solid var(--rand);border-radius:14px;box-shadow:0 4px 16px rgba(20,40,70,.1);overflow:hidden;}
+.suggest-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--rand);padding:10px 14px;font-family:inherit;font-size:.9rem;color:var(--ink);cursor:pointer;}
+.suggest-item:last-child{border-bottom:none;}
+.suggest-item:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
+.suggest-ic{opacity:.55;font-size:.85rem;}
 .composer-pill{display:flex;align-items:center;gap:8px;max-width:860px;margin:0 auto;background:#fff;border:1.5px solid var(--rand);border-radius:26px;padding:5px 6px 5px 18px;box-shadow:0 2px 12px rgba(20,40,70,.07);transition:border-color .15s,box-shadow .15s;}
 .composer-pill:focus-within{border-color:var(--rijk-licht);box-shadow:0 3px 16px rgba(0,123,199,.15);}
 .composer input{flex:1;padding:10px 0;border:none;outline:none;font-size:1rem;background:transparent;font-family:inherit;color:var(--ink);}
@@ -301,8 +306,9 @@ body.viewer-open .viewer{flex-basis:clamp(360px,34vw,540px);}
       <div class="samples" id="samples"></div>
     </main>
     <form class="composer" id="form">
+      <div class="suggest" id="suggest" hidden role="listbox" aria-label="Suggesties"></div>
       <div class="composer-pill">
-        <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus />
+        <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus aria-expanded="false" aria-controls="suggest" />
         <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
       </div>
     </form>
@@ -733,7 +739,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 23";
+const APP_VERSION="build 24";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -945,7 +951,26 @@ async function runQuestion(rawQ){
   }
   catch(err){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';}
 }
-document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";runQuestion(q);});
+document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";hideSuggest();runQuestion(q);});
+
+// ---- Typeahead: "bedoelt u dit?"-suggesties op basis van de paginatitels (trefwoordzoeker) ----
+const suggestEl=document.getElementById("suggest");
+const cleanTitle=t=>(t||"").replace(/\s*\|\s*NederlandWereldwijd\s*$/i,"").trim();
+function hideSuggest(){suggestEl.hidden=true;suggestEl.innerHTML="";inputEl.setAttribute("aria-expanded","false");}
+function showSuggest(){
+  const q=inputEl.value.trim();
+  if(q.length<3||!CORPUS.length){hideSuggest();return;}
+  let idx=[];try{idx=rank(q,5);}catch(e){}
+  if(!idx.length){hideSuggest();return;}
+  suggestEl.innerHTML=idx.map(i=>`<button type="button" class="suggest-item" data-q="${escapeHtml(cleanTitle(CORPUS[i].title))}"><span class="suggest-ic">🔎</span>${escapeHtml(cleanTitle(CORPUS[i].title))}</button>`).join("");
+  suggestEl.hidden=false;inputEl.setAttribute("aria-expanded","true");
+  suggestEl.querySelectorAll(".suggest-item").forEach(b=>b.addEventListener("mousedown",e=>{e.preventDefault();askText(b.getAttribute("data-q"));}));
+}
+let suggestTimer=null;
+inputEl.addEventListener("input",()=>{clearTimeout(suggestTimer);suggestTimer=setTimeout(showSuggest,120);});
+inputEl.addEventListener("keydown",e=>{if(e.key==="Escape")hideSuggest();});
+inputEl.addEventListener("blur",()=>setTimeout(hideSuggest,150));
+inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSuggest();});
 
 function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
 
@@ -1074,6 +1099,13 @@ function renderResult(turn,r){
   const hasCites=r.citations&&r.citations.length;
   let h=`<div class="bubble antwoord">`;
   h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
+  // Doorvragen vóór het antwoord: als het juiste antwoord van de situatie afhangt, toon dat eerst.
+  const clar=r.clarifications||[];
+  if(clar.length){
+    h+=`<div class="clarify"><span class="label">Vraag eerst na voor een passend antwoord</span>`;
+    clar.forEach(c=>{h+=`<button data-prefill="${escapeHtml(c.prefill||c.question)}">${escapeHtml(c.question)}</button>`;});
+    h+=`</div>`;
+  }
   const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   if(hasCites){
     // HTML voor één citaat (passage + bron-kaartje).
@@ -1105,12 +1137,6 @@ function renderResult(turn,r){
     });
   }else h+=`<div class="no-answer">Geen antwoord gevonden op de website van NederlandWereldwijd.</div>`;
   if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
-  const clar=r.clarifications||[];
-  if(clar.length){
-    h+=`<div class="clarify"><span class="label">Voor een preciezer antwoord — vraag na</span>`;
-    clar.forEach((c,i)=>{h+=`<button data-prefill="${escapeHtml(c.prefill||c.question)}">${escapeHtml(c.question)}</button>`;});
-    h+=`</div>`;
-  }
   // Footer: vervolgvragen (Perplexity-stijl), daaronder 'misschien ook relevant' en acties.
   let f="";
   const fups=r.followups||[];
