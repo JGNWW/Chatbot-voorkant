@@ -5,11 +5,12 @@
 import { pipeline } from "@huggingface/transformers";
 import fs from "fs";
 
-const MODEL = "Xenova/multilingual-e5-small";
+const MODEL = process.env.EMB_MODEL || "Xenova/multilingual-e5-small";
 const ROOT = "/home/user/Chatbot-voorkant/docs/data";
+const OUT = process.env.EMB_OUT || ROOT;   // schrijf evt. naar tijdelijke map om te vergelijken
 const CORPUS = ROOT + "/corpus.json";
-const OUT_BIN = ROOT + "/embeddings.bin";
-const OUT_META = ROOT + "/embeddings.json";
+const OUT_BIN = OUT + "/embeddings.bin";
+const OUT_META = OUT + "/embeddings.json";
 
 const MAX_WORDS = 200, OVERLAP = 25, MAX_CHUNKS = 8, BATCH = 32;
 

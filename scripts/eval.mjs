@@ -7,9 +7,10 @@ import { pipeline } from "@huggingface/transformers";
 import fs from "fs";
 
 const ROOT = "/home/user/Chatbot-voorkant/docs/data";
+const EMB = process.argv[2] || ROOT;   // optioneel: map met alternatieve embeddings om te vergelijken
 const corpus = JSON.parse(fs.readFileSync(ROOT + "/corpus.json", "utf-8"));
-const meta = JSON.parse(fs.readFileSync(ROOT + "/embeddings.json", "utf-8"));
-const bin = new Int8Array(fs.readFileSync(ROOT + "/embeddings.bin").buffer);
+const meta = JSON.parse(fs.readFileSync(EMB + "/embeddings.json", "utf-8"));
+const bin = new Int8Array(fs.readFileSync(EMB + "/embeddings.bin").buffer);
 const evalSet = JSON.parse(fs.readFileSync(new URL("./eval_set.json", import.meta.url), "utf-8"));
 const TOPK = 6;
 
