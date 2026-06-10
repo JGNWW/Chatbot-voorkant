@@ -329,9 +329,11 @@ Geef UITSLUITEND JSON: {"standalone_question":"<de herschreven informatiebehoeft
 - "ik kom niet in DigiD" -> "Hoe los ik een inlogprobleem met DigiD op vanuit het buitenland?", ["digid","inloggen","activeren","herstellen","app","sms"]
 - "er is iemand overleden op vakantie" -> "Wat moet ik regelen als een naaste in het buitenland is overleden?", ["overlijden","buitenland","repatriering","ambassade","stoffelijk overschot"]
 - "ik ben bestolen" -> "Wat moet ik doen als ik in het buitenland bestolen ben?", ["diefstal","beroofd","aangifte","slachtoffer","politie"]
-Geef alleen losse woorden in search_terms, geen zinnen.`;
+Geef alleen losse woorden in search_terms, geen zinnen.
+Geef daarnaast: "alt_queries" = 1 tot 2 ANDERE formuleringen van dezelfde informatiebehoefte (voor bredere dekking); "hyde" = een kort, plausibel antwoord van 2 tot 3 zinnen zoals het op NederlandWereldwijd.nl zou kunnen staan (verzin GEEN concrete bedragen, termijnen of feiten — dit helpt alleen om de juiste pagina te vinden); "category" = het hoofdonderwerp in één woord of slug (bv. "paspoort", "visum", "rijbewijs", "digid", "trouwen", "overlijden", "legaliseren", "geboorte") of leeg.
+Volledige JSON-vorm: {"standalone_question":"...","search_terms":["..."],"alt_queries":["..."],"hyde":"...","category":"..."}.`;
 // Stap 2: kies uit een brede lijst kandidaat-pagina's de pagina's die de vraag écht beantwoorden (op intentie, niet op losse woorden).
-const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + korte omschrijving), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina, niet de algemene paspoortpagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen, niet de algemene rijbewijspagina. Laat niet-passende pagina's weg. Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
+const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
 let history=[];
@@ -666,7 +668,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 19";
+const APP_VERSION="build 20";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
@@ -794,20 +796,35 @@ async function prepareQuery(rawQ){
     const j=parseModelJSON(text);
     const q=(j.standalone_question||"").trim()||rawQ;
     const terms=Array.isArray(j.search_terms)?j.search_terms.map(t=>(""+t).trim()).filter(Boolean).slice(0,12):[];
-    return {q,terms};
-  }catch(e){return {q:rawQ,terms:[]};}
+    const queries=Array.isArray(j.alt_queries)?j.alt_queries.map(t=>(""+t).trim()).filter(Boolean).slice(0,2):[];
+    return {q,terms,queries,hyde:(j.hyde||"").toString().trim(),category:(j.category||"").toString().trim()};
+  }catch(e){return {q:rawQ,terms:[],queries:[],hyde:"",category:""};}
 }
-// Stap 2 (AI-modus): laat het model uit de brede kandidatenlijst de best passende pagina's kiezen.
+// Combineer meerdere semantische zoekteksten (vraag + alternatieve formuleringen + HyDE)
+// met trefwoord (BM25), via RRF; categorie-boost en landherkenning erbovenop.
+async function fuseRetrieval(semTexts,kwText,category,limit){
+  const lists=[];
+  for(const t of semTexts){if(t&&SEM.meta){try{lists.push(await semanticRank(t,Math.max(limit,12)));}catch(e){}}}
+  lists.push(rank(kwText,Math.max(limit,12)));
+  const score=new Map();
+  lists.forEach(list=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+1/(20+r))));
+  if(category){const cat=fold(category);if(cat.length>=3)for(const idx of score.keys())if(fold(CORPUS[idx].url).includes(cat))score.set(idx,score.get(idx)+0.02);}
+  const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  return applyCountry(kwText,fused).slice(0,limit);
+}
+// Stap 2 (AI-modus): laat het model uit de brede kandidatenlijst de best passende pagina's kiezen
+// (op titel + tekstfragment). Retour: array picks (kan [] zijn = niets past), of null bij fout.
 async function rerankCandidates(q,cands){
   const key=keyInput.value.trim();
   if(key.length<=10||cands.length<=TOPK)return cands.slice(0,TOPK);
-  const listing=cands.map((idx,n)=>`[${n}] ${CORPUS[idx].title}\n${(CORPUS[idx].desc||"").replace(/\s+/g," ").slice(0,200)}`).join("\n\n");
+  const listing=cands.map((idx,n)=>{const c=CORPUS[idx];const snip=((c.desc?c.desc+" ":"")+(c.text||"")).replace(/\s+/g," ").slice(0,300);return `[${n}] ${c.title}\n${snip}`;}).join("\n\n");
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,RERANK_SYSTEM,`Vraag van de burger:\n${q}\n\nKandidaat-pagina's:\n${listing}`);
-    const pick=(parseModelJSON(text).pages||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i));
-    const uniq=[...new Set(pick)].slice(0,TOPK);
-    return uniq.length?uniq:cands.slice(0,TOPK);
-  }catch(e){return cands.slice(0,TOPK);}
+    const j=parseModelJSON(text);
+    if(!Array.isArray(j.pages))return null;
+    const pick=j.pages.map(n=>cands[n]).filter(i=>Number.isInteger(i));
+    return [...new Set(pick)].slice(0,TOPK);
+  }catch(e){return null;}
 }
 
 async function runQuestion(rawQ){
@@ -816,10 +833,16 @@ async function runQuestion(rawQ){
   const key=keyInput.value.trim();const ai=key.length>10;
   let q,cands;
   if(ai){
-    // Expansie -> breed ophalen (+hubs voor recall) -> AI kiest de best passende pagina's op intentie.
+    // Expansie+HyDE+multi-query -> breed ophalen (+hubs) -> AI kiest op intentie -> confidence-check.
     const pre=await prepareQuery(rawQ);q=pre.q;
-    const broad=hubCandidates(await hybrid(q,pre.terms,25));
-    cands=await rerankCandidates(q,broad);
+    const semTexts=[q,...pre.queries,pre.hyde].filter(Boolean);
+    const broad=hubCandidates(await fuseRetrieval(semTexts,[q,...pre.terms].join(" "),pre.category,25));
+    const picked=await rerankCandidates(q,broad);
+    if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
+    else if(picked.length===0){                                 // niets past echt -> lage confidence
+      const nores={restated_question:q,citations:[],note:"Ik vond geen pagina die deze vraag duidelijk beantwoordt. Controleer op nederlandwereldwijd.nl of stel de vraag specifieker.",used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],followups:[]};
+      renderResult(turn,nores);recordTurn(rawQ,nores);return;
+    }else cands=picked;
   }else{
     q=await condenseQuestion(rawQ);
     cands=await rankFor(q);
