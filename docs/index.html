@@ -137,10 +137,14 @@ ol.srclist li{margin:2px 0;}
 .section{margin-top:16px;font-size:.9rem;}
 .section ul{margin:4px 0 0;padding-left:18px;}
 .section .label{margin-bottom:6px;}
-.clarify{margin:12px 0;padding:12px 14px;background:var(--blauw-bg);border:1px solid var(--blauw-licht);border-radius:8px;}
+/* Verduidelijkingen: zelfde rij-stijl als vervolgvragen, maar met blauwe tint = nog uit te vragen */
+.clarify{margin:18px 0 4px;padding:10px 14px 4px;background:var(--blauw-bg);border:1px solid var(--blauw-licht);border-radius:12px;}
 .clarify .label{color:var(--rijk-blauw);}
-.clarify button{display:block;text-align:left;width:100%;margin-top:6px;background:#fff;border:1px solid var(--blauw-licht);border-radius:6px;padding:8px 10px;font-size:.88rem;cursor:pointer;}
-.clarify button:hover{background:#f5f9fd;}
+.clarify .fup-list{border-top-color:var(--blauw-licht);}
+.clarify .fup-row{border-bottom-color:var(--blauw-licht);color:var(--rijk-blauw);}
+.clarify .fup-row:last-child{border-bottom:none;}
+.clarify .fup-row:hover{color:var(--rijk-blauw);}
+.clarify .fup-row:hover .fup-plus{background:#fff;}
 /* Vervolgvragen als Perplexity-achtige lijst: volle breedte, scheidingslijntjes, plus-icoon rechts */
 .followups{margin-top:18px;}
 .fup-list{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--rand);}
@@ -331,7 +335,7 @@ const SYSTEM=`Je helpt een voorlichter van het klantcontactcentrum van Nederland
 Stel een antwoord samen dat bestaat uit:
 1. "citations": de relevante passages die samen de vraag beantwoorden. Geef NIET de volledige tekst, maar per passage alleen een VERWIJZING: "source_index" (paginanummer), "start" (de eerste 4 tot 8 woorden van de passage, EXACT overgenomen uit de paginatekst) en "end" (de laatste 4 tot 8 woorden van de passage, EXACT overgenomen). De app knipt zelf het stuk tussen start en end uit de pagina. Begin en eindig op een natuurlijke zinsgrens; de passage moet aaneengesloten in de tekst staan. Kopieer "start" en "end" exact (zelfde woorden, leestekens en hoofdletters) zodat ze letterlijk terug te vinden zijn. Je mag passages uit verschillende pagina's combineren. REGELS voor goede citaten:
    - Citeer alleen VOLLEDIGE, op zichzelf staande zinnen of alinea's met inhoud. Citeer NOOIT een los kopje, sectietitel, knoptekst of navigatielabel (korte regels zonder werkwoord, zoals "Buitenland", "Let op:" of "Tijdelijke aanvraaglocaties").
-   - Kies zo WEINIG citaten als nodig. Voeg alleen een tweede of derde citaat toe als dat ECHT nieuwe, aanvullende informatie geeft. Geen overlappende of herhalende citaten.
+   - FOCUS OP DE KERN: geef bij voorkeur ÉÉN kort kerncitaat dat de vraag direct beantwoordt. Voeg ALLEEN een tweede citaat toe als de vraag echt niet met één citaat te beantwoorden is. Geef NOOIT meer dan 2 citaten — de voorlichter leest de rest desgewenst op de bronpagina (via een klik op het citaat). Geen overlappende of herhalende citaten.
    - RELEVANTIE & GEEN AANNAMES: kies citaten die de vraag DIRECT en ALGEMEEN beantwoorden. Neem NOOIT een situatie aan die de burger niet zelf heeft genoemd. Bij een algemene vraag als "Hoe vraag ik een ID-kaart of paspoort aan?" mag je er dus NIET van uitgaan dat het een EERSTE aanvraag is, een aanvraag VOOR EEN KIND, of een vervanging na verlies/diefstal. Citeer dan een passage die voor IEDEREEN geldt (de algemene aanvraag- of overzichtspagina). Het EERSTE citaat (kernantwoord) mag NOOIT openen met een situatie-aanname zoals "Heeft u of uw kind…", "Voor het eerst…" of "Bent u uw paspoort verloren…". Staan er zowel een algemene als een situatie-specifieke pagina ("Voor het eerst…", "voor uw kind", "verloren of gestolen", of een specifiek land) tussen de pagina's, kies dan ALTIJD de algemene — tenzij de vraag duidelijk over die specifieke situatie gaat.
    - BEKNOPT: houd elk citaat KORT en gefocust — kies één samenhangende alinea (liefst 2 tot 5 zinnen) die precies het betreffende punt beantwoordt. Citeer NOOIT een hele paginasectie met meerdere tussenkopjes, opsommingen van links, "Bekijk…"- of "Lees…"-knopteksten, of losse "Let op:"-blokken. Stopt de relevante alinea waar een nieuw kopje of navigatietekst begint, zet "end" dan vóór dat kopje.
    - VOLGORDE & TUSSENKOPJES: zet de citaten in een logische leesvolgorde en groepeer ze met een "heading" per citaat onder korte tussenkopjes (bv. "Waar aanvragen", "Kosten", "Wat u nodig heeft", "Hoe lang het duurt", "Uitzonderingen"). Een tussenkopje is een KORT, beschrijvend label van 2 tot 4 woorden — GEEN zin en GEEN dubbele punt. Citaten die bij elkaar horen krijgen EXACT dezelfde "heading" (dan komen ze onder één kopje); een nieuw onderwerp krijgt een nieuwe heading. Houd een logische volgorde aan: eerst het kernantwoord, dan waar/hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. Laat de "heading" van het EERSTE citaat ALTIJD LEEG — dat citaat is het kernantwoord en wordt zonder kopje getoond. Gebruik dus GEEN kopje zoals "Kernantwoord". Gebruik tussenkopjes alleen als het antwoord uit meerdere onderdelen bestaat; bij één kort, samenhangend antwoord laat je alle headings leeg.
@@ -739,7 +743,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 24";
+const APP_VERSION="build 25";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1000,8 +1004,9 @@ async function askAI(q,cands,key){
     if(citations.some(x=>quotesOverlap(x.text,quote)))continue; // dubbel/overlappend -> overslaan
     const heading=(c.heading||"").toString().trim().replace(/[:：]\s*$/,"").slice(0,60);
     citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,heading});usedSet.add(gi);
+    if(citations.length>=2)break;   // focus op de kern: hoogstens 2 citaten
   }
-  const used=[...usedSet].map(srcOf);
+  const used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
   let related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
   let note=r.note||"";
   let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[]).map(c=>({question:(c.question||"").trim(),prefill:(c.prefill||"").trim()})).filter(c=>c.question);
@@ -1099,13 +1104,7 @@ function renderResult(turn,r){
   const hasCites=r.citations&&r.citations.length;
   let h=`<div class="bubble antwoord">`;
   h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
-  // Doorvragen vóór het antwoord: als het juiste antwoord van de situatie afhangt, toon dat eerst.
   const clar=r.clarifications||[];
-  if(clar.length){
-    h+=`<div class="clarify"><span class="label">Vraag eerst na voor een passend antwoord</span>`;
-    clar.forEach(c=>{h+=`<button data-prefill="${escapeHtml(c.prefill||c.question)}">${escapeHtml(c.question)}</button>`;});
-    h+=`</div>`;
-  }
   const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   if(hasCites){
     // HTML voor één citaat (passage + bron-kaartje).
@@ -1122,22 +1121,19 @@ function renderResult(turn,r){
           +`<a class="src-live" href="${live}" target="_blank" rel="noreferrer" title="Open de live pagina met het citaat gemarkeerd" aria-label="Open live pagina">↗</a>`
         +`</div></div>`;
     };
-    // Groepeer opeenvolgende citaten met dezelfde heading (eerste citaat altijd zonder kopje).
-    const groups=[];
-    r.citations.forEach((c,i)=>{
-      const hd=(i>0&&c.heading)?c.heading:"";
-      const last=groups[groups.length-1];
-      if(last&&last.heading===hd)last.items.push(i);else groups.push({heading:hd,items:[i]});
-    });
-    // Kernantwoord (zonder kopje) staat open; vervolgonderwerpen komen in een uitklapper.
-    groups.forEach(g=>{
-      const body=g.items.map(i=>passageHTML(r.citations[i],i)).join("");
-      if(g.heading)h+=`<details class="passage-group"><summary class="passage-heading">${escapeHtml(g.heading)}</summary><div class="pg-body">${body}</div></details>`;
-      else h+=body;
-    });
+    // Focus op de kern: toon de citaten plat (geen uitklappers). Het aantal is al beperkt
+    // (max 2); de rest van de pagina lees je door op de quote/bronkaart te klikken.
+    r.citations.forEach((c,i)=>{h+=passageHTML(c,i);});
   }else h+=`<div class="no-answer">Geen antwoord gevonden op de website van NederlandWereldwijd.</div>`;
   if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
-  // Footer: vervolgvragen (Perplexity-stijl), daaronder 'misschien ook relevant' en acties.
+  // Na het kernantwoord: vragen die de voorlichter moet stellen voor een concreter antwoord
+  // (zelfde rij-stijl als de vervolgvragen, maar met blauwe tint = nog uit te vragen).
+  if(hasCites&&clar.length){
+    h+=`<div class="clarify"><span class="label">Vraag dit na voor een beter antwoord:</span><ul class="fup-list">`;
+    clar.forEach(c=>{h+=`<li><button class="fup-row clar-row" data-prefill="${escapeHtml(c.prefill||c.question)}"><span class="fup-q">${escapeHtml(c.question)}</span><span class="fup-plus">${ICON_ARROW}</span></button></li>`;});
+    h+=`</ul></div>`;
+  }
+  // Footer: vervolgvragen (Perplexity-stijl) en acties.
   let f="";
   const fups=r.followups||[];
   if(fups.length){
@@ -1145,7 +1141,7 @@ function renderResult(turn,r){
     fups.forEach(fu=>{f+=`<li><button class="fup-row" data-q="${escapeHtml(fu)}"><span class="fup-q">${escapeHtml(fu)}</span><span class="fup-plus">${ICON_ARROW}</span></button></li>`;});
     f+=`</ul></div>`;
   }
-  if(r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
+  if(!hasCites&&r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   if(hasCites)f+=`<div class="consulted">Bron geraadpleegd op ${consultDate()}</div>`;
   f+=`<div class="answer-actions">`;
   if(hasCites)f+=`<button class="act-btn copy-answer" title="Kopieer het hele antwoord met bron">${ICON_COPY}<span>Kopieer antwoord</span></button>`
