@@ -25,7 +25,20 @@ const N = PT.length; const DF=new Map(); const DLEN=new Array(N); let tot=0;
 for(let i=0;i<N;i++){ let len=0; for(const [t,c] of PT[i]){ DF.set(t,(DF.get(t)||0)+1); len+=c; } DLEN[i]=len; tot+=len; }
 const AVGDL=tot/N;
 const bm25idf=t=>{ const df=DF.get(t)||0; return df?Math.log(1+(N-df+0.5)/(df+0.5)):0; };
-function rank(q,limit){ const qt=[...new Set(tokenize(q))]; if(!qt.length)return []; const k1=1.5,b=0.75,s=[];
+// Spellingscorrectie (identiek aan index.html): onbekend woord -> dichtstbijzijnd corpus-woord.
+const VOCAB=new Map();
+for(const [t,df] of DF){ if(df<3||t.length<5)continue; const L=t.length; let a=VOCAB.get(L); if(!a){a=[];VOCAB.set(L,a);} a.push(t); }
+function editLE(a,b,max){ const la=a.length,lb=b.length; if(Math.abs(la-lb)>max)return false;
+  let prev=new Array(lb+1),cur=new Array(lb+1); for(let j=0;j<=lb;j++)prev[j]=j;
+  for(let i=1;i<=la;i++){ cur[0]=i; let rowMin=cur[0];
+    for(let j=1;j<=lb;j++){ cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1)); if(cur[j]<rowMin)rowMin=cur[j]; }
+    if(rowMin>max)return false; [prev,cur]=[cur,prev]; }
+  return prev[lb]<=max; }
+function fuzzyFix(t){ if(t.length<5||(DF.get(t)||0)>0)return t; const max=t.length>=8?2:1; let best=null,bestDf=0;
+  for(let L=t.length-max;L<=t.length+max;L++){ const arr=VOCAB.get(L); if(!arr)continue;
+    for(const c of arr){ if(c[0]!==t[0]&&max<2)continue; if(editLE(t,c,max)){ const df=DF.get(c); if(df>bestDf){best=c;bestDf=df;} } } }
+  return best||t; }
+function rank(q,limit){ const qt=[...new Set(tokenize(q).map(fuzzyFix))]; if(!qt.length)return []; const k1=1.5,b=0.75,s=[];
   for(let i=0;i<N;i++){ const m=PT[i]; let sc=0; for(const t of qt){ const tf=m.get(t); if(!tf)continue; sc+=bm25idf(t)*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[i]/AVGDL)); } if(sc>0)s.push([sc,i]); }
   s.sort((a,b)=>b[0]-a[0]); return s.slice(0,limit).map(x=>x[1]); }
 
@@ -66,3 +79,11 @@ console.log(`Model: ${meta.model} | dim ${dim} | vectors ${meta.vectors||meta.co
 console.log(`recall@${TOPK}: ${recall}/${n} = ${(recall/n*100).toFixed(0)}%`);
 console.log(`MRR@${TOPK}: ${(mrrSum/n).toFixed(3)}`);
 if(misses.length){ console.log(`\nMissers (${misses.length}):`); for(const m of misses){ console.log(` - "${m.q}" verwacht ${JSON.stringify(m.expect)}`); console.log(`     kreeg: ${m.got.join(", ")}`); } }
+// Regressie-gate: `node eval.mjs [embeddings-map] --gate` faalt (exit 1) als de score onder
+// de drempels zakt. Gebruik dit vóór het pushen van wijzigingen aan de zoeklaag.
+const GATE_RECALL=0.85, GATE_MRR=0.72;
+if(process.argv.includes("--gate")){
+  const r=recall/n, m=mrrSum/n;
+  if(r<GATE_RECALL||m<GATE_MRR){ console.error(`\nGATE GEFAALD: recall ${(r*100).toFixed(0)}% (eis ${GATE_RECALL*100}%), MRR ${m.toFixed(3)} (eis ${GATE_MRR})`); process.exit(1); }
+  console.log(`\nGATE OK (recall >= ${GATE_RECALL*100}%, MRR >= ${GATE_MRR})`);
+}
