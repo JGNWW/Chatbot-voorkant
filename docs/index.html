@@ -68,6 +68,12 @@ html,body{height:100%;}
 .keybar{background:var(--grijs);color:var(--ink);padding:14px 20px;font-size:.82rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--rand);}
 .keybar select,.keybar input{padding:8px 10px;border:1px solid var(--rand);border-radius:8px;font-size:.85rem;background:#fff;color:var(--ink);font-family:inherit;}
 .keybar input{flex:1;min-width:180px;}
+.filterbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 20px;background:#fff;border-bottom:1px solid var(--rand);font-size:.82rem;}
+.filterbar-label{color:var(--ink-licht);font-weight:600;}
+.filterbar select{padding:6px 9px;border:1px solid var(--rand);border-radius:8px;font-size:.82rem;background:#fff;color:var(--ink);font-family:inherit;max-width:48%;}
+.filterbar select:not([data-all]){border-color:var(--rijk-licht);color:var(--rijk-blauw);font-weight:600;}
+.filter-clear{background:none;border:none;color:var(--ink-licht);cursor:pointer;font-family:inherit;font-size:.78rem;text-decoration:underline;}
+.filter-clear:hover{color:var(--rood);}
 .keybar a{color:var(--rijk-licht);font-size:.78rem;white-space:nowrap;font-weight:600;}
 .keybar .status{font-size:.78rem;width:100%;color:var(--ink-licht);}
 .keybar .status.build{width:auto;opacity:.55;font-size:.72rem;}
@@ -284,6 +290,12 @@ body.viewer-open .viewer{flex-basis:clamp(360px,34vw,540px);}
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
       <button type="button" class="fb-export" id="fb-export" title="Download de lokaal opgeslagen feedback en gemiste vragen als CSV">feedback exporteren ↓</button>
     </div>
+    <div class="filterbar" id="filterbar">
+      <span class="filterbar-label">Zoekgebied:</span>
+      <select id="filter-country" title="Beperk tot een land"><option value="">Alle landen</option></select>
+      <select id="filter-topic" title="Beperk tot een onderwerp"><option value="">Alle onderwerpen</option></select>
+      <button type="button" id="filter-clear" class="filter-clear" hidden title="Filters wissen">wissen ✕</button>
+    </div>
     <main class="conversation" id="conv">
       <p class="empty welcome" id="loadmsg">Corpus laden…</p>
       <div class="samples" id="samples"></div>
@@ -486,13 +498,35 @@ function buildCountries(){
     for(const c of COUNTRY)if(last.endsWith("-"+c)){PCOUNTRY[i]=c;break;}}
 }
 function detectCountries(text){if(!COUNTRY)buildCountries();const f=" "+fold(text).replace(/[^a-z0-9]+/g," ")+" ";const out=new Set();for(const c of COUNTRY)if(f.includes(" "+c.replace(/-/g," ")+" "))out.add(c);return out;}
-// Herorden kandidaten op land: genoemd land eerst, dan algemene pagina's, andere landen achteraan.
-// Zonder genoemd land worden land-specifieke pagina's juist gedemoot zodat de algemene pagina wint.
-function applyCountry(text,order){
+// Actieve handmatige filters (zoekgebied): land en onderwerp (eerste URL-segment).
+const FILTER={country:"",topic:""};
+function firstSeg(idx){return (CORPUS[idx].url||"").replace(/^https?:\/\/[^/]+\//,"").split("/")[0]||"";}
+// Beperk + herorden kandidaten op het zoekgebied: onderwerp-filter (met terugval als het te
+// streng is) en land (handmatig filter overschrijft autodetectie). Genoemd/gekozen land eerst,
+// dan algemene pagina's, andere landen achteraan.
+function applyScope(text,order){
   if(!PCOUNTRY)buildCountries();
-  const det=detectCountries(text),g1=[],g2=[],g3=[];
-  for(const idx of order){const pc=PCOUNTRY[idx];if(pc&&det.has(pc))g1.push(idx);else if(pc)g3.push(idx);else g2.push(idx);}
+  let o=order;
+  if(FILTER.topic){const m=o.filter(i=>firstSeg(i)===FILTER.topic);if(m.length>=2)o=m;}
+  const det=FILTER.country?new Set([FILTER.country]):detectCountries(text);
+  const g1=[],g2=[],g3=[];
+  for(const idx of o){const pc=PCOUNTRY[idx];if(pc&&det.has(pc))g1.push(idx);else if(pc)g3.push(idx);else g2.push(idx);}
   return [...g1,...g2,...g3];
+}
+// Leesbare zoekwoorden van actieve filters (voor betere recall in de trefwoordzoeker).
+function scopeTerms(){const t=[];if(FILTER.country)t.push(FILTER.country.replace(/-/g," "));if(FILTER.topic)t.push(FILTER.topic.replace(/-/g," "));return t;}
+// Vul de land- en onderwerp-filters (afgeleid uit het corpus) en bedraad ze.
+function prettyTopic(seg){return seg.replace(/-(buiten-nederland|buitenland|nederland)$/,"").replace(/-/g," ").replace(/^./,c=>c.toUpperCase());}
+function initFilters(){
+  if(!COUNTRY)buildCountries();
+  const cSel=document.getElementById("filter-country"),tSel=document.getElementById("filter-topic"),clr=document.getElementById("filter-clear");
+  [...COUNTRY].map(c=>[c,c.replace(/-/g," ").replace(/^./,x=>x.toUpperCase())]).sort((a,b)=>a[1].localeCompare(b[1],"nl")).forEach(([v,l])=>{const o=document.createElement("option");o.value=v;o.textContent=l;cSel.appendChild(o);});
+  const cnt=new Map();for(let i=0;i<CORPUS.length;i++){const s=firstSeg(i);if(!s||COUNTRY.has(s))continue;cnt.set(s,(cnt.get(s)||0)+1);}
+  [...cnt.entries()].filter(([,n])=>n>=5).sort((a,b)=>b[1]-a[1]).forEach(([s])=>{const o=document.createElement("option");o.value=s;o.textContent=prettyTopic(s);tSel.appendChild(o);});
+  const upd=()=>{FILTER.country=cSel.value;FILTER.topic=tSel.value;cSel.toggleAttribute("data-all",!cSel.value);tSel.toggleAttribute("data-all",!tSel.value);clr.hidden=!(cSel.value||tSel.value);};
+  cSel.setAttribute("data-all","");tSel.setAttribute("data-all","");
+  cSel.addEventListener("change",upd);tSel.addEventListener("change",upd);
+  clr.addEventListener("click",()=>{cSel.value="";tSel.value="";upd();});
 }
 
 // ---- Semantisch zoeken (embeddings in de browser, zelfde model als de vooraf berekende vectoren) ----
@@ -554,14 +588,14 @@ async function hybrid(q,terms,limit){
   const K=Math.max(limit,12);
   let sem=[];
   if(SEM.meta){try{sem=await semanticRank(q,K);}catch(e){/* val terug op trefwoord */}}
-  const kw=rank([q,...(terms||[])].join(" "),K);
+  const kw=rank([q,...(terms||[]),...scopeTerms()].join(" "),K);
   if(!sem.length&&!kw.length)return [];
   const score=new Map();
   const add=list=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+1/(20+r)));
   add(sem);add(kw);
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
-  // Landherkenning: genoemd land naar voren, anders land-specifieke pagina's demoten.
-  return applyCountry([q,...(terms||[])].join(" "),fused).slice(0,limit);
+  // Zoekgebied (filters) + landherkenning toepassen.
+  return applyScope([q,...(terms||[])].join(" "),fused).slice(0,limit);
 }
 // Voeg de algemene/hub-pagina van de beste treffer toe (en zet die vooraan als de beste
 // treffer situatie-specifiek is), zodat een algemene vraag altijd een algemene passage heeft.
@@ -699,7 +733,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 22";
+const APP_VERSION="build 23";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -802,6 +836,7 @@ document.getElementById("reset").addEventListener("click",newConversation);
     document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
       +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Stel een vraag — bijvoorbeeld:</span>";
     sendBtn.disabled=false;
+    initFilters();
     initSemantic();
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
 })();
@@ -838,12 +873,12 @@ async function prepareQuery(rawQ){
 async function fuseRetrieval(semTexts,kwText,category,limit){
   const lists=[];
   for(const t of semTexts){if(t&&SEM.meta){try{lists.push(await semanticRank(t,Math.max(limit,12)));}catch(e){}}}
-  lists.push(rank(kwText,Math.max(limit,12)));
+  lists.push(rank([kwText,...scopeTerms()].join(" "),Math.max(limit,12)));
   const score=new Map();
   lists.forEach(list=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+1/(20+r))));
   if(category){const cat=fold(category);if(cat.length>=3)for(const idx of score.keys())if(fold(CORPUS[idx].url).includes(cat))score.set(idx,score.get(idx)+0.02);}
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
-  return applyCountry(kwText,fused).slice(0,limit);
+  return applyScope(kwText,fused).slice(0,limit);
 }
 // Stap 2 (AI-modus): laat het model uit de brede kandidatenlijst de best passende pagina's kiezen
 // (op titel + tekstfragment). Retour: array picks (kan [] zijn = niets past), of null bij fout.
