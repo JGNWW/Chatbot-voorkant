@@ -406,20 +406,61 @@ function stem(w){
   return w;
 }
 function tokenize(t){return t.toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w=>w.length>2&&!STOP.has(w)).map(stem);}
-// Trefwoord-index per pagina = VOLLEDIGE tekst + titel + samenvatting + url-slug (gestemd).
-function tokensOf(p){return new Set(tokenize([p.url,p.title,p.summary||p.desc||"",p.text].join(" ")));}
-// Document-frequenties voor IDF: in hoeveel pagina's komt een stam voor.
-function buildDF(){DF=new Map();NDOCS=PTOKENS.length;for(const set of PTOKENS)for(const t of set)DF.set(t,(DF.get(t)||0)+1);}
-function idf(t){const df=(DF&&DF.get(t))||0;return df?Math.log(1+NDOCS/df):0;}
-// Trefwoord-ranking met IDF-weging: zeldzame woorden (zoals 'verkracht') tellen zwaar mee.
+// Trefwoord-index per pagina = term-frequenties over VOLLEDIGE tekst, met veldweging
+// (titel telt zwaarder dan lopende tekst). Nodig voor BM25.
+function tokensOf(p){
+  const m=new Map();
+  const add=(text,w)=>{for(const t of tokenize(text||""))m.set(t,(m.get(t)||0)+w);};
+  add(p.title,3);add(p.summary||p.desc,2);add(p.url,2);add(p.text,1);
+  return m;
+}
+// Document-frequenties + lengtes voor BM25.
+let DLEN=[],AVGDL=1;
+function buildDF(){
+  DF=new Map();NDOCS=PTOKENS.length;DLEN=new Array(NDOCS);let tot=0;
+  for(let i=0;i<NDOCS;i++){const m=PTOKENS[i];let len=0;for(const [t,c] of m){DF.set(t,(DF.get(t)||0)+1);len+=c;}DLEN[i]=len;tot+=len;}
+  AVGDL=tot/Math.max(1,NDOCS);
+}
+function bm25idf(t){const df=(DF&&DF.get(t))||0;return df?Math.log(1+(NDOCS-df+0.5)/(df+0.5)):0;}
+// Trefwoord-ranking met BM25 (term-frequentie + lengtenormalisatie + IDF). Zeldzame, vaak
+// voorkomende termen in korte/relevante pagina's scoren hoog.
 function rank(q,limit){
   if(!DF)buildDF();
   const qt=[...new Set(tokenize(q))];if(!qt.length)return [];
-  const s=[];
-  for(let i=0;i<CORPUS.length;i++){let sc=0;for(const t of qt)if(PTOKENS[i].has(t))sc+=idf(t);if(sc>0)s.push([sc,i]);}
+  const k1=1.5,b=0.75,s=[];
+  for(let i=0;i<NDOCS;i++){
+    const m=PTOKENS[i];let sc=0;
+    for(const t of qt){const tf=m.get(t);if(!tf)continue;sc+=bm25idf(t)*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[i]/AVGDL));}
+    if(sc>0)s.push([sc,i]);
+  }
   s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
 }
 function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
+
+// ---- Landherkenning (afgeleid uit de corpus-URL-structuur) ----
+// Een laatste URL-segment dat onder >=7 verschillende rubrieken voorkomt is vrijwel zeker een land
+// (bv. /trouwen/frankrijk, /verklaring/.../frankrijk, /paspoort-id-kaart/buitenland/...-frankrijk).
+let COUNTRY=null,PCOUNTRY=null;
+function fold(s){return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
+function buildCountries(){
+  const parents=new Map();
+  for(const p of CORPUS){const parts=(p.url||"").replace(/\/+$/,"").split("/");if(parts.length<5)continue;const last=parts.pop();let s=parents.get(last);if(!s){s=new Set();parents.set(last,s);}s.add(parts.join("/"));}
+  const BLOCK=new Set(["buitenland","aanvragen","algemeen","overzicht","contact"]);
+  COUNTRY=new Set();for(const [seg,ps] of parents)if(ps.size>=7&&!BLOCK.has(seg))COUNTRY.add(seg);
+  PCOUNTRY=new Array(CORPUS.length).fill(null);
+  for(let i=0;i<CORPUS.length;i++){const last=(CORPUS[i].url||"").replace(/\/+$/,"").split("/").pop().toLowerCase();
+    if(COUNTRY.has(last)){PCOUNTRY[i]=last;continue;}
+    for(const c of COUNTRY)if(last.endsWith("-"+c)){PCOUNTRY[i]=c;break;}}
+}
+function detectCountries(text){if(!COUNTRY)buildCountries();const f=" "+fold(text).replace(/[^a-z0-9]+/g," ")+" ";const out=new Set();for(const c of COUNTRY)if(f.includes(" "+c.replace(/-/g," ")+" "))out.add(c);return out;}
+// Herorden kandidaten op land: genoemd land eerst, dan algemene pagina's, andere landen achteraan.
+// Zonder genoemd land worden land-specifieke pagina's juist gedemoot zodat de algemene pagina wint.
+function applyCountry(text,order){
+  if(!PCOUNTRY)buildCountries();
+  const det=detectCountries(text),g1=[],g2=[],g3=[];
+  for(const idx of order){const pc=PCOUNTRY[idx];if(pc&&det.has(pc))g1.push(idx);else if(pc)g3.push(idx);else g2.push(idx);}
+  return [...g1,...g2,...g3];
+}
 
 // ---- Semantisch zoeken (embeddings in de browser, zelfde model als de vooraf berekende vectoren) ----
 const SEM={ready:false,meta:null,vecs:null,extractor:null,modelPromise:null};
@@ -485,7 +526,9 @@ async function hybrid(q,terms,limit){
   const score=new Map();
   const add=list=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+1/(20+r)));
   add(sem);add(kw);
-  return [...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]).slice(0,limit);
+  const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  // Landherkenning: genoemd land naar voren, anders land-specifieke pagina's demoten.
+  return applyCountry([q,...(terms||[])].join(" "),fused).slice(0,limit);
 }
 // Voeg de algemene/hub-pagina van de beste treffer toe (en zet die vooraan als de beste
 // treffer situatie-specifiek is), zodat een algemene vraag altijd een algemene passage heeft.
@@ -623,7 +666,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 18";
+const APP_VERSION="build 19";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
