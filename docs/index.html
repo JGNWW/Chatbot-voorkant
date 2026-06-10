@@ -71,6 +71,8 @@ html,body{height:100%;}
 .keybar a{color:var(--rijk-licht);font-size:.78rem;white-space:nowrap;font-weight:600;}
 .keybar .status{font-size:.78rem;width:100%;color:var(--ink-licht);}
 .keybar .status.build{width:auto;opacity:.55;font-size:.72rem;}
+.fb-export{background:none;border:none;padding:0;font-family:inherit;font-size:.72rem;color:var(--ink-licht);cursor:pointer;text-decoration:underline;}
+.fb-export:hover{color:var(--rijk-licht);}
 .conversation{flex:1;padding:32px 28px;overflow-y:auto;}
 /* Welkomststaat: begroeting + composer samen verticaal gecentreerd (zoals ChatGPT) */
 body.is-welcome .conversation{flex:0 0 auto;margin-top:auto;overflow:visible;padding-bottom:8px;}
@@ -278,6 +280,7 @@ body.viewer-open .viewer{flex-basis:clamp(360px,34vw,540px);}
       <span class="status" id="keystatus"></span>
       <span class="status" id="semstatus">zoeken laden…</span>
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
+      <button type="button" class="fb-export" id="fb-export" title="Download de lokaal opgeslagen feedback en gemiste vragen als CSV">feedback exporteren ↓</button>
     </div>
     <main class="conversation" id="conv">
       <p class="empty welcome" id="loadmsg">Corpus laden…</p>
@@ -331,9 +334,11 @@ Geef UITSLUITEND JSON: {"standalone_question":"<de herschreven informatiebehoeft
 - "ik ben bestolen" -> "Wat moet ik doen als ik in het buitenland bestolen ben?", ["diefstal","beroofd","aangifte","slachtoffer","politie"]
 Geef alleen losse woorden in search_terms, geen zinnen.
 Geef daarnaast: "alt_queries" = 1 tot 2 ANDERE formuleringen van dezelfde informatiebehoefte (voor bredere dekking); "hyde" = een kort, plausibel antwoord van 2 tot 3 zinnen zoals het op NederlandWereldwijd.nl zou kunnen staan (verzin GEEN concrete bedragen, termijnen of feiten — dit helpt alleen om de juiste pagina te vinden); "category" = het hoofdonderwerp in één woord of slug (bv. "paspoort", "visum", "rijbewijs", "digid", "trouwen", "overlijden", "legaliseren", "geboorte") of leeg.
-Volledige JSON-vorm: {"standalone_question":"...","search_terms":["..."],"alt_queries":["..."],"hyde":"...","category":"..."}.`;
+Geef ook "in_scope": true of false. NederlandWereldwijd gaat over Nederlandse overheidszaken voor burgers in of naar het buitenland (reisdocumenten, visa, consulaire hulp, verklaringen, legalisatie, DigiD/BSN/BRP, uitkeringen en toeslagen buiten Nederland, trouwen/geboorte/overlijden in het buitenland, reisadvies, stemmen, rijbewijs, inburgering, nationaliteit). Valt de vraag daar duidelijk BUITEN (bv. recepten, sport, weer, ov-tijden, algemene kennis), zet "in_scope" op false. Twijfel je, zet hem op true.
+Geef tot slot "sub_questions": ALLEEN als de vraag duidelijk uit MEERDERE losse informatiebehoeften bestaat (bv. "wat moet ik regelen met mijn paspoort én mijn zorgverzekering als ik verhuis"), splits hem dan in 2 tot 3 zelfstandige deelvragen; anders een lege lijst.
+Volledige JSON-vorm: {"standalone_question":"...","search_terms":["..."],"alt_queries":["..."],"hyde":"...","category":"...","in_scope":true,"sub_questions":["..."]}.`;
 // Stap 2: kies uit een brede lijst kandidaat-pagina's de pagina's die de vraag écht beantwoorden (op intentie, niet op losse woorden).
-const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
+const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
 let history=[];
@@ -424,11 +429,35 @@ function buildDF(){
   AVGDL=tot/Math.max(1,NDOCS);
 }
 function bm25idf(t){const df=(DF&&DF.get(t))||0;return df?Math.log(1+(NDOCS-df+0.5)/(df+0.5)):0;}
+// Spellingscorrectie: corrigeer een query-woord dat NIET in het corpus voorkomt naar het
+// dichtstbijzijnde corpus-woord (edit-afstand 1, of 2 bij langere woorden; hoogste df wint).
+let VOCAB=null;
+function buildVocab(){VOCAB=new Map();for(const [t,df] of DF){if(df<3||t.length<5)continue;const L=t.length;let a=VOCAB.get(L);if(!a){a=[];VOCAB.set(L,a);}a.push(t);}}
+function editLE(a,b,max){ // Levenshtein-afstand <= max? (banded DP)
+  const la=a.length,lb=b.length;if(Math.abs(la-lb)>max)return false;
+  let prev=new Array(lb+1),cur=new Array(lb+1);
+  for(let j=0;j<=lb;j++)prev[j]=j;
+  for(let i=1;i<=la;i++){cur[0]=i;let rowMin=cur[0];
+    for(let j=1;j<=lb;j++){cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));if(cur[j]<rowMin)rowMin=cur[j];}
+    if(rowMin>max)return false;[prev,cur]=[cur,prev];}
+  return prev[lb]<=max;
+}
+function fuzzyFix(t){
+  if(t.length<5||(DF.get(t)||0)>0)return t;
+  if(!VOCAB)buildVocab();
+  const max=t.length>=8?2:1;let best=null,bestDf=0;
+  for(let L=t.length-max;L<=t.length+max;L++){
+    const arr=VOCAB.get(L);if(!arr)continue;
+    for(const c of arr){if(c[0]!==t[0]&&max<2)continue;if(editLE(t,c,max)){const df=DF.get(c);if(df>bestDf){best=c;bestDf=df;}}}
+  }
+  return best||t;
+}
 // Trefwoord-ranking met BM25 (term-frequentie + lengtenormalisatie + IDF). Zeldzame, vaak
-// voorkomende termen in korte/relevante pagina's scoren hoog.
+// voorkomende termen in korte/relevante pagina's scoren hoog. Onbekende woorden worden
+// eerst gecorrigeerd op spelling (fuzzyFix).
 function rank(q,limit){
   if(!DF)buildDF();
-  const qt=[...new Set(tokenize(q))];if(!qt.length)return [];
+  const qt=[...new Set(tokenize(q).map(fuzzyFix))];if(!qt.length)return [];
   const k1=1.5,b=0.75,s=[];
   for(let i=0;i<NDOCS;i++){
     const m=PTOKENS[i];let sc=0;
@@ -668,8 +697,9 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 20";
+const APP_VERSION="build 21";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
+document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
 // AI-instellingen achter het tandwiel. Standaard ingeklapt, maar open als er nog geen sleutel is.
 const settingsToggle=document.getElementById("settings-toggle"),keybar=document.getElementById("keybar");
@@ -797,8 +827,9 @@ async function prepareQuery(rawQ){
     const q=(j.standalone_question||"").trim()||rawQ;
     const terms=Array.isArray(j.search_terms)?j.search_terms.map(t=>(""+t).trim()).filter(Boolean).slice(0,12):[];
     const queries=Array.isArray(j.alt_queries)?j.alt_queries.map(t=>(""+t).trim()).filter(Boolean).slice(0,2):[];
-    return {q,terms,queries,hyde:(j.hyde||"").toString().trim(),category:(j.category||"").toString().trim()};
-  }catch(e){return {q:rawQ,terms:[],queries:[],hyde:"",category:""};}
+    const subs=Array.isArray(j.sub_questions)?j.sub_questions.map(t=>(""+t).trim()).filter(Boolean).slice(0,3):[];
+    return {q,terms,queries,subs,hyde:(j.hyde||"").toString().trim(),category:(j.category||"").toString().trim(),inScope:j.in_scope!==false};
+  }catch(e){return {q:rawQ,terms:[],queries:[],subs:[],hyde:"",category:"",inScope:true};}
 }
 // Combineer meerdere semantische zoekteksten (vraag + alternatieve formuleringen + HyDE)
 // met trefwoord (BM25), via RRF; categorie-boost en landherkenning erbovenop.
@@ -835,11 +866,28 @@ async function runQuestion(rawQ){
   if(ai){
     // Expansie+HyDE+multi-query -> breed ophalen (+hubs) -> AI kiest op intentie -> confidence-check.
     const pre=await prepareQuery(rawQ);q=pre.q;
-    const semTexts=[q,...pre.queries,pre.hyde].filter(Boolean);
-    const broad=hubCandidates(await fuseRetrieval(semTexts,[q,...pre.terms].join(" "),pre.category,25));
+    if(!pre.inScope){                                           // buiten het domein -> niet zoeken
+      logMiss(rawQ,"buiten-domein");
+      const nores={restated_question:q,citations:[],note:"Deze vraag valt buiten NederlandWereldwijd (Nederlandse overheidszaken voor burgers in of naar het buitenland). Verwijs de burger zo nodig naar de juiste instantie.",used:[],related:[],clarifications:[],followups:[]};
+      renderResult(turn,nores);recordTurn(rawQ,nores);return;
+    }
+    let broad;
+    if(pre.subs.length>=2){
+      // Samengestelde vraag: haal per deelvraag op en verdeel de plekken round-robin,
+      // zodat ALLE aspecten gedekt zijn (RRF zou één dominant aspect laten winnen).
+      const lists=[];
+      for(const sq of pre.subs)lists.push(await fuseRetrieval([sq],[sq,...pre.terms].join(" "),pre.category,10));
+      const merged=[];const seen=new Set();
+      for(let r=0;r<10&&merged.length<25;r++)for(const l of lists){const idx=l[r];if(idx!==undefined&&!seen.has(idx)){seen.add(idx);merged.push(idx);}}
+      broad=hubCandidates(merged);
+    }else{
+      const semTexts=[q,...pre.queries,pre.hyde].filter(Boolean);
+      broad=hubCandidates(await fuseRetrieval(semTexts,[q,...pre.terms].join(" "),pre.category,25));
+    }
     const picked=await rerankCandidates(q,broad);
     if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
     else if(picked.length===0){                                 // niets past echt -> lage confidence
+      logMiss(rawQ,"geen-passende-pagina");
       const nores={restated_question:q,citations:[],note:"Ik vond geen pagina die deze vraag duidelijk beantwoordt. Controleer op nederlandwereldwijd.nl of stel de vraag specifieker.",used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],followups:[]};
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }else cands=picked;
@@ -847,7 +895,7 @@ async function runQuestion(rawQ){
     q=await condenseQuestion(rawQ);
     cands=await rankFor(q);
   }
-  if(!cands.length){const nores={restated_question:q,citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
+  if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
   try{
     const result=ai?await askAI(q,cands,key):demoAnswer(q,cands);
     renderResult(turn,result);
@@ -945,6 +993,19 @@ function logFeedback(r,verdict,btn){
   const wrap=btn.parentNode;wrap.querySelectorAll(".fb-btn").forEach(b=>b.classList.remove("sel-up","sel-down"));
   btn.classList.add(verdict>0?"sel-up":"sel-down");
   try{const k="vk_feedback",arr=JSON.parse(localStorage.getItem(k)||"[]");arr.push({q:r.restated_question||"",verdict,hadAnswer:!!(r.citations&&r.citations.length),ts:Date.now()});localStorage.setItem(k,JSON.stringify(arr.slice(-200)));}catch(e){}
+}
+// Vragen zonder (goed) antwoord lokaal bijhouden: voeding voor de eval-set en het zoeklexicon.
+function logMiss(q,reason){
+  try{const k="vk_misses",arr=JSON.parse(localStorage.getItem(k)||"[]");arr.push({q:(q||"").slice(0,300),reason,ts:Date.now()});localStorage.setItem(k,JSON.stringify(arr.slice(-200)));}catch(e){}
+}
+// Exporteer feedback + gemiste vragen als CSV (voor analyse en het verbeteren van de eval-set).
+function exportFeedback(){
+  const esc=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
+  let rows=[["type","vraag","oordeel","reden","tijd"].join(";")];
+  try{for(const f of JSON.parse(localStorage.getItem("vk_feedback")||"[]"))rows.push(["feedback",esc(f.q),f.verdict>0?"goed":"niet goed",f.hadAnswer?"antwoord getoond":"geen antwoord",new Date(f.ts).toISOString()].join(";"));}catch(e){}
+  try{for(const m of JSON.parse(localStorage.getItem("vk_misses")||"[]"))rows.push(["gemist",esc(m.q),"",esc(m.reason),new Date(m.ts).toISOString()].join(";"));}catch(e){}
+  const blob=new Blob(["﻿"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="leo-feedback.csv";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 }
 // Render de tekst van een passage mét structuur: paginakoppen als subkop, de rest als alinea's.
 function citeBodyHTML(c){
