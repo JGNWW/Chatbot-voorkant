@@ -1,16 +1,19 @@
 // Evaluatie-harnas voor de zoeklaag (retrieval). Spiegelt de hybride zoeker uit docs/index.html
-// (BM25 + semantisch + RRF + landherkenning) en meet recall@k en MRR op scripts/eval_set.json.
-// Gebruik: node eval.mjs            (standaard model uit embeddings.json)
-// Doel: objectief vergelijken bij wijzigingen (model, BM25, chunking, ...). Meet de RETRIEVAL,
-// niet de AI-stappen (expansie/rerank) — die vergen een sleutel.
-import { pipeline } from "@huggingface/transformers";
+// (BM25 + spelling + semantisch + RRF + landherkenning) en meet recall@k en MRR op eval_set.json.
+// Gebruik:
+//   node eval.mjs [embeddings-map]            volledige eval (laadt het embeddingmodel)
+//   node eval.mjs [embeddings-map] --no-sem   alleen trefwoordlaag (BM25+spelling+land), geen model
+//   node eval.mjs [embeddings-map] --gate     faalt (exit 1) onder de drempels (voor CI)
+// Meet de RETRIEVAL, niet de AI-stappen (expansie/rerank) — die vergen een sleutel.
 import fs from "fs";
 
-const ROOT = "/home/user/Chatbot-voorkant/docs/data";
-const EMB = process.argv[2] || ROOT;   // optioneel: map met alternatieve embeddings om te vergelijken
-const corpus = JSON.parse(fs.readFileSync(ROOT + "/corpus.json", "utf-8"));
-const meta = JSON.parse(fs.readFileSync(EMB + "/embeddings.json", "utf-8"));
-const bin = new Int8Array(fs.readFileSync(EMB + "/embeddings.bin").buffer);
+const NO_SEM = process.argv.includes("--no-sem");
+const dataURL = p => new URL("../docs/data/" + p, import.meta.url);
+const ROOT = dataURL("").pathname.replace(/\/$/, "");
+const embArg = process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : ROOT;
+const corpus = JSON.parse(fs.readFileSync(dataURL("corpus.json"), "utf-8"));
+const meta = JSON.parse(fs.readFileSync(embArg + "/embeddings.json", "utf-8"));
+const bin = NO_SEM ? null : new Int8Array(fs.readFileSync(embArg + "/embeddings.bin").buffer);
 const evalSet = JSON.parse(fs.readFileSync(new URL("./eval_set.json", import.meta.url), "utf-8"));
 const TOPK = 6;
 
@@ -52,10 +55,11 @@ const PCOUNTRY=corpus.map(p=>{ const last=(p.url||"").replace(/\/+$/,"").split("
 function detectCountries(text){ const f=" "+fold(text).replace(/[^a-z0-9]+/g," ")+" "; const out=new Set(); for(const c of COUNTRY) if(f.includes(" "+c.replace(/-/g," ")+" ")) out.add(c); return out; }
 function applyCountry(text,order){ const det=detectCountries(text),g1=[],g2=[],g3=[]; for(const idx of order){ const pc=PCOUNTRY[idx]; if(pc&&det.has(pc))g1.push(idx); else if(pc)g3.push(idx); else g2.push(idx);} return [...g1,...g2,...g3]; }
 
-// --- semantisch (chunked, max per pagina) ---
+// --- semantisch (chunked, max per pagina) — alleen geladen als niet --no-sem ---
 const dim=meta.dim, owner=meta.owner;
-const extractor = await pipeline("feature-extraction", meta.model, { dtype: "q8" });
-async function semanticRank(q,limit){ const out=await extractor(["query: "+q],{pooling:"mean",normalize:true}); const qv=out.data; const best=new Map();
+let extractor=null;
+if(!NO_SEM){ const { pipeline } = await import("@huggingface/transformers"); extractor = await pipeline("feature-extraction", meta.model, { dtype: "q8" }); }
+async function semanticRank(q,limit){ if(!extractor)return []; const out=await extractor(["query: "+q],{pooling:"mean",normalize:true}); const qv=out.data; const best=new Map();
   for(let k=0;k<owner.length;k++){ let dot=0; const off=k*dim; for(let d=0;d<dim;d++)dot+=qv[d]*(bin[off+d]/127); const pg=owner[k],c=best.get(pg); if(c===undefined||dot>c)best.set(pg,dot); }
   return [...best.entries()].map(([pg,sc])=>[sc,pg]).sort((a,b)=>b[0]-a[0]).slice(0,limit).map(x=>x[1]); }
 

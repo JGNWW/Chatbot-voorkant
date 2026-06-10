@@ -1,0 +1,35 @@
+name: Zoekkwaliteit (regressie-gate)
+
+# Draait de eval-harnas op de zoeklaag wanneer er iets aan de zoeklogica, het corpus
+# of de testset verandert. De gate faalt (rode check) als recall@6 < 85% of MRR < 0.72.
+# Gebruikt de --no-sem modus: alleen de trefwoordlaag (BM25 + spelling + landherkenning),
+# zodat de check snel en zonder modeldownload/netwerk draait.
+# Let op: dit toetst scripts/eval.mjs (een spiegel van de zoeklogica in docs/index.html);
+# houd beide in sync bij wijzigingen aan de zoeklogica.
+
+on:
+  pull_request:
+    paths:
+      - docs/index.html
+      - docs/data/corpus.json
+      - docs/data/embeddings.json
+      - scripts/eval.mjs
+      - scripts/eval_set.json
+  push:
+    paths:
+      - docs/index.html
+      - docs/data/corpus.json
+      - docs/data/embeddings.json
+      - scripts/eval.mjs
+      - scripts/eval_set.json
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run search eval gate (keyword-only)
+        run: node scripts/eval.mjs --no-sem --gate
