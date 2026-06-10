@@ -736,7 +736,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 27";
+const APP_VERSION="build 28";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1127,7 +1127,7 @@ function renderResult(turn,r){
   let f="";
   const fups=r.followups||[];
   if(fups.length){
-    f+=`<div class="followups"><span class="label">Mogelijke vervolgvragen</span><ul class="fup-list">`;
+    f+=`<div class="followups"><span class="label">Mogelijke vervolgvragen:</span><ul class="fup-list">`;
     fups.forEach(fu=>{f+=`<li><button class="fup-row" data-q="${escapeHtml(fu)}"><span class="fup-q">${escapeHtml(fu)}</span><span class="fup-plus">${ICON_ARROW}</span></button></li>`;});
     f+=`</ul></div>`;
   }
