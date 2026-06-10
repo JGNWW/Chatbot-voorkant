@@ -187,6 +187,8 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 .act-btn{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--rand);border-radius:16px;padding:5px 11px;font-size:.78rem;cursor:pointer;color:#33485c;}
 .act-btn:hover{background:#f0f5fa;border-color:var(--rijk-licht);}
 .act-btn.ok{border-color:var(--groen);color:var(--groen);}
+.act-btn.share-wa{color:#1c7c3a;}.act-btn.share-wa:hover{background:#eaf7ee;border-color:#1c7c3a;}
+.consulted{font-size:.74rem;color:var(--ink-licht);margin-top:14px;}
 /* Feedback (klopt dit antwoord?) */
 .feedback{display:inline-flex;gap:6px;align-items:center;font-size:.78rem;color:var(--ink-licht);}
 .fb-btn{background:#fff;border:1px solid var(--rand);border-radius:50%;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;line-height:1;}
@@ -697,7 +699,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 21";
+const APP_VERSION="build 22";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -974,6 +976,8 @@ function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
 const ICON_ARROW='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const ICON_WA='<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2zm0 2a8 8 0 1 1-4.1 14.9l-.3-.2-2.9.8.8-2.8-.2-.3A8 8 0 0 1 12 4zm-2.5 4.3c-.2 0-.5.1-.7.3-.3.3-.9.9-.9 2.1s.9 2.4 1 2.6c.2.2 1.8 2.8 4.4 3.8 2.2.9 2.6.7 3.1.6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.6-.3c-.3-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.7-.3-1.4-.6-2.2-1.5-.3-.4-.7-.8-1-1.3-.1-.2 0-.3.1-.5l.4-.4c.1-.2.2-.3.2-.5l-.1-.5c0-.1-.6-1.4-.8-1.9-.2-.5-.4-.5-.6-.5z"/></svg>';
+const ICON_MAIL='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
 // Kopieer tekst naar het klembord, met korte visuele bevestiging op de knop.
 function copyText(t,btn){
   const flash=()=>{if(!btn)return;const o=btn.innerHTML,hadLabel=/span/.test(o);btn.classList.add("ok");btn.innerHTML=ICON_OK+(hadLabel?"<span>Gekopieerd</span>":"");setTimeout(()=>{btn.innerHTML=o;btn.classList.remove("ok");},1400);};
@@ -988,6 +992,20 @@ function answerPlainText(r){
   (r.citations||[]).forEach((c,i)=>{if(i>0&&c.heading&&c.heading!==lastH){parts.push(c.heading.toUpperCase());lastH=c.heading;}parts.push("“"+c.text+"”"+(c.src?` (${c.src.title} — ${c.src.url})`:""));});
   return parts.join("\n\n");
 }
+// Datum waarop de bron is geraadpleegd (vandaag), in Nederlandse notatie.
+function consultDate(){return new Date().toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"});}
+// Kort, deelbaar bericht voor WhatsApp/e-mail: per citaat het antwoord + bron + DIRECTE
+// gemarkeerde link (springt op de bronpagina naar het citaat en arceert het geel).
+function shareText(r){
+  const out=[];
+  (r.citations||[]).forEach(c=>{
+    const link=textFragmentUrl(c.src&&c.src.url,c.text,((CORPUS[c.srcIdx]||{}).headings));
+    out.push("“"+c.text+"”"+(c.src?"\n\nBron: "+c.src.title:"")+"\nHet antwoord kunt u hier terugvinden: "+link);
+  });
+  return out.join("\n\n———\n\n")+"\n\n(Bron geraadpleegd op "+consultDate()+")";
+}
+function shareWhatsApp(r){window.open("https://wa.me/?text="+encodeURIComponent(shareText(r)),"_blank","noopener");}
+function shareEmail(r){location.href="mailto:?subject="+encodeURIComponent(r.restated_question||"Antwoord van NederlandWereldwijd")+"&body="+encodeURIComponent(shareText(r));}
 // Feedback lokaal opslaan, zodat we later kunnen zien waar de assistent fout zat.
 function logFeedback(r,verdict,btn){
   const wrap=btn.parentNode;wrap.querySelectorAll(".fb-btn").forEach(b=>b.classList.remove("sel-up","sel-down"));
@@ -1067,8 +1085,11 @@ function renderResult(turn,r){
     f+=`</ul></div>`;
   }
   if(r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
+  if(hasCites)f+=`<div class="consulted">Bron geraadpleegd op ${consultDate()}</div>`;
   f+=`<div class="answer-actions">`;
-  if(hasCites)f+=`<button class="act-btn copy-answer" title="Kopieer het hele antwoord met bron">${ICON_COPY}<span>Kopieer antwoord</span></button>`;
+  if(hasCites)f+=`<button class="act-btn copy-answer" title="Kopieer het hele antwoord met bron">${ICON_COPY}<span>Kopieer antwoord</span></button>`
+    +`<button class="act-btn share-wa" title="Maak een WhatsApp-bericht met antwoord en bronlink">${ICON_WA}<span>WhatsApp</span></button>`
+    +`<button class="act-btn share-mail" title="Maak een e-mail met antwoord en bronlink">${ICON_MAIL}<span>E-mail</span></button>`;
   f+=`<span class="spacer"></span><span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">👍</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">👎</button></span></div>`;
   h+=`<div class="answer-footer">${f}</div></div>`;
   const slot=turn.querySelector(".slot");slot.innerHTML=h;
@@ -1081,6 +1102,8 @@ function renderResult(turn,r){
     el.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&el.classList.contains("src-card")){e.preventDefault();openCite(el);}};
   });
   const ca=slot.querySelector(".copy-answer");if(ca)ca.onclick=()=>copyText(answerPlainText(r),ca);
+  const wa=slot.querySelector(".share-wa");if(wa)wa.onclick=()=>shareWhatsApp(r);
+  const ml=slot.querySelector(".share-mail");if(ml)ml.onclick=()=>shareEmail(r);
   const up=slot.querySelector(".fb-up"),dn=slot.querySelector(".fb-down");
   if(up)up.onclick=()=>logFeedback(r,1,up);
   if(dn)dn.onclick=()=>logFeedback(r,-1,dn);
