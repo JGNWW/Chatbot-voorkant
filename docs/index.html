@@ -239,6 +239,8 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 .viewer-body summary.vh3:hover{color:var(--rijk-licht);}
 .viewer-body .vacc-body{padding:0 0 14px 26px;}
 .viewer-body mark.hl{background:#ffec70;padding:1px 1px;border-radius:2px;box-shadow:0 0 0 3px #ffec70;}
+.viewer-body a.vlink{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
+.viewer-body a.vlink:hover{color:var(--rijk-blauw);}
 .viewer-note{color:var(--oranje);font-size:.85rem;margin-bottom:12px;font-style:italic;}
 .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55;border:0;}
 .viewer-backdrop[hidden]{display:none;}
@@ -736,7 +738,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 28";
+const APP_VERSION="build 29";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1108,7 +1110,6 @@ function renderResult(turn,r){
           +`<span class="src-badge">${n}</span>`
           +`<span class="src-info">${ICON_DOC}<span class="src-title">${escapeHtml(c.src?c.src.title:"Bron")}</span></span>`
           +`<span class="src-go">Lees verder op de pagina →</span>`
-          +`<a class="src-live" href="${live}" target="_blank" rel="noreferrer" title="Open de live pagina met het citaat gemarkeerd" aria-label="Open live pagina">↗</a>`
         +`</div></div>`;
     };
     // Focus op de kern: toon de citaten plat (geen uitklappers). Het aantal is al beperkt
@@ -1193,7 +1194,18 @@ function isContinuation(prev,cur){
 }
 // Render de paginatekst als een echte pagina: losse regels worden samengevoegd tot alinea's,
 // H2-koppen worden uitklapbare secties (de sectie met het citaat staat open) en het citaat blijft geel.
-function buildSourceHTML(fullText,quote,headings){
+function buildSourceHTML(fullText,quote,headings,links){
+  // Maak hrefs absoluut en linkify de (geëscapete) tekst met de echte pagina-links.
+  const linkHref=h=>/^https?:|^mailto:|^tel:/i.test(h)?h:(h&&h[0]==="/"?"https://www.nederlandwereldwijd.nl"+h:h);
+  const linkList=(links||[]).filter(l=>l&&l[0]&&l[0].length>=5).map(l=>[escapeHtml(l[0]),linkHref(l[1])]).sort((a,b)=>b[0].length-a[0].length);
+  function linkify(escd){
+    if(!linkList.length)return escd;
+    const ms=[];for(const [et,href] of linkList){const i=escd.indexOf(et);if(i>=0)ms.push([i,et.length,href]);}
+    ms.sort((a,b)=>a[0]-b[0]);
+    let r="",pos=0,end=-1;
+    for(const [i,len,href] of ms){if(i<end)continue;r+=escd.slice(pos,i)+`<a class="vlink" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">`+escd.slice(i,i+len)+`</a>`;pos=i+len;end=pos;}
+    return r+escd.slice(pos);
+  }
   const [ms,me]=matchRange(fullText,quote);
   const openAll=ms<0; // citaat niet gevonden -> alles open tonen
   const hmap=new Map();(headings||[]).forEach(([lvl,t])=>{if(t&&!hmap.has(t))hmap.set(t,lvl);});
@@ -1212,11 +1224,10 @@ function buildSourceHTML(fullText,quote,headings){
   // 2) Render een tekstbereik met gele markering van het citaat (\n -> spatie).
   let firstMark=true;
   const span=(s,e)=>{
-    let html;
-    if(me<0||ms>=e||me<=s)html=escapeHtml(fullText.slice(s,e));
-    else{const a=Math.max(ms,s)-s,b=Math.min(me,e)-s,str=fullText.slice(s,e);const id=firstMark?' id="hl"':'';firstMark=false;
-      html=escapeHtml(str.slice(0,a))+'<mark class="hl"'+id+'>'+escapeHtml(str.slice(a,b))+'</mark>'+escapeHtml(str.slice(b));}
-    return html.replace(/\n/g," ");
+    if(me<0||ms>=e||me<=s)return linkify(escapeHtml(fullText.slice(s,e).replace(/\n/g," ")));   // geen markering: wel links
+    // Bevat het citaat: markering behouden, geen links erin (houdt de gele passage schoon).
+    const a=Math.max(ms,s)-s,b=Math.min(me,e)-s,str=fullText.slice(s,e);const id=firstMark?' id="hl"':'';firstMark=false;
+    return (escapeHtml(str.slice(0,a))+'<mark class="hl"'+id+'>'+escapeHtml(str.slice(a,b))+'</mark>'+escapeHtml(str.slice(b))).replace(/\n/g," ");
   };
   const hits=(s,e)=>me>s&&ms<e;
   // 3) Net als op NederlandWereldwijd: H2 = zichtbare sectiekop, H3 = uitklapper (accordeon).
@@ -1248,7 +1259,7 @@ function textFragmentUrl(url,quote,headings){
 function openViewer(srcIdx,quote,url,title){
   const page=Number.isInteger(srcIdx)?CORPUS[srcIdx]:null;
   const text=page?page.text:"";
-  const built=buildSourceHTML(text,quote,page&&page.headings);
+  const built=buildSourceHTML(text,quote,page&&page.headings,page&&page.links);
   viewerTitle.textContent=title||(page&&page.title)||"Bronpagina";
   viewerOpen.href=textFragmentUrl(url||(page&&page.url),quote,page&&page.headings);
   viewerBody.innerHTML=(built.found?"":'<div class="viewer-note">Dit citaat kon niet exact op de pagina worden gemarkeerd; hieronder staat de volledige paginatekst.</div>')+built.html;
