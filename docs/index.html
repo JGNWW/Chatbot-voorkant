@@ -102,6 +102,8 @@ body.is-welcome .empty{margin-top:0;}
 .bubble.antwoord{background:#fff;border:1px solid var(--rand);border-radius:18px;border-top-left-radius:6px;max-width:88%;padding:16px 18px;box-shadow:0 1px 2px rgba(20,40,70,.04);}
 .restated-sub{font-size:.86rem;color:var(--ink-licht);margin:0 0 12px;line-height:1.45;}
 .restated-sub .rs-label{font-weight:600;}
+/* Intro: korte herformulering van de vraag, leidt grammaticaal in op het citaat */
+.intro{font-size:.95rem;color:var(--ink);margin:0 0 10px;line-height:1.5;font-style:italic;}
 /* Vervolgonderwerp als uitklapper, met door de AI bepaald tussenkopje als titel */
 .passage-group{border-top:1px solid var(--rand);margin:4px 0 0;}
 summary.passage-heading{cursor:pointer;list-style:none;position:relative;font-size:1rem;font-weight:700;color:var(--rijk-blauw);padding:12px 0 12px 26px;user-select:none;}
@@ -334,9 +336,10 @@ Stel een antwoord samen dat bestaat uit:
    - VOLGORDE & TUSSENKOPJES: zet de citaten in een logische leesvolgorde en groepeer ze met een "heading" per citaat onder korte tussenkopjes (bv. "Waar aanvragen", "Kosten", "Wat u nodig heeft", "Hoe lang het duurt", "Uitzonderingen"). Een tussenkopje is een KORT, beschrijvend label van 2 tot 4 woorden — GEEN zin en GEEN dubbele punt. Citaten die bij elkaar horen krijgen EXACT dezelfde "heading" (dan komen ze onder één kopje); een nieuw onderwerp krijgt een nieuwe heading. Houd een logische volgorde aan: eerst het kernantwoord, dan waar/hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. Laat de "heading" van het EERSTE citaat ALTIJD LEEG — dat citaat is het kernantwoord en wordt zonder kopje getoond. Gebruik dus GEEN kopje zoals "Kernantwoord". Gebruik tussenkopjes alleen als het antwoord uit meerdere onderdelen bestaat; bij één kort, samenhangend antwoord laat je alle headings leeg.
 2. "clarifications": als het juiste antwoord AFHANGT van de situatie van de burger, neem dan geen aanname maar zet hier de vraag/vragen die de voorlichter moet stellen. Veel antwoorden hangen af van: het LAND waar de aanvrager woont, of het een EERSTE aanvraag of een VERVANGING/VERLENGING is, en of het voor een VOLWASSENE of voor een KIND is. Geef per verduidelijking een "question" (wat de voorlichter uitvraagt) en een "prefill" (begin van een vervolgvraag dat de voorlichter aanvult, bv. "ID-kaart aanvragen vanuit "). Geef bij een situatie-afhankelijke vraag ALTIJD minstens één verduidelijking, zodat de voorlichter de juiste situatie kan uitvragen in plaats van dat jij iets aanneemt. Laat leeg als er echt niets te verduidelijken valt.
 3. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
+4. "intro": EÉN korte zin (max 18 woorden) in de aanspreekvorm "u" die de INFORMATIEBEHOEFTE van de burger herformuleert, grammaticaal naadloos overloopt in het eerste citaat, en de voorlichter helpt de vraag goed te kaderen. VARIEER de opening — gebruik bv. "Als ik het goed begrijp, wilt u weten…", "U vraagt waarschijnlijk naar…", "U zoekt informatie over…", "Begrijp ik goed dat u wilt weten…" of een vergelijkbare natuurlijke variant. Schrijf de zin PAS NADAT je het eerste citaat hebt gekozen, zodat hij precies daarop aansluit. Strikte regels: noem GEEN feiten, bedragen, termijnen of conclusies — herformuleer ALLEEN de VRAAG. Geef GEEN aanname over de situatie (bv. niet "voor uw kind" tenzij de burger dat zelf zei). Eindig NIET op een dubbele punt als het citaat met een vraag begint. Laat "intro" LEEG als er geen citaat is.
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
-{"restated_question":"<de vraag kort en helder geherformuleerd>","citations":[{"source_index":<paginanummer>,"heading":"<kort tussenkopje of leeg>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+{"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"heading":"<kort tussenkopje of leeg>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
@@ -736,7 +739,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 30";
+const APP_VERSION="build 31";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -967,7 +970,9 @@ async function askAI(q,cands,key){
       related=[];clarifications=[];followups=[];note="";
     }
   }
-  return {restated_question:r.restated_question||q,citations,used,related,note,clarifications,followups};
+  // Intro: korte herformulering van de informatiebehoefte; alleen tonen als er een citaat is.
+  const intro=citations.length?((r.intro||"").toString().trim().replace(/\s+/g," ").slice(0,200)):"";
+  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
 }
 
 function addTurn(q){
@@ -996,6 +1001,7 @@ function fallbackCopy(t,cb){const ta=document.createElement("textarea");ta.value
 function answerPlainText(r){
   const parts=[];
   let lastH="";
+  if(r.intro)parts.push(r.intro);
   (r.citations||[]).forEach((c,i)=>{if(i>0&&c.heading&&c.heading!==lastH){parts.push(c.heading.toUpperCase());lastH=c.heading;}parts.push("“"+c.text+"”"+(c.src?` (${c.src.title} — ${c.src.url})`:""));});
   return parts.join("\n\n");
 }
@@ -1005,9 +1011,10 @@ function consultDate(){return new Date().toLocaleDateString("nl-NL",{day:"numeri
 // gemarkeerde link (springt op de bronpagina naar het citaat en arceert het geel).
 function shareText(r){
   const out=[];
-  (r.citations||[]).forEach(c=>{
+  (r.citations||[]).forEach((c,i)=>{
     const link=textFragmentUrl(c.src&&c.src.url,c.text,((CORPUS[c.srcIdx]||{}).headings));
-    out.push("“"+c.text+"”"+(c.src?"\n\nBron: "+c.src.title:"")+"\nHet antwoord kunt u hier terugvinden: "+link);
+    const intro=(i===0&&r.intro)?r.intro+"\n\n":"";
+    out.push(intro+"“"+c.text+"”"+(c.src?"\n\nBron: "+c.src.title:"")+"\nHet antwoord kunt u hier terugvinden: "+link);
   });
   return out.join("\n\n———\n\n")+"\n\n(Bron geraadpleegd op "+consultDate()+")";
 }
@@ -1043,6 +1050,8 @@ function renderResult(turn,r){
   const hasCites=r.citations&&r.citations.length;
   let h=`<div class="bubble antwoord">`;
   h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
+  // Intro: rustige lead-zin die de informatiebehoefte herformuleert en op het citaat aansluit.
+  if(hasCites&&r.intro)h+=`<p class="intro">${escapeHtml(r.intro)}</p>`;
   const clar=r.clarifications||[];
   const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   if(hasCites){
