@@ -43,6 +43,7 @@ html,body{height:100%;overflow:hidden;}
 .new-chat{display:flex;align-items:center;justify-content:center;gap:7px;margin:6px 14px 10px;padding:10px 14px;background:var(--rijk-licht);color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .12s;}
 .new-chat:hover{background:var(--rijk-donker);}
 .convo-section{flex:1;min-height:0;overflow-y:auto;padding:4px 8px 8px;}
+.sidebar-spacer{flex:1;}
 .convo-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-licht);font-weight:700;padding:8px 8px 4px;}
 .convo-list{list-style:none;margin:0;padding:0;}
 .convo-item{display:flex;align-items:center;gap:6px;border-radius:10px;padding:9px 10px;font-size:.88rem;color:var(--ink);cursor:pointer;transition:background .12s;}
@@ -270,10 +271,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       </div>
     </div>
     <button id="reset" class="new-chat" title="Begin een nieuw gesprek"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nieuw gesprek</button>
-    <div class="convo-section">
-      <div class="convo-label">Recente gesprekken</div>
-      <ul class="convo-list" id="convo-list"></ul>
-    </div>
+    <div class="sidebar-spacer"></div>
     <div class="sidebar-foot">
       <button id="settings-toggle" class="settings-btn" aria-expanded="false" aria-controls="keybar"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.74 8.2a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.33.61.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.09.47 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>AI-instellingen <span id="mode-badge"></span></button>
     </div>
@@ -738,7 +736,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 29";
+const APP_VERSION="build 30";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -755,26 +753,8 @@ function prefill(t){inputEl.value=t;inputEl.focus();inputEl.setSelectionRange(t.
 const samples=document.getElementById("samples");
 SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.onclick=()=>askText(s);samples.appendChild(b);});
 
-/* ---- Gespreksbeheer: recente gesprekken in de zijbalk (localStorage) ---- */
-const CONVO_KEY="vk_convos";
-let convos=[];try{convos=JSON.parse(localStorage.getItem(CONVO_KEY)||"[]");}catch(e){convos=[];}
-let activeConvo=null;
-const convoListEl=document.getElementById("convo-list");
-function saveConvos(){try{convos=convos.slice(0,40);localStorage.setItem(CONVO_KEY,JSON.stringify(convos));}catch(e){}}
-function convoTitle(q){q=(q||"").trim();return q.length>42?q.slice(0,42)+"…":(q||"Nieuw gesprek");}
-function renderConvoList(){
-  convoListEl.innerHTML="";
-  if(!convos.length){convoListEl.innerHTML='<li class="convo-empty">Nog geen gesprekken.</li>';return;}
-  convos.forEach(c=>{
-    const li=document.createElement("li");
-    li.className="convo-item"+(c.id===activeConvo?" active":"");
-    li.innerHTML='<span class="convo-title"></span><button class="convo-del" title="Verwijder gesprek" aria-label="Verwijder gesprek">✕</button>';
-    li.querySelector(".convo-title").textContent=c.title;
-    li.onclick=(e)=>{if(!e.target.closest(".convo-del"))loadConversation(c.id);};
-    li.querySelector(".convo-del").onclick=(e)=>{e.stopPropagation();deleteConversation(c.id);};
-    convoListEl.appendChild(li);
-  });
-}
+/* ---- Geen gespreksgeschiedenis: gesprekken worden niet bewaard of getoond ---- */
+try{localStorage.removeItem("vk_convos");}catch(e){}
 function showWelcome(){
   document.body.classList.add("is-welcome");
   conv.innerHTML="";
@@ -785,45 +765,12 @@ function showWelcome(){
   SAMPLES.forEach(x=>{const b=document.createElement("button");b.textContent=x;b.onclick=()=>askText(x);s.appendChild(b);});
   conv.appendChild(s);
 }
-function newConversation(){activeConvo=null;history=[];showWelcome();renderConvoList();closeSidebar();inputEl&&inputEl.focus();}
-function ensureConvo(firstQ){
-  if(activeConvo&&convos.some(x=>x.id===activeConvo))return;
-  const c={id:"c"+Date.now().toString(36),title:convoTitle(firstQ),turns:[],ts:Date.now()};
-  convos.unshift(c);activeConvo=c.id;saveConvos();renderConvoList();
-}
-function recordTurn(q,result){
-  ensureConvo(q);
-  const c=convos.find(x=>x.id===activeConvo);if(!c)return;
-  c.turns.push({q,result});c.ts=Date.now();
-  convos=convos.filter(x=>x.id!==c.id);convos.unshift(c);
-  saveConvos();renderConvoList();
-}
-function restoreTurn(q,result){
-  const art=document.createElement("article");art.className="turn";
-  art.innerHTML='<div class="row user"><div class="bubble vraag"></div></div><div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent=\'🐶\'"></div><div class="slot"></div></div>';
-  art.querySelector(".bubble.vraag").textContent=q;
-  conv.appendChild(art);
-  try{renderResult(art,result);}catch(e){art.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Dit antwoord kon niet worden hersteld.</div></div>';}
-}
-function loadConversation(id){
-  const c=convos.find(x=>x.id===id);if(!c)return;
-  activeConvo=id;history=[];
-  document.body.classList.remove("is-welcome");
-  conv.innerHTML="";
-  c.turns.forEach(t=>{
-    restoreTurn(t.q,t.result);
-    const r=t.result;
-    if(r&&r.citations&&r.citations.length)history.push({q:r.restated_question||t.q,summary:(r.citations[0].text||"").slice(0,220)});
-  });
-  if(history.length>6)history=history.slice(-6);
-  renderConvoList();closeSidebar();
-  conv.scrollTop=conv.scrollHeight;
-}
-function deleteConversation(id){
-  convos=convos.filter(x=>x.id!==id);saveConvos();
-  if(activeConvo===id)newConversation();else renderConvoList();
-}
-renderConvoList();
+function newConversation(){history=[];showWelcome();closeSidebar();inputEl&&inputEl.focus();}
+function recordTurn(){}  // no-op: gesprekken worden niet bewaard
+function restoreTurn(){}  // no-op
+function loadConversation(){} // no-op
+function deleteConversation(){} // no-op
+function renderConvoList(){} // no-op
 
 /* Zijbalk in-/uitklappen op mobiel */
 function closeSidebar(){document.body.classList.remove("sidebar-open");}
