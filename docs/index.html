@@ -739,7 +739,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 31";
+const APP_VERSION="build 32";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1049,9 +1049,10 @@ function renderResult(turn,r){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
   const hasCites=r.citations&&r.citations.length;
   let h=`<div class="bubble antwoord">`;
-  h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
-  // Intro: rustige lead-zin die de informatiebehoefte herformuleert en op het citaat aansluit.
-  if(hasCites&&r.intro)h+=`<p class="intro">${escapeHtml(r.intro)}</p>`;
+  // De intro herformuleert de vraag al; toon dan GEEN losse 'Je vraag:'-regel meer.
+  // Zonder intro (demo-modus of geen antwoord) tonen we de vraag wél als context.
+  if(hasCites&&r.intro)h+=`<p class="intro">${escapeHtml(r.intro)} ${badge}</p>`;
+  else h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
   const clar=r.clarifications||[];
   const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   if(hasCites){
