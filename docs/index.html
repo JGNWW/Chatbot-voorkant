@@ -170,6 +170,10 @@ a{color:var(--rijk-licht);}
 .composer-pill:focus-within{border-color:var(--rijk-licht);box-shadow:0 3px 16px rgba(0,123,199,.15);}
 .composer input{flex:1;padding:10px 0;border:none;outline:none;font-size:1rem;background:transparent;font-family:inherit;color:var(--ink);}
 .send-btn{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:var(--rijk-licht);color:#fff;border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,transform .08s;}
+.mic-btn{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:#f0f3f7;color:var(--ink-licht);border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,color .12s;}
+.mic-btn:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
+.mic-btn.rec{background:#fde7e7;color:#c62828;animation:micpulse 1.4s infinite;}
+@keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(198,40,40,.55);}70%{box-shadow:0 0 0 10px rgba(198,40,40,0);}100%{box-shadow:0 0 0 0 rgba(198,40,40,0);}}
 .send-btn:hover:not(:disabled){background:var(--rijk-donker);}
 .send-btn:active:not(:disabled){transform:scale(.93);}
 .send-btn:disabled{background:var(--rand-sterk);cursor:default;}
@@ -308,6 +312,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <div class="suggest" id="suggest" hidden role="listbox" aria-label="Suggesties"></div>
       <div class="composer-pill">
         <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus aria-expanded="false" aria-controls="suggest" />
+        <button type="button" id="mic" class="mic-btn" title="Spraakinvoer: praat en de tekst verschijnt hier" aria-label="Spraakinvoer starten" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
       </div>
     </form>
@@ -739,7 +744,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 32";
+const APP_VERSION="build 33";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -920,6 +925,48 @@ inputEl.addEventListener("input",()=>{clearTimeout(suggestTimer);suggestTimer=se
 inputEl.addEventListener("keydown",e=>{if(e.key==="Escape")hideSuggest();});
 inputEl.addEventListener("blur",()=>setTimeout(hideSuggest,150));
 inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSuggest();});
+
+// ---- Spraakinvoer (Web Speech API) ----
+// Werkt in Chrome/Edge (webkitSpeechRecognition). Herkende tekst verschijnt live in het
+// invoerveld; klik nogmaals op de knop om te stoppen. Interim-resultaten worden getoond
+// en bij een pauze omgezet naar de definitieve tekst.
+(function initMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const micBtn=document.getElementById("mic");if(!micBtn)return;
+  if(!SR){micBtn.hidden=true;return;} // niet ondersteund -> knop verbergen
+  micBtn.hidden=false;
+  const rec=new SR();rec.lang="nl-NL";rec.interimResults=true;rec.continuous=true;
+  let active=false,base="";
+  function setActive(on){
+    active=on;
+    micBtn.classList.toggle("rec",on);
+    micBtn.title=on?"Stop spraakinvoer":"Spraakinvoer: praat en de tekst verschijnt hier";
+    micBtn.setAttribute("aria-label",on?"Spraakinvoer stoppen":"Spraakinvoer starten");
+  }
+  rec.addEventListener("result",e=>{
+    let interim="",fin="";
+    for(let i=e.resultIndex;i<e.results.length;i++){const r=e.results[i];if(r.isFinal)fin+=r[0].transcript;else interim+=r[0].transcript;}
+    if(fin){base=(base?base+" ":"")+fin.trim();}
+    const joined=(base+(interim?" "+interim.trim():"")).replace(/\s+/g," ").trim();
+    // Kapitaliseer eerste letter en toon in het invoerveld.
+    inputEl.value=joined?joined.charAt(0).toUpperCase()+joined.slice(1):"";
+    showSuggest();
+  });
+  rec.addEventListener("end",()=>{if(active){try{rec.start();}catch(e){setActive(false);}}else setActive(false);});
+  rec.addEventListener("error",e=>{
+    // 'no-speech' en 'aborted' zijn onschuldig; de rest melden.
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"){alert("Sta microfoontoegang toe in de browser om spraakinvoer te gebruiken.");setActive(false);}
+    else if(e.error!=="no-speech"&&e.error!=="aborted"){console.warn("Spraak-fout:",e.error);}
+  });
+  micBtn.addEventListener("click",()=>{
+    if(active){setActive(false);try{rec.stop();}catch(e){}return;}
+    base=inputEl.value.trim();  // begin met wat er al staat, zodat spraak eraan toevoegt
+    setActive(true);
+    try{rec.start();inputEl.focus();}catch(e){setActive(false);}
+  });
+  // Bij verzenden altijd stoppen.
+  document.getElementById("form").addEventListener("submit",()=>{if(active){setActive(false);try{rec.stop();}catch(e){}}});
+})();
 
 function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
 
