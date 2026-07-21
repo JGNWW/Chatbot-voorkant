@@ -749,7 +749,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 34";
+const APP_VERSION="build 35";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -947,32 +947,32 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
   const showStatus=(msg,type)=>{status.textContent=msg;status.className="mic-status"+(type?" mic-"+type:"");status.hidden=false;};
   const hideStatus=()=>{status.hidden=true;status.textContent="";};
   const errorText={"no-speech":"Geen spraak gehoord; probeer opnieuw.","audio-capture":"Geen microfoon gevonden. Controleer je audio-instellingen.","not-allowed":"Microfoontoegang geweigerd. Sta het toe in de browser (slotje links van de URL) en probeer opnieuw.","service-not-allowed":"Microfoontoegang geweigerd door de browser of het systeem.","network":"Geen verbinding met de spraakherkenning. Controleer je internet.","aborted":"Spraakinvoer afgebroken.","language-not-supported":"Nederlands wordt niet ondersteund in deze browser."};
-  let rec=null,active=false,base="",restarts=0,restartTimer=null;
+  let rec=null,active=false,base="",gotResult=false,watchdog=null,restartTimer=null;
   function makeRec(){
-    const r=new SR();r.lang="nl-NL";r.interimResults=true;r.continuous=false;   // false = betrouwbaarder in Chrome; we herstarten zelf
-    r.addEventListener("start",()=>{restarts=0;showStatus("🎤 Luisteren… praat maar. Klik nogmaals om te stoppen.","rec");});
+    const r=new SR();r.lang="nl-NL";r.interimResults=true;r.continuous=true;   // standaard dictaat-configuratie
+    r.addEventListener("start",()=>{showStatus("🎤 Luisteren… praat maar. Klik nogmaals om te stoppen.","rec");});
     r.addEventListener("result",e=>{
+      gotResult=true;
       let interim="",fin="";
       for(let i=e.resultIndex;i<e.results.length;i++){const res=e.results[i];if(res.isFinal)fin+=res[0].transcript;else interim+=res[0].transcript;}
       if(fin)base=(base?base+" ":"")+fin.trim();
       const joined=(base+(interim?" "+interim.trim():"")).replace(/\s+/g," ").trim();
-      if(joined){inputEl.value=joined.charAt(0).toUpperCase()+joined.slice(1);try{showSuggest();}catch(e){}}
+      if(joined){inputEl.value=joined.charAt(0).toUpperCase()+joined.slice(1);showStatus("🎤 Luisteren… (“"+(interim||fin).trim().slice(0,40)+"”)","rec");try{showSuggest();}catch(e){}}
     });
     r.addEventListener("end",()=>{
-      if(!active){setActive(false);hideStatus();return;}
-      // Auto-herstart tot 5x snel achter elkaar; voorkomt vastlopers.
-      if(++restarts>5){setActive(false);showStatus("Spraakinvoer gestopt. Klik op de microfoon om opnieuw te starten.","warn");return;}
-      restartTimer=setTimeout(()=>{try{r.start();}catch(err){setActive(false);showStatus("Kon spraakinvoer niet hervatten: "+err.message,"error");}},250);
+      if(!active){hideStatus();return;}
+      // Chrome stopt na een stilte; herstart om te blijven luisteren. Als er nog NOOIT een
+      // resultaat kwam, is er waarschijnlijk een netwerk-/omgevingsprobleem met de spraakdienst.
+      if(!gotResult){setActive(false);showStatus("Geen tekst ontvangen van de spraakdienst. Chrome's spraakherkenning loopt via Google-servers — mogelijk blokkeert je netwerk (BZ-omgeving) of firewall dit. Typen werkt gewoon.","error");return;}
+      restartTimer=setTimeout(()=>{try{r.start();}catch(err){/* al bezig */}},300);
     });
     r.addEventListener("error",e=>{
       const msg=errorText[e.error]||("Spraak-fout: "+e.error);
       if(e.error==="not-allowed"||e.error==="service-not-allowed"||e.error==="audio-capture"||e.error==="language-not-supported"||e.error==="network"){
-        active=false;showStatus(msg,"error");setActive(false);
+        setActive(false);showStatus(msg,"error");
       }else if(e.error==="no-speech"){
-        showStatus("Geen spraak gehoord; probeer opnieuw of praat wat luider.","warn");
-      }else{
-        console.warn("Spraak-fout:",e.error);
-      }
+        showStatus("Nog geen spraak gehoord; praat wat luider of dichter bij de microfoon.","warn");
+      }else{console.warn("Spraak-fout:",e.error);}
     });
     return r;
   }
@@ -981,11 +981,11 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
     micBtn.classList.toggle("rec",on);
     micBtn.title=on?"Stop spraakinvoer":"Spraakinvoer: praat en de tekst verschijnt hier";
     micBtn.setAttribute("aria-label",on?"Spraakinvoer stoppen":"Spraakinvoer starten");
-    if(!on&&restartTimer){clearTimeout(restartTimer);restartTimer=null;}
+    if(!on){if(restartTimer){clearTimeout(restartTimer);restartTimer=null;}if(watchdog){clearTimeout(watchdog);watchdog=null;}}
   }
   micBtn.addEventListener("click",async()=>{
     if(active){setActive(false);try{rec&&rec.stop();}catch(e){}hideStatus();return;}
-    base=inputEl.value.trim();  // begin met wat er al staat, zodat spraak eraan toevoegt
+    base=inputEl.value.trim();gotResult=false;
     // Vraag eerst microfoontoegang zodat je bij weigering meteen weet waarom.
     if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
       try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());}
@@ -994,7 +994,10 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
     setActive(true);showStatus("🎤 Starten…","rec");
     rec=makeRec();
     try{rec.start();inputEl.focus();}
-    catch(e){setActive(false);showStatus("Kon spraakinvoer niet starten: "+e.message,"error");}
+    catch(e){setActive(false);showStatus("Kon spraakinvoer niet starten: "+e.message,"error");return;}
+    // Waakhond: als er na 6 s nog geen resultaat is, waarschuw (meestal netwerk/omgeving).
+    if(watchdog)clearTimeout(watchdog);
+    watchdog=setTimeout(()=>{if(active&&!gotResult)showStatus("Nog geen tekst na 6 seconden. Praat duidelijk in de microfoon. Blijft dit leeg, dan blokkeert je netwerk waarschijnlijk de spraakdienst (Google-servers).","warn");},6000);
   });
   // Bij verzenden altijd stoppen.
   form.addEventListener("submit",()=>{if(active){setActive(false);try{rec&&rec.stop();}catch(e){}hideStatus();}});
