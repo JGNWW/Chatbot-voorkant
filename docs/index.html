@@ -749,7 +749,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 35";
+const APP_VERSION="build 36";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -931,76 +931,77 @@ inputEl.addEventListener("keydown",e=>{if(e.key==="Escape")hideSuggest();});
 inputEl.addEventListener("blur",()=>setTimeout(hideSuggest,150));
 inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSuggest();});
 
-// ---- Spraakinvoer (Web Speech API) ----
-// Werkt in Chrome/Edge (webkitSpeechRecognition). Herkende tekst verschijnt live in het
-// invoerveld; klik nogmaals op de knop om te stoppen. Er is een zichtbare statusregel
-// boven de composer die de huidige toestand en eventuele fouten toont.
+// ---- Spraakinvoer via lokale Whisper (transformers.js) ----
+// De audio blijft VOLLEDIG op het apparaat: opgenomen via de microfoon, getranscribeerd in
+// de browser met een Whisper-model (geen Google-servers, geen upload). Werkt overal waar het
+// zoekmodel ook laadt. Tijdens opnemen wordt de tekst elke ~2,5 s bijgewerkt (near-live).
 (function initMic(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const micBtn=document.getElementById("mic");if(!micBtn)return;
-  if(!SR){micBtn.hidden=true;return;} // niet ondersteund -> knop verbergen
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){micBtn.hidden=true;return;}
   micBtn.hidden=false;
-  // Statusregel boven de composer.
   const form=document.getElementById("form");
   const status=document.createElement("div");status.className="mic-status";status.hidden=true;
   form.parentNode.insertBefore(status,form);
   const showStatus=(msg,type)=>{status.textContent=msg;status.className="mic-status"+(type?" mic-"+type:"");status.hidden=false;};
   const hideStatus=()=>{status.hidden=true;status.textContent="";};
-  const errorText={"no-speech":"Geen spraak gehoord; probeer opnieuw.","audio-capture":"Geen microfoon gevonden. Controleer je audio-instellingen.","not-allowed":"Microfoontoegang geweigerd. Sta het toe in de browser (slotje links van de URL) en probeer opnieuw.","service-not-allowed":"Microfoontoegang geweigerd door de browser of het systeem.","network":"Geen verbinding met de spraakherkenning. Controleer je internet.","aborted":"Spraakinvoer afgebroken.","language-not-supported":"Nederlands wordt niet ondersteund in deze browser."};
-  let rec=null,active=false,base="",gotResult=false,watchdog=null,restartTimer=null;
-  function makeRec(){
-    const r=new SR();r.lang="nl-NL";r.interimResults=true;r.continuous=true;   // standaard dictaat-configuratie
-    r.addEventListener("start",()=>{showStatus("🎤 Luisteren… praat maar. Klik nogmaals om te stoppen.","rec");});
-    r.addEventListener("result",e=>{
-      gotResult=true;
-      let interim="",fin="";
-      for(let i=e.resultIndex;i<e.results.length;i++){const res=e.results[i];if(res.isFinal)fin+=res[0].transcript;else interim+=res[0].transcript;}
-      if(fin)base=(base?base+" ":"")+fin.trim();
-      const joined=(base+(interim?" "+interim.trim():"")).replace(/\s+/g," ").trim();
-      if(joined){inputEl.value=joined.charAt(0).toUpperCase()+joined.slice(1);showStatus("🎤 Luisteren… (“"+(interim||fin).trim().slice(0,40)+"”)","rec");try{showSuggest();}catch(e){}}
-    });
-    r.addEventListener("end",()=>{
-      if(!active){hideStatus();return;}
-      // Chrome stopt na een stilte; herstart om te blijven luisteren. Als er nog NOOIT een
-      // resultaat kwam, is er waarschijnlijk een netwerk-/omgevingsprobleem met de spraakdienst.
-      if(!gotResult){setActive(false);showStatus("Geen tekst ontvangen van de spraakdienst. Chrome's spraakherkenning loopt via Google-servers — mogelijk blokkeert je netwerk (BZ-omgeving) of firewall dit. Typen werkt gewoon.","error");return;}
-      restartTimer=setTimeout(()=>{try{r.start();}catch(err){/* al bezig */}},300);
-    });
-    r.addEventListener("error",e=>{
-      const msg=errorText[e.error]||("Spraak-fout: "+e.error);
-      if(e.error==="not-allowed"||e.error==="service-not-allowed"||e.error==="audio-capture"||e.error==="language-not-supported"||e.error==="network"){
-        setActive(false);showStatus(msg,"error");
-      }else if(e.error==="no-speech"){
-        showStatus("Nog geen spraak gehoord; praat wat luider of dichter bij de microfoon.","warn");
-      }else{console.warn("Spraak-fout:",e.error);}
-    });
-    return r;
+
+  let active=false,base="",stream=null,audioCtx=null,srcNode=null,proc=null,chunks=[],timer=null,busy=false,gotText=false;
+  // Whisper-model lazy laden (zelfde CDN als het zoekmodel).
+  let transcriber=null,loadPromise=null;
+  function loadWhisper(){
+    if(transcriber)return Promise.resolve(transcriber);
+    if(!loadPromise)loadPromise=(async()=>{
+      const tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
+      tf.env.allowLocalModels=false;
+      const opts={dtype:"q8"};try{if(navigator.gpu)opts.device="webgpu";}catch(e){}
+      transcriber=await tf.pipeline("automatic-speech-recognition","Xenova/whisper-base",opts);
+      return transcriber;
+    })();
+    return loadPromise;
   }
-  function setActive(on){
-    active=on;
-    micBtn.classList.toggle("rec",on);
-    micBtn.title=on?"Stop spraakinvoer":"Spraakinvoer: praat en de tekst verschijnt hier";
-    micBtn.setAttribute("aria-label",on?"Spraakinvoer stoppen":"Spraakinvoer starten");
-    if(!on){if(restartTimer){clearTimeout(restartTimer);restartTimer=null;}if(watchdog){clearTimeout(watchdog);watchdog=null;}}
+  function setActive(on){active=on;micBtn.classList.toggle("rec",on);micBtn.title=on?"Stop spraakinvoer":"Spraakinvoer: praat en de tekst verschijnt hier";micBtn.setAttribute("aria-label",on?"Spraakinvoer stoppen":"Spraakinvoer starten");}
+  function merged(){const n=chunks.reduce((a,b)=>a+b.length,0),out=new Float32Array(n);let o=0;for(const c of chunks){out.set(c,o);o+=c.length;}return out;}
+  function resample16k(data,rate){if(rate===16000)return data;const ratio=rate/16000,n=Math.max(1,Math.floor(data.length/ratio)),out=new Float32Array(n);for(let i=0;i<n;i++){const idx=i*ratio,lo=Math.floor(idx),hi=Math.min(lo+1,data.length-1),f=idx-lo;out[i]=data[lo]*(1-f)+data[hi]*f;}return out;}
+  async function transcribe(finalPass){
+    if(busy)return;const raw=merged();if(raw.length<4000&&!finalPass)return; // <0,25 s: te kort
+    busy=true;
+    try{
+      const t=await loadWhisper();
+      const audio=resample16k(raw,(audioCtx&&audioCtx.sampleRate)||16000);
+      const out=await t(audio,{language:"dutch",task:"transcribe",chunk_length_s:30});
+      const txt=((out&&out.text)||"").replace(/\s+/g," ").trim();
+      if(txt){gotText=true;const joined=(base?base+" ":"")+txt;inputEl.value=joined.charAt(0).toUpperCase()+joined.slice(1);try{showSuggest();}catch(e){}
+        if(active)showStatus("🎤 Luisteren… (“"+txt.slice(0,44)+"”)","rec");}
+    }catch(e){console.warn("Whisper:",e);if(active)showStatus("Transcriberen mislukt: "+(e.message||e),"error");}
+    busy=false;
+  }
+  function stopCapture(){try{if(proc)proc.disconnect();if(srcNode)srcNode.disconnect();if(audioCtx)audioCtx.close();}catch(e){}try{if(stream)stream.getTracks().forEach(t=>t.stop());}catch(e){}proc=srcNode=audioCtx=stream=null;}
+  async function stop(finalPass){
+    if(timer){clearInterval(timer);timer=null;}
+    setActive(false);
+    if(finalPass){showStatus("Bezig met verwerken…","rec");await transcribe(true);}
+    stopCapture();chunks=[];hideStatus();
   }
   micBtn.addEventListener("click",async()=>{
-    if(active){setActive(false);try{rec&&rec.stop();}catch(e){}hideStatus();return;}
-    base=inputEl.value.trim();gotResult=false;
-    // Vraag eerst microfoontoegang zodat je bij weigering meteen weet waarom.
-    if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
-      try{const s=await navigator.mediaDevices.getUserMedia({audio:true});s.getTracks().forEach(t=>t.stop());}
-      catch(e){showStatus("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.","error");return;}
-    }
-    setActive(true);showStatus("🎤 Starten…","rec");
-    rec=makeRec();
-    try{rec.start();inputEl.focus();}
-    catch(e){setActive(false);showStatus("Kon spraakinvoer niet starten: "+e.message,"error");return;}
-    // Waakhond: als er na 6 s nog geen resultaat is, waarschuw (meestal netwerk/omgeving).
-    if(watchdog)clearTimeout(watchdog);
-    watchdog=setTimeout(()=>{if(active&&!gotResult)showStatus("Nog geen tekst na 6 seconden. Praat duidelijk in de microfoon. Blijft dit leeg, dan blokkeert je netwerk waarschijnlijk de spraakdienst (Google-servers).","warn");},6000);
+    if(active){await stop(true);return;}
+    base=inputEl.value.trim();gotText=false;chunks=[];
+    try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
+    catch(e){showStatus("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.","error");return;}
+    setActive(true);showStatus("Spraakmodel laden… (eenmalig, kan even duren)","rec");
+    try{await loadWhisper();}catch(e){setActive(false);stopCapture();showStatus("Kon het spraakmodel niet laden: "+(e.message||e),"error");return;}
+    try{
+      audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+      srcNode=audioCtx.createMediaStreamSource(stream);
+      proc=audioCtx.createScriptProcessor(4096,1,1);
+      proc.onaudioprocess=e=>{if(active)chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
+      srcNode.connect(proc);proc.connect(audioCtx.destination);
+    }catch(e){setActive(false);stopCapture();showStatus("Kon de microfoon niet openen: "+(e.message||e),"error");return;}
+    showStatus("🎤 Luisteren… praat maar. Klik nogmaals om te stoppen.","rec");inputEl.focus();
+    timer=setInterval(()=>transcribe(false),2500);   // near-live bijwerken
+    setTimeout(()=>{if(active&&!gotText)showStatus("🎤 Luisteren… (nog geen tekst; praat duidelijk in de microfoon)","warn");},8000);
   });
-  // Bij verzenden altijd stoppen.
-  form.addEventListener("submit",()=>{if(active){setActive(false);try{rec&&rec.stop();}catch(e){}hideStatus();}});
+  // Bij verzenden altijd stoppen (zonder finale transcriptie — de tekst staat er al).
+  form.addEventListener("submit",()=>{if(active||stream){if(timer){clearInterval(timer);timer=null;}setActive(false);stopCapture();chunks=[];hideStatus();}});
 })();
 
 function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
