@@ -179,6 +179,22 @@ a{color:var(--rijk-licht);}
 .mic-status.mic-warn{background:#fff8e6;color:#7a5a00;border-color:#f0dfa0;}
 .mic-status.mic-error{background:#fde7e7;color:#a01818;border-color:#f0b8b8;}
 .mic-status[hidden]{display:none;}
+/* Ambient luistermodus */
+.listen{max-width:860px;margin:0 auto;}
+.listen-head{position:sticky;top:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;padding:12px 2px;border-bottom:1px solid var(--rand);margin-bottom:14px;z-index:2;}
+.listen-badge{display:inline-flex;align-items:center;gap:6px;background:#fde7e7;color:#c62828;font-weight:700;font-size:.82rem;padding:4px 10px;border-radius:14px;animation:micpulse 1.6s infinite;}
+.listen-msg{flex:1;min-width:160px;color:var(--ink-licht);font-size:.86rem;line-height:1.4;}
+.listen-stop{flex:0 0 auto;background:#fff;border:1px solid var(--rand);border-radius:16px;padding:6px 14px;font-family:inherit;font-size:.82rem;color:var(--rijk-blauw);cursor:pointer;}
+.listen-stop:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
+.listen-transcript{min-height:26px;margin:0 0 16px;font-size:1rem;line-height:1.5;color:var(--ink);}
+.listen-transcript .lt-final{color:var(--ink);}
+.listen-transcript .lt-partial{color:var(--ink-licht);}
+.listen-hint{color:var(--ink-licht);font-style:italic;padding:6px 0;}
+.listen-quotes{display:flex;flex-direction:column;gap:12px;}
+.listen-card{text-align:left;background:#fff;border:1px solid var(--rand);border-left:3px solid var(--rijk-licht);border-radius:10px;padding:12px 14px;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s;display:flex;flex-direction:column;gap:8px;}
+.listen-card:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
+.listen-card .lc-quote{font-size:.98rem;line-height:1.55;color:var(--ink);}
+.listen-card .lc-src{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:var(--rijk-blauw);}
 .send-btn:hover:not(:disabled){background:var(--rijk-donker);}
 .send-btn:active:not(:disabled){transform:scale(.93);}
 .send-btn:disabled{background:var(--rand-sterk);cursor:default;}
@@ -317,7 +333,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <div class="suggest" id="suggest" hidden role="listbox" aria-label="Suggesties"></div>
       <div class="composer-pill">
         <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus aria-expanded="false" aria-controls="suggest" />
-        <button type="button" id="mic" class="mic-btn" title="Spraakinvoer: praat en de tekst verschijnt hier" aria-label="Spraakinvoer starten" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <button type="button" id="mic" class="mic-btn" title="Start luistermodus (spraak → automatisch passende antwoorden)" aria-label="Luistermodus starten" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
       </div>
     </form>
@@ -749,7 +765,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 38";
+const APP_VERSION="build 39";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -862,6 +878,7 @@ async function rerankCandidates(q,cands){
 
 async function runQuestion(rawQ){
   if(sendBtn.disabled||!rawQ)return;
+  if(typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.active)LISTEN.stop(false);  // getypte vraag -> luistermodus uit
   const turn=addTurn(rawQ);               // toon de vraag zoals gesteld
   const key=keyInput.value.trim();const ai=key.length>10;
   let q,cands;
@@ -931,86 +948,95 @@ inputEl.addEventListener("keydown",e=>{if(e.key==="Escape")hideSuggest();});
 inputEl.addEventListener("blur",()=>setTimeout(hideSuggest,150));
 inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSuggest();});
 
-// ---- Spraakinvoer via lokale Whisper (transformers.js) ----
-// De audio blijft VOLLEDIG op het apparaat: opgenomen via de microfoon, getranscribeerd in
-// de browser met een Whisper-model (geen Google-servers, geen upload). Werkt overal waar het
-// zoekmodel ook laadt. Tijdens opnemen wordt de tekst elke ~2,5 s bijgewerkt (near-live).
-(function initMic(){
-  const micBtn=document.getElementById("mic");if(!micBtn)return;
-  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){micBtn.hidden=true;return;}
+// ---- Ambient luistermodus via lokale Vosk (streaming spraakherkenning in de browser) ----
+// De audio blijft VOLLEDIG op het apparaat (Vosk-WASM, geen cloud). Terwijl de voorlichter
+// met de klant praat, transcribeert Vosk continu; op basis van de laatste woorden verschijnen
+// automatisch de best passende quotes. Wisselt het gesprek van onderwerp, dan wisselen de
+// quotes mee. Model + library worden self-hosted (werkt achter een firewall, geen CDN nodig).
+const LISTEN=(function initListen(){
+  const micBtn=document.getElementById("mic");
+  const ret={active:false,stop:()=>{}};
+  if(!micBtn)return ret;
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.WebAssembly)){micBtn.hidden=true;return ret;}
   micBtn.hidden=false;
-  const form=document.getElementById("form");
-  const status=document.createElement("div");status.className="mic-status";status.hidden=true;
-  form.parentNode.insertBefore(status,form);
-  const showStatus=(msg,type)=>{status.textContent=msg;status.className="mic-status"+(type?" mic-"+type:"");status.hidden=false;};
-  const hideStatus=()=>{status.hidden=true;status.textContent="";};
+  let model=null,modelPromise=null,recognizer=null,stream=null,audioCtx=null,srcNode=null,proc=null;
+  let finals=[],partial="",updTimer=null,lastQuery="",panel=null,transcriptEl=null,quotesEl=null,headEl=null;
 
-  let active=false,base="",stream=null,audioCtx=null,srcNode=null,proc=null,chunks=[],timer=null,busy=false,gotText=false;
-  // Whisper-model lazy laden (zelfde CDN als het zoekmodel).
-  let transcriber=null,loadPromise=null;
-  function loadWhisper(){
-    if(transcriber)return Promise.resolve(transcriber);
-    if(!loadPromise)loadPromise=(async()=>{
-      const tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
-      tf.env.allowLocalModels=false;
-      const opts={dtype:"q8"};try{if(navigator.gpu)opts.device="webgpu";}catch(e){}
-      transcriber=await tf.pipeline("automatic-speech-recognition","Xenova/whisper-tiny",opts);
-      return transcriber;
-    })();
-    return loadPromise;
+  function ensureLib(){return new Promise((res,rej)=>{if(window.Vosk)return res();const s=document.createElement("script");s.src="vendor/vosk.js";s.onload=()=>res();s.onerror=()=>rej(new Error("kon vendor/vosk.js niet laden"));document.head.appendChild(s);});}
+  async function loadModel(){if(model)return model;if(!modelPromise)modelPromise=(async()=>{await ensureLib();model=await window.Vosk.createModel("data/vosk-model-nl.tar.gz");return model;})();return modelPromise;}
+
+  function setActive(on){ret.active=on;micBtn.classList.toggle("rec",on);micBtn.title=on?"Stop luistermodus":"Start luistermodus (spraak → automatisch passende antwoorden)";micBtn.setAttribute("aria-label",on?"Luistermodus stoppen":"Luistermodus starten");}
+  // Beste alinea van een pagina t.o.v. de gesproken woorden (voor de getoonde quote).
+  function bestSnippet(idx,qtok){
+    const lines=(CORPUS[idx].text||"").split("\n").map(s=>s.trim()).filter(s=>s.length>50);
+    if(!lines.length)return (CORPUS[idx].desc||CORPUS[idx].text||"").slice(0,260);
+    let best=lines[0],bestSc=-1;
+    for(const ln of lines){const t=new Set(tokenize(ln));let sc=0;for(const q of qtok)if(t.has(q))sc++;if(sc>bestSc){bestSc=sc;best=ln;}}
+    return best.length>320?best.slice(0,320)+"…":best;
   }
-  function setActive(on){active=on;micBtn.classList.toggle("rec",on);micBtn.title=on?"Stop spraakinvoer":"Spraakinvoer: praat en de tekst verschijnt hier";micBtn.setAttribute("aria-label",on?"Spraakinvoer stoppen":"Spraakinvoer starten");}
-  function merged(){const n=chunks.reduce((a,b)=>a+b.length,0),out=new Float32Array(n);let o=0;for(const c of chunks){out.set(c,o);o+=c.length;}return out;}
-  function resample16k(data,rate){if(rate===16000)return data;const ratio=rate/16000,n=Math.max(1,Math.floor(data.length/ratio)),out=new Float32Array(n);for(let i=0;i<n;i++){const idx=i*ratio,lo=Math.floor(idx),hi=Math.min(lo+1,data.length-1),f=idx-lo;out[i]=data[lo]*(1-f)+data[hi]*f;}return out;}
-  async function transcribe(finalPass){
-    if(busy)return;const raw=merged();if(raw.length<4000&&!finalPass)return; // <0,25 s: te kort
-    busy=true;
-    try{
-      // Geluidsniveau meten: horen we eigenlijk wel iets? (diagnose microfoon vs. Whisper)
-      let sum=0;for(let i=0;i<raw.length;i++)sum+=raw[i]*raw[i];const rms=Math.sqrt(sum/Math.max(1,raw.length));
-      if(rms<0.003){if(active)showStatus("🎤 Microfoon vangt nauwelijks geluid op ("+rms.toFixed(3)+"). Praat luider of kies de juiste microfoon in Chrome (slotje links van de URL).","warn");if(!finalPass)return;}
-      const t=await loadWhisper();
-      const audio=resample16k(raw,(audioCtx&&audioCtx.sampleRate)||16000);
-      const out=await t(audio,{language:"dutch",task:"transcribe",chunk_length_s:30});
-      const txt=((out&&out.text)||"").replace(/\s+/g," ").replace(/\[[^\]]*\]/g,"").trim(); // strip [BLANK_AUDIO] e.d.
-      if(txt){gotText=true;const joined=(base?base+" ":"")+txt;inputEl.value=joined.charAt(0).toUpperCase()+joined.slice(1);try{showSuggest();}catch(e){}
-        showStatus("✓ Tekst ingevuld.","rec");setTimeout(hideStatus,2500);}
-      else if(rms>=0.003)showStatus("Geluid ontvangen, maar geen woorden herkend. Probeer opnieuw en spreek iets langer/duidelijker.","warn");
-    }catch(e){console.warn("Whisper:",e);showStatus("Transcriberen mislukt: "+(e.message||e),"error");}
-    finally{busy=false;}
+  function renderTranscript(){if(!transcriptEl)return;transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(finals.slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;}
+  function currentQuery(){const words=((finals.join(" ")+" "+partial).match(/\S+/g)||[]);return words.slice(-18).join(" ");}
+  async function updateQuotes(){
+    const q=currentQuery();const qtok=[...new Set(tokenize(q))];
+    if(qtok.length<2){if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">Luisteren… stel een vraag aan de klant; passende antwoorden verschijnen hier vanzelf.</div>';lastQuery="";return;}
+    const key=qtok.join(" ");if(key===lastQuery)return;lastQuery=key;   // geen onnodig herladen
+    // Live-laag mag NOOIT wachten op het (nog ladende) semantische model: trefwoord is instant,
+    // semantiek komt erbij zodra het model klaar is.
+    let cands=[];try{cands=(SEM&&SEM.ready)?await hybrid(q,[],3):rank(q,3);}catch(e){try{cands=rank(q,3);}catch(_){}}
+    if(!ret.active||!quotesEl)return;
+    if(!cands.length){quotesEl.innerHTML='<div class="listen-hint">Nog geen passende informatie gevonden…</div>';return;}
+    quotesEl.innerHTML=cands.map(idx=>{const snip=bestSnippet(idx,qtok);return `<button class="listen-card" data-idx="${idx}" data-snip="${escapeHtml(snip)}"><span class="lc-quote">“${escapeHtml(snip)}”</span><span class="lc-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[idx].title))}</span></span></button>`;}).join("");
+    quotesEl.querySelectorAll(".listen-card").forEach(btn=>btn.onclick=()=>{const i=+btn.getAttribute("data-idx");openViewer(i,btn.getAttribute("data-snip"),CORPUS[i].url,cleanTitle(CORPUS[i].title));});
   }
-  function stopCapture(){try{if(proc)proc.disconnect();if(srcNode)srcNode.disconnect();if(audioCtx)audioCtx.close();}catch(e){}try{if(stream)stream.getTracks().forEach(t=>t.stop());}catch(e){}proc=srcNode=audioCtx=stream=null;}
-  async function stop(){
-    if(timer){clearTimeout(timer);timer=null;}
-    setActive(false);
-    showStatus("Bezig met verwerken…","rec");
-    await transcribe(true);   // ÉÉN transcriptie van de hele opname (geen groeiende lus -> geen vastlopen)
-    stopCapture();chunks=[];
-    // transcribe heeft de eindstatus gezet (succes verdwijnt vanzelf; waarschuwing/fout blijft staan).
+  function scheduleUpdate(){if(updTimer)clearTimeout(updTimer);updTimer=setTimeout(()=>{if(ret.active)updateQuotes();},500);}
+
+  function buildPanel(){
+    document.body.classList.remove("is-welcome");
+    conv.innerHTML="";
+    panel=document.createElement("div");panel.className="listen";
+    panel.innerHTML=`<div class="listen-head"><span class="listen-badge">🎧 Luistermodus</span> <span class="listen-msg">Model laden…</span><button type="button" class="listen-stop">Stop luistermodus</button></div>
+      <div class="listen-transcript" aria-live="polite"></div>
+      <div class="listen-quotes"><div class="listen-hint">Even geduld, het spraakmodel wordt geladen…</div></div>`;
+    conv.appendChild(panel);
+    headEl=panel.querySelector(".listen-msg");transcriptEl=panel.querySelector(".listen-transcript");quotesEl=panel.querySelector(".listen-quotes");
+    panel.querySelector(".listen-stop").onclick=()=>stop(true);
   }
+  function teardownAudio(){try{if(proc)proc.disconnect();if(srcNode)srcNode.disconnect();if(audioCtx)audioCtx.close();}catch(e){}try{if(stream)stream.getTracks().forEach(t=>t.stop());}catch(e){}proc=srcNode=audioCtx=stream=null;}
+  function stop(restore){
+    if(!ret.active&&!stream)return;
+    if(updTimer){clearTimeout(updTimer);updTimer=null;}
+    setActive(false);teardownAudio();
+    try{if(recognizer)recognizer.remove();}catch(e){}recognizer=null;
+    finals=[];partial="";lastQuery="";
+    if(panel&&panel.parentNode)panel.parentNode.removeChild(panel);panel=null;transcriptEl=quotesEl=headEl=null;
+    if(restore)showWelcome();
+  }
+  ret.stop=stop;
+
   micBtn.addEventListener("click",async()=>{
-    if(active){await stop();return;}
-    base=inputEl.value.trim();gotText=false;chunks=[];
+    if(ret.active){stop(true);return;}
+    // Microfoontoegang
     try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
-    catch(e){showStatus("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.","error");return;}
-    setActive(true);showStatus("Spraakmodel laden… (eenmalig, kan even duren)","rec");
-    try{await loadWhisper();}catch(e){setActive(false);stopCapture();showStatus("Kon het spraakmodel niet laden: "+(e.message||e),"error");return;}
+    catch(e){alert("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.");return;}
+    setActive(true);buildPanel();
+    try{await loadModel();}catch(e){if(headEl)headEl.textContent="Kon het spraakmodel niet laden: "+(e.message||e);teardownAudio();setActive(false);return;}
+    if(!ret.active){teardownAudio();return;}   // ondertussen gestopt
     try{
       audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-      if(audioCtx.state==="suspended")await audioCtx.resume();   // anders vangt de opname niets op
+      if(audioCtx.state==="suspended")await audioCtx.resume();
+      recognizer=new model.KaldiRecognizer(audioCtx.sampleRate);
+      recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";renderTranscript();scheduleUpdate();});
+      recognizer.on("result",m=>{const t=((m.result&&m.result.text)||"").trim();if(t){finals.push(t);if(finals.length>12)finals=finals.slice(-12);}partial="";renderTranscript();scheduleUpdate();});
       srcNode=audioCtx.createMediaStreamSource(stream);
       proc=audioCtx.createScriptProcessor(4096,1,1);
-      // ScriptProcessor moet naar destination zijn verbonden om te draaien; we schrijven geen
-      // output, dus er is geen hoorbare terugkoppeling. Een zero-gain node houdt het stil.
       const sink=audioCtx.createGain();sink.gain.value=0;
-      proc.onaudioprocess=e=>{if(active)chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
+      proc.onaudioprocess=e=>{if(ret.active&&recognizer){try{recognizer.acceptWaveform(e.inputBuffer);}catch(err){}}};
       srcNode.connect(proc);proc.connect(sink);sink.connect(audioCtx.destination);
-    }catch(e){setActive(false);stopCapture();showStatus("Kon de microfoon niet openen: "+(e.message||e),"error");return;}
-    showStatus("🎤 Opnemen… spreek uw vraag in en klik nogmaals om te stoppen en te verwerken.","rec");inputEl.focus();
-    timer=setTimeout(()=>{if(active)stop();},30000);   // veiligheidsstop na 30 s
+    }catch(e){if(headEl)headEl.textContent="Kon de microfoon niet openen: "+(e.message||e);teardownAudio();setActive(false);return;}
+    if(headEl)headEl.textContent="Praat met de klant — passende antwoorden verschijnen automatisch en volgen het gesprek.";
+    updateQuotes();
   });
-  // Bij verzenden altijd stoppen (zonder finale transcriptie — de tekst staat er al).
-  form.addEventListener("submit",()=>{if(active||stream){if(timer){clearInterval(timer);timer=null;}setActive(false);stopCapture();chunks=[];hideStatus();}});
+  return ret;
 })();
 
 function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
