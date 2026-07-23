@@ -749,7 +749,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 36";
+const APP_VERSION="build 37";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -966,14 +966,18 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
     if(busy)return;const raw=merged();if(raw.length<4000&&!finalPass)return; // <0,25 s: te kort
     busy=true;
     try{
+      // Geluidsniveau meten: horen we eigenlijk wel iets? (diagnose microfoon vs. Whisper)
+      let sum=0;for(let i=0;i<raw.length;i++)sum+=raw[i]*raw[i];const rms=Math.sqrt(sum/Math.max(1,raw.length));
+      if(rms<0.003){if(active)showStatus("🎤 Microfoon vangt nauwelijks geluid op ("+rms.toFixed(3)+"). Praat luider of kies de juiste microfoon in Chrome (slotje links van de URL).","warn");if(!finalPass)return;}
       const t=await loadWhisper();
       const audio=resample16k(raw,(audioCtx&&audioCtx.sampleRate)||16000);
       const out=await t(audio,{language:"dutch",task:"transcribe",chunk_length_s:30});
-      const txt=((out&&out.text)||"").replace(/\s+/g," ").trim();
+      const txt=((out&&out.text)||"").replace(/\s+/g," ").replace(/\[[^\]]*\]/g,"").trim(); // strip [BLANK_AUDIO] e.d.
       if(txt){gotText=true;const joined=(base?base+" ":"")+txt;inputEl.value=joined.charAt(0).toUpperCase()+joined.slice(1);try{showSuggest();}catch(e){}
         if(active)showStatus("🎤 Luisteren… (“"+txt.slice(0,44)+"”)","rec");}
+      else if(active&&rms>=0.003)showStatus("🎤 Luisteren… (geluid ontvangen, nog geen woorden herkend — praat iets langer/duidelijker)","warn");
     }catch(e){console.warn("Whisper:",e);if(active)showStatus("Transcriberen mislukt: "+(e.message||e),"error");}
-    busy=false;
+    finally{busy=false;}
   }
   function stopCapture(){try{if(proc)proc.disconnect();if(srcNode)srcNode.disconnect();if(audioCtx)audioCtx.close();}catch(e){}try{if(stream)stream.getTracks().forEach(t=>t.stop());}catch(e){}proc=srcNode=audioCtx=stream=null;}
   async function stop(finalPass){
@@ -990,11 +994,15 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
     setActive(true);showStatus("Spraakmodel laden… (eenmalig, kan even duren)","rec");
     try{await loadWhisper();}catch(e){setActive(false);stopCapture();showStatus("Kon het spraakmodel niet laden: "+(e.message||e),"error");return;}
     try{
-      audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+      audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state==="suspended")await audioCtx.resume();   // anders vangt de opname niets op
       srcNode=audioCtx.createMediaStreamSource(stream);
       proc=audioCtx.createScriptProcessor(4096,1,1);
+      // ScriptProcessor moet naar destination zijn verbonden om te draaien; we schrijven geen
+      // output, dus er is geen hoorbare terugkoppeling. Een zero-gain node houdt het stil.
+      const sink=audioCtx.createGain();sink.gain.value=0;
       proc.onaudioprocess=e=>{if(active)chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
-      srcNode.connect(proc);proc.connect(audioCtx.destination);
+      srcNode.connect(proc);proc.connect(sink);sink.connect(audioCtx.destination);
     }catch(e){setActive(false);stopCapture();showStatus("Kon de microfoon niet openen: "+(e.message||e),"error");return;}
     showStatus("🎤 Luisteren… praat maar. Klik nogmaals om te stoppen.","rec");inputEl.focus();
     timer=setInterval(()=>transcribe(false),2500);   // near-live bijwerken
