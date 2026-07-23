@@ -749,7 +749,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 37";
+const APP_VERSION="build 38";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -954,7 +954,7 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
       const tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
       tf.env.allowLocalModels=false;
       const opts={dtype:"q8"};try{if(navigator.gpu)opts.device="webgpu";}catch(e){}
-      transcriber=await tf.pipeline("automatic-speech-recognition","Xenova/whisper-base",opts);
+      transcriber=await tf.pipeline("automatic-speech-recognition","Xenova/whisper-tiny",opts);
       return transcriber;
     })();
     return loadPromise;
@@ -974,20 +974,22 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
       const out=await t(audio,{language:"dutch",task:"transcribe",chunk_length_s:30});
       const txt=((out&&out.text)||"").replace(/\s+/g," ").replace(/\[[^\]]*\]/g,"").trim(); // strip [BLANK_AUDIO] e.d.
       if(txt){gotText=true;const joined=(base?base+" ":"")+txt;inputEl.value=joined.charAt(0).toUpperCase()+joined.slice(1);try{showSuggest();}catch(e){}
-        if(active)showStatus("🎤 Luisteren… (“"+txt.slice(0,44)+"”)","rec");}
-      else if(active&&rms>=0.003)showStatus("🎤 Luisteren… (geluid ontvangen, nog geen woorden herkend — praat iets langer/duidelijker)","warn");
-    }catch(e){console.warn("Whisper:",e);if(active)showStatus("Transcriberen mislukt: "+(e.message||e),"error");}
+        showStatus("✓ Tekst ingevuld.","rec");setTimeout(hideStatus,2500);}
+      else if(rms>=0.003)showStatus("Geluid ontvangen, maar geen woorden herkend. Probeer opnieuw en spreek iets langer/duidelijker.","warn");
+    }catch(e){console.warn("Whisper:",e);showStatus("Transcriberen mislukt: "+(e.message||e),"error");}
     finally{busy=false;}
   }
   function stopCapture(){try{if(proc)proc.disconnect();if(srcNode)srcNode.disconnect();if(audioCtx)audioCtx.close();}catch(e){}try{if(stream)stream.getTracks().forEach(t=>t.stop());}catch(e){}proc=srcNode=audioCtx=stream=null;}
-  async function stop(finalPass){
-    if(timer){clearInterval(timer);timer=null;}
+  async function stop(){
+    if(timer){clearTimeout(timer);timer=null;}
     setActive(false);
-    if(finalPass){showStatus("Bezig met verwerken…","rec");await transcribe(true);}
-    stopCapture();chunks=[];hideStatus();
+    showStatus("Bezig met verwerken…","rec");
+    await transcribe(true);   // ÉÉN transcriptie van de hele opname (geen groeiende lus -> geen vastlopen)
+    stopCapture();chunks=[];
+    // transcribe heeft de eindstatus gezet (succes verdwijnt vanzelf; waarschuwing/fout blijft staan).
   }
   micBtn.addEventListener("click",async()=>{
-    if(active){await stop(true);return;}
+    if(active){await stop();return;}
     base=inputEl.value.trim();gotText=false;chunks=[];
     try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
     catch(e){showStatus("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.","error");return;}
@@ -1004,9 +1006,8 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
       proc.onaudioprocess=e=>{if(active)chunks.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
       srcNode.connect(proc);proc.connect(sink);sink.connect(audioCtx.destination);
     }catch(e){setActive(false);stopCapture();showStatus("Kon de microfoon niet openen: "+(e.message||e),"error");return;}
-    showStatus("🎤 Luisteren… praat maar. Klik nogmaals om te stoppen.","rec");inputEl.focus();
-    timer=setInterval(()=>transcribe(false),2500);   // near-live bijwerken
-    setTimeout(()=>{if(active&&!gotText)showStatus("🎤 Luisteren… (nog geen tekst; praat duidelijk in de microfoon)","warn");},8000);
+    showStatus("🎤 Opnemen… spreek uw vraag in en klik nogmaals om te stoppen en te verwerken.","rec");inputEl.focus();
+    timer=setTimeout(()=>{if(active)stop();},30000);   // veiligheidsstop na 30 s
   });
   // Bij verzenden altijd stoppen (zonder finale transcriptie — de tekst staat er al).
   form.addEventListener("submit",()=>{if(active||stream){if(timer){clearInterval(timer);timer=null;}setActive(false);stopCapture();chunks=[];hideStatus();}});
