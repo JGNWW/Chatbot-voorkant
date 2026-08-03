@@ -765,7 +765,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 44";
+const APP_VERSION="build 45";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1018,11 +1018,19 @@ const LISTEN=(function initListen(){
     for(const ln of lines){const t=new Set(tokenize(ln));let sc=0;for(const q of qtok)if(t.has(q))sc++;if(sc>bestSc){bestSc=sc;best=ln;}}
     return best.length>320?best.slice(0,320)+"…":best;
   }
-  function recentFinals(){const cut=Date.now()-25000;return finals.filter(f=>f.t>=cut).map(f=>f.text);}   // laatste ~25 s
+  function recentFinals(){const cut=Date.now()-15000;return finals.filter(f=>f.t>=cut).map(f=>f.text);}   // laatste ~15 s
   function renderTranscript(){if(!transcriptEl)return;transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(recentFinals().slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;}
-  // Zoekopdracht = alleen wat er NET gezegd is: de lopende zin plus de recente zinnen.
-  // Zo volgen de quotes het gesprek en blijven oude onderwerpen niet hangen.
-  function currentQuery(){const words=((recentFinals().join(" ")+" "+partial).match(/\S+/g)||[]);return words.slice(-14).join(" ");}
+  // Zoekopdracht: de LOPENDE zin is leidend — dat is waar het gesprek nú over gaat. Alleen
+  // als die nog te weinig inhoud heeft, vullen we aan met de vorige zin(nen). Zo wisselt het
+  // onderwerp meteen mee ("…paspoort…" -> "…reisadvies Spanje…") zonder dat oude woorden
+  // blijven meewegen.
+  function currentQuery(){
+    const live=partial.trim(),recent=recentFinals();
+    let q=live;
+    if(tokenize(q).length<2&&recent.length)q=(recent[recent.length-1]+" "+live).trim();
+    if(tokenize(q).length<2&&recent.length>1)q=(recent.slice(-2).join(" ")+" "+live).trim();
+    return (q.match(/\S+/g)||[]).slice(-14).join(" ");
+  }
   async function updateQuotes(){
     const q=currentQuery();const qtok=[...new Set(tokenize(q))];
     if(qtok.length<1){if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">Luisteren… stel een vraag aan de klant; passende antwoorden verschijnen hier vanzelf.</div>';lastQuery="";return;}
