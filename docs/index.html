@@ -765,7 +765,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 40";
+const APP_VERSION="build 41";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -964,32 +964,41 @@ const LISTEN=(function initListen(){
   // Laadvoortgang, zodat de gebruiker nooit naar een stilstaand scherm kijkt.
   const warm={phase:"idle",pct:0};   // idle -> downloaden -> uitpakken -> klaar
   const onWarm=[];
-  function setWarm(phase,pct){warm.phase=phase;if(pct!=null)warm.pct=pct;
-    micBtn.title=phase==="klaar"?"Start luistermodus (spraak → automatisch passende antwoorden)"
-      :phase==="downloaden"?("Luistermodus — spraakmodel laden… "+warm.pct+"%")
-      :phase==="uitpakken"?"Luistermodus — spraakmodel gereedmaken…":"Start luistermodus (spraak → automatisch passende antwoorden)";
+  // Leesbare omschrijving van de laadfase (ook gebruikt in het paneel).
+  function warmText(w){
+    if(w.phase==="downloaden")return "Spraakmodel downloaden… "+w.pct+"%";
+    if(w.phase==="uitpakken")return "Spraakmodel gereedmaken… ("+(w.pct||0)+"s — dit gebeurt eenmalig)";
+    return "";
+  }
+  function setWarm(phase,pct){warm.phase=phase;warm.pct=(pct!=null)?pct:(phase==="uitpakken"?0:warm.pct);
+    micBtn.title=(phase==="downloaden"||phase==="uitpakken")?("Luistermodus — "+warmText(warm)):"Start luistermodus (spraak → automatisch passende antwoorden)";
     onWarm.forEach(f=>{try{f(warm);}catch(e){}});}
 
   function ensureLib(){return new Promise((res,rej)=>{if(window.Vosk)return res();const s=document.createElement("script");s.src="vendor/vosk.js";s.onload=()=>res();s.onerror=()=>rej(new Error("kon vendor/vosk.js niet laden"));document.head.appendChild(s);});}
-  // Haalt het modelbestand op met voortgang; vult de HTTP-cache zodat Vosk het daarna
-  // direct uit de cache leest (scheelt de hele download bij het klikken).
-  async function prefetchModel(){
-    try{
-      const r=await fetch("data/vosk-model-nl.tar.gz");
-      if(!r.ok||!r.body)return;
-      const total=+(r.headers.get("content-length")||0);let got=0;
-      const reader=r.body.getReader();
-      for(;;){const {done,value}=await reader.read();if(done)break;got+=value.length;
-        if(total)setWarm("downloaden",Math.min(99,Math.round(got/total*100)));}
-    }catch(e){/* bij fout gewoon later normaal laden */}
+  // Haalt het modelbestand ÉÉN keer op (met voortgang) en geeft het als blob-URL door aan
+  // Vosk. Zonder dit haalt de Vosk-worker het bestand nóg een keer op — dat maakte de fase
+  // "gereedmaken" onnodig lang.
+  async function fetchModelBlobUrl(){
+    const r=await fetch("data/vosk-model-nl.tar.gz");
+    if(!r.ok)throw new Error("model niet gevonden ("+r.status+")");
+    const total=+(r.headers.get("content-length")||0);
+    if(!r.body||!total){const b=await r.blob();return URL.createObjectURL(b);}
+    const reader=r.body.getReader(),parts=[];let got=0;
+    for(;;){const {done,value}=await reader.read();if(done)break;parts.push(value);got+=value.length;
+      setWarm("downloaden",Math.min(99,Math.round(got/total*100)));}
+    return URL.createObjectURL(new Blob(parts,{type:"application/gzip"}));
   }
   async function loadModel(){
     if(model)return model;
     if(!modelPromise)modelPromise=(async()=>{
       await ensureLib();
-      if(warm.phase==="idle")await prefetchModel();     // met voortgang
+      setWarm("downloaden",0);
+      const url=await fetchModelBlobUrl();
       setWarm("uitpakken");
-      model=await window.Vosk.createModel("data/vosk-model-nl.tar.gz");
+      // Tikker, zodat zichtbaar is dat er nog gewerkt wordt (er is geen voortgang beschikbaar).
+      const t0=Date.now();const tick=setInterval(()=>{if(warm.phase==="uitpakken")setWarm("uitpakken",Math.round((Date.now()-t0)/1000));},1000);
+      try{model=await window.Vosk.createModel(url);}
+      finally{clearInterval(tick);URL.revokeObjectURL(url);}
       setWarm("klaar",100);
       return model;
     })();
@@ -1029,7 +1038,7 @@ const LISTEN=(function initListen(){
     document.body.classList.remove("is-welcome");
     conv.innerHTML="";
     panel=document.createElement("div");panel.className="listen";
-    const warmMsg=warm.phase==="downloaden"?("Spraakmodel laden… "+warm.pct+"%"):warm.phase==="uitpakken"?"Spraakmodel gereedmaken…":"Spraakmodel laden…";
+    const warmMsg=warmText(warm)||"Spraakmodel laden…";
     panel.innerHTML=`<div class="listen-head"><span class="listen-badge">🎧 Luistermodus</span> <span class="listen-msg">${warm.phase==="klaar"?"Starten…":escapeHtml(warmMsg)}</span><button type="button" class="listen-stop">Stop luistermodus</button></div>
       <div class="listen-transcript" aria-live="polite"></div>
       <div class="listen-quotes"><div class="listen-hint">${warm.phase==="klaar"?"Luisteren…":"Het spraakmodel wordt eenmalig geladen (daarna direct beschikbaar)…"}</div></div>`;
@@ -1056,7 +1065,7 @@ const LISTEN=(function initListen(){
     catch(e){alert("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.");return;}
     setActive(true);buildPanel();
     // Live voortgang tonen zolang het model nog laadt.
-    onWarm.push(w=>{if(headEl&&w.phase!=="klaar")headEl.textContent=w.phase==="downloaden"?("Spraakmodel laden… "+w.pct+"%"):"Spraakmodel gereedmaken…";});
+    onWarm.push(w=>{if(headEl&&w.phase!=="klaar")headEl.textContent=warmText(w);});
     try{await loadModel();}catch(e){if(headEl)headEl.textContent="Kon het spraakmodel niet laden: "+(e.message||e);teardownAudio();setActive(false);return;}
     if(!ret.active){teardownAudio();return;}   // ondertussen gestopt
     try{
