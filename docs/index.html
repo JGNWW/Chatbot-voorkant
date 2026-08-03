@@ -765,7 +765,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 41";
+const APP_VERSION="build 42";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1061,15 +1061,23 @@ const LISTEN=(function initListen(){
   micBtn.addEventListener("click",async()=>{
     if(ret.active){stop(true);return;}
     // Microfoontoegang
-    try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
-    catch(e){alert("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.");return;}
+    // Vosk-modellen zijn op 16 kHz MONO getraind; vraag de microfoon daar expliciet om
+    // (met ruisonderdrukking) — anders levert het model wel Nederlandse woorden, maar de
+    // verkeerde. Lukt de constraint niet, dan valt de browser terug op de standaardinstelling.
+    const micWish={channelCount:1,sampleRate:16000,echoCancellation:true,noiseSuppression:true,autoGainControl:true};
+    try{stream=await navigator.mediaDevices.getUserMedia({audio:micWish});}
+    catch(e){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
+      catch(e2){alert("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.");return;}}
     setActive(true);buildPanel();
     // Live voortgang tonen zolang het model nog laadt.
     onWarm.push(w=>{if(headEl&&w.phase!=="klaar")headEl.textContent=warmText(w);});
     try{await loadModel();}catch(e){if(headEl)headEl.textContent="Kon het spraakmodel niet laden: "+(e.message||e);teardownAudio();setActive(false);return;}
     if(!ret.active){teardownAudio();return;}   // ondertussen gestopt
     try{
-      audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      // AudioContext óók op 16 kHz: dan zijn de buffers die Vosk krijgt exact wat het model
+      // verwacht (geen resampling-mismatch, die eerder onzinherkenning veroorzaakte).
+      try{audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
+      catch(e){audioCtx=new (window.AudioContext||window.webkitAudioContext)();}
       if(audioCtx.state==="suspended")await audioCtx.resume();
       recognizer=new model.KaldiRecognizer(audioCtx.sampleRate);
       recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";renderTranscript();scheduleUpdate();});
