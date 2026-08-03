@@ -765,7 +765,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 42";
+const APP_VERSION="build 44";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1018,21 +1018,36 @@ const LISTEN=(function initListen(){
     for(const ln of lines){const t=new Set(tokenize(ln));let sc=0;for(const q of qtok)if(t.has(q))sc++;if(sc>bestSc){bestSc=sc;best=ln;}}
     return best.length>320?best.slice(0,320)+"…":best;
   }
-  function renderTranscript(){if(!transcriptEl)return;transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(finals.slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;}
-  function currentQuery(){const words=((finals.join(" ")+" "+partial).match(/\S+/g)||[]);return words.slice(-18).join(" ");}
+  function recentFinals(){const cut=Date.now()-25000;return finals.filter(f=>f.t>=cut).map(f=>f.text);}   // laatste ~25 s
+  function renderTranscript(){if(!transcriptEl)return;transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(recentFinals().slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;}
+  // Zoekopdracht = alleen wat er NET gezegd is: de lopende zin plus de recente zinnen.
+  // Zo volgen de quotes het gesprek en blijven oude onderwerpen niet hangen.
+  function currentQuery(){const words=((recentFinals().join(" ")+" "+partial).match(/\S+/g)||[]);return words.slice(-14).join(" ");}
   async function updateQuotes(){
     const q=currentQuery();const qtok=[...new Set(tokenize(q))];
-    if(qtok.length<2){if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">Luisteren… stel een vraag aan de klant; passende antwoorden verschijnen hier vanzelf.</div>';lastQuery="";return;}
+    if(qtok.length<1){if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">Luisteren… stel een vraag aan de klant; passende antwoorden verschijnen hier vanzelf.</div>';lastQuery="";return;}
     const key=qtok.join(" ");if(key===lastQuery)return;lastQuery=key;   // geen onnodig herladen
     // Live-laag mag NOOIT wachten op het (nog ladende) semantische model: trefwoord is instant,
     // semantiek komt erbij zodra het model klaar is.
-    let cands=[];try{cands=(SEM&&SEM.ready)?await hybrid(q,[],3):rank(q,3);}catch(e){try{cands=rank(q,3);}catch(_){}}
+    // Trefwoord is instant; semantiek komt erbij zodra geladen. In beide gevallen passen we
+    // het zoekgebied toe (genoemd land vooraan, filters) zodat "in Spanje" ook echt telt.
+    let cands=[];
+    try{cands=(SEM&&SEM.ready)?await hybrid(q,[],3):applyScope(q,rank(q,12)).slice(0,3);}
+    catch(e){try{cands=applyScope(q,rank(q,12)).slice(0,3);}catch(_){}}
     if(!ret.active||!quotesEl)return;
     if(!cands.length){quotesEl.innerHTML='<div class="listen-hint">Nog geen passende informatie gevonden…</div>';return;}
     quotesEl.innerHTML=cands.map(idx=>{const snip=bestSnippet(idx,qtok);return `<button class="listen-card" data-idx="${idx}" data-snip="${escapeHtml(snip)}"><span class="lc-quote">“${escapeHtml(snip)}”</span><span class="lc-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[idx].title))}</span></span></button>`;}).join("");
     quotesEl.querySelectorAll(".listen-card").forEach(btn=>btn.onclick=()=>{const i=+btn.getAttribute("data-idx");openViewer(i,btn.getAttribute("data-snip"),CORPUS[i].url,cleanTitle(CORPUS[i].title));});
   }
-  function scheduleUpdate(){if(updTimer)clearTimeout(updTimer);updTimer=setTimeout(()=>{if(ret.active)updateQuotes();},500);}
+  // Throttle i.p.v. debounce: de eerste woorden leveren METEEN resultaat, daarna werken de
+  // quotes elke ~600 ms bij terwijl er doorgepraat wordt (een debounce wachtte op stilte).
+  let lastRun=0;
+  function scheduleUpdate(now){
+    const gap=600,since=Date.now()-lastRun;
+    if(now||since>=gap){if(updTimer){clearTimeout(updTimer);updTimer=null;}lastRun=Date.now();if(ret.active)updateQuotes();return;}
+    if(updTimer)return;                                  // er staat al een update klaar
+    updTimer=setTimeout(()=>{updTimer=null;lastRun=Date.now();if(ret.active)updateQuotes();},gap-since);
+  }
 
   function buildPanel(){
     document.body.classList.remove("is-welcome");
@@ -1080,8 +1095,9 @@ const LISTEN=(function initListen(){
       catch(e){audioCtx=new (window.AudioContext||window.webkitAudioContext)();}
       if(audioCtx.state==="suspended")await audioCtx.resume();
       recognizer=new model.KaldiRecognizer(audioCtx.sampleRate);
-      recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";renderTranscript();scheduleUpdate();});
-      recognizer.on("result",m=>{const t=((m.result&&m.result.text)||"").trim();if(t){finals.push(t);if(finals.length>12)finals=finals.slice(-12);}partial="";renderTranscript();scheduleUpdate();});
+      recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";renderTranscript();scheduleUpdate(false);});
+      // Afgeronde zin = natuurlijk moment: meteen bijwerken (niet wachten op de throttle).
+      recognizer.on("result",m=>{const t=((m.result&&m.result.text)||"").trim();if(t){finals.push({t:Date.now(),text:t});if(finals.length>12)finals=finals.slice(-12);}partial="";renderTranscript();scheduleUpdate(true);});
       srcNode=audioCtx.createMediaStreamSource(stream);
       proc=audioCtx.createScriptProcessor(4096,1,1);
       const sink=audioCtx.createGain();sink.gain.value=0;
