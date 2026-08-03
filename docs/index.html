@@ -191,6 +191,14 @@ a{color:var(--rijk-licht);}
 .listen-transcript .lt-partial{color:var(--ink-licht);}
 .listen-hint{color:var(--ink-licht);font-style:italic;padding:6px 0;}
 .listen-quotes{display:flex;flex-direction:column;gap:12px;}
+/* Hoofdantwoord: gekleurd accentvlak met badge, volledige alinea */
+.listen-hero{text-align:left;background:var(--blauw-bg);border:1px solid var(--blauw-licht);border-left:5px solid var(--rijk-licht);border-radius:12px;padding:18px 20px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;gap:12px;transition:background .12s,border-color .12s;}
+.listen-hero:hover{background:#e0eefa;border-color:var(--rijk-licht);}
+.listen-hero .lh-label{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:var(--rijk-licht);color:#fff;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 11px;border-radius:12px;}
+.listen-hero .lh-quote{font-size:1.1rem;line-height:1.62;color:var(--ink);}
+.listen-hero .lh-src{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:.86rem;font-weight:600;color:var(--rijk-blauw);}
+.listen-hero .lh-go{font-weight:400;color:var(--ink-licht);font-size:.8rem;}
+.listen-alts-label{font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-licht);margin:6px 0 -2px;}
 .listen-card{text-align:left;background:#fff;border:1px solid var(--rand);border-left:3px solid var(--rijk-licht);border-radius:10px;padding:12px 14px;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s;display:flex;flex-direction:column;gap:8px;}
 .listen-card:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
 .listen-card .lc-quote{font-size:.98rem;line-height:1.55;color:var(--ink);}
@@ -765,7 +773,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 45";
+const APP_VERSION="build 46";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1011,12 +1019,14 @@ const LISTEN=(function initListen(){
 
   function setActive(on){ret.active=on;micBtn.classList.toggle("rec",on);micBtn.title=on?"Stop luistermodus":"Start luistermodus (spraak → automatisch passende antwoorden)";micBtn.setAttribute("aria-label",on?"Luistermodus stoppen":"Luistermodus starten");}
   // Beste alinea van een pagina t.o.v. de gesproken woorden (voor de getoonde quote).
-  function bestSnippet(idx,qtok){
+  // full=true (hoofdantwoord): de VOLLEDIGE alinea; anders een compacte weergave.
+  function bestSnippet(idx,qtok,full){
+    const max=full?900:320;
     const lines=(CORPUS[idx].text||"").split("\n").map(s=>s.trim()).filter(s=>s.length>50);
-    if(!lines.length)return (CORPUS[idx].desc||CORPUS[idx].text||"").slice(0,260);
+    if(!lines.length)return (CORPUS[idx].desc||CORPUS[idx].text||"").slice(0,max);
     let best=lines[0],bestSc=-1;
     for(const ln of lines){const t=new Set(tokenize(ln));let sc=0;for(const q of qtok)if(t.has(q))sc++;if(sc>bestSc){bestSc=sc;best=ln;}}
-    return best.length>320?best.slice(0,320)+"…":best;
+    return best.length>max?best.slice(0,max)+"…":best;
   }
   function recentFinals(){const cut=Date.now()-15000;return finals.filter(f=>f.t>=cut).map(f=>f.text);}   // laatste ~15 s
   function renderTranscript(){if(!transcriptEl)return;transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(recentFinals().slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;}
@@ -1044,8 +1054,21 @@ const LISTEN=(function initListen(){
     catch(e){try{cands=applyScope(q,rank(q,12)).slice(0,3);}catch(_){}}
     if(!ret.active||!quotesEl)return;
     if(!cands.length){quotesEl.innerHTML='<div class="listen-hint">Nog geen passende informatie gevonden…</div>';return;}
-    quotesEl.innerHTML=cands.map(idx=>{const snip=bestSnippet(idx,qtok);return `<button class="listen-card" data-idx="${idx}" data-snip="${escapeHtml(snip)}"><span class="lc-quote">“${escapeHtml(snip)}”</span><span class="lc-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[idx].title))}</span></span></button>`;}).join("");
-    quotesEl.querySelectorAll(".listen-card").forEach(btn=>btn.onclick=()=>{const i=+btn.getAttribute("data-idx");openViewer(i,btn.getAttribute("data-snip"),CORPUS[i].url,cleanTitle(CORPUS[i].title));});
+    // Hoofdantwoord groot uitgelicht (volledige alinea), de rest als compacte kaarten.
+    const card=(idx,cls,inner)=>{const snip=inner.snip;return `<button class="${cls}" data-idx="${idx}" data-snip="${escapeHtml(snip)}">${inner.html}</button>`;};
+    const top=cands[0],rest=cands.slice(1);
+    const topSnip=bestSnippet(top,qtok,true);
+    let html=card(top,"listen-hero",{snip:topSnip,html:
+      `<span class="lh-label">✓ Meest waarschijnlijke antwoord</span>`
+      +`<span class="lh-quote">“${escapeHtml(topSnip)}”</span>`
+      +`<span class="lh-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[top].title))}</span><span class="lh-go">— lees verder op de pagina →</span></span>`});
+    if(rest.length){
+      html+=`<div class="listen-alts-label">Andere mogelijke antwoorden</div>`;
+      html+=rest.map(idx=>{const snip=bestSnippet(idx,qtok);return card(idx,"listen-card",{snip,html:
+        `<span class="lc-quote">“${escapeHtml(snip)}”</span><span class="lc-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[idx].title))}</span></span>`});}).join("");
+    }
+    quotesEl.innerHTML=html;
+    quotesEl.querySelectorAll(".listen-hero,.listen-card").forEach(btn=>btn.onclick=()=>{const i=+btn.getAttribute("data-idx");openViewer(i,btn.getAttribute("data-snip"),CORPUS[i].url,cleanTitle(CORPUS[i].title));});
   }
   // Throttle i.p.v. debounce: de eerste woorden leveren METEEN resultaat, daarna werken de
   // quotes elke ~600 ms bij terwijl er doorgepraat wordt (een debounce wachtte op stilte).
