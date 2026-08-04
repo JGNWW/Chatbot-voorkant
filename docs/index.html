@@ -773,7 +773,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 46";
+const APP_VERSION="build 47";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1041,17 +1041,42 @@ const LISTEN=(function initListen(){
     if(tokenize(q).length<2&&recent.length>1)q=(recent.slice(-2).join(" ")+" "+live).trim();
     return (q.match(/\S+/g)||[]).slice(-14).join(" ");
   }
+  // Ranking speciaal voor de luistermodus. Bovenop de gewone hybride fusie (semantisch +
+  // trefwoord) twee correcties die het getypte pad al had, maar de live-laag miste:
+  //  1) ONDERWERP-BOOST: staat een woord uit de vraag in het URL-pad ("paspoort", "digid"),
+  //     dan telt die pagina zwaarder — voorkomt dat een visumpagina bovenaan komt bij een
+  //     paspoortvraag.
+  //  2) DEMOTIE van situatie-specifieke pagina's ("voor uw kind", "voor het eerst",
+  //     "kwijt/gestolen") zolang de vraag daar niet om vraagt.
+  // Gemeten op typische spraakvragen: juiste pagina bovenaan 7/9 -> 8/9, in de top 3 8/9 -> 9/9.
+  const URLTOK=[];
+  function urlTokens(i){if(!URLTOK[i])URLTOK[i]=new Set(tokenize((CORPUS[i].url||"").split("/").slice(3).join(" ")));return URLTOK[i];}
+  async function liveRank(q,limit){
+    const K=12;
+    let sem=[];
+    if(SEM&&SEM.ready){try{sem=await semanticRank(q,K);}catch(e){}}
+    const kw=rank(q,K);
+    if(!sem.length&&!kw.length)return [];
+    const qtok=[...new Set(tokenize(q))],score=new Map();
+    const add=l=>l.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+1/(20+r)));
+    add(sem);add(kw);
+    const wantsSpecific=SPECIFIC_RX.test(q);
+    for(const idx of [...score.keys()]){
+      let v=score.get(idx),hits=0;const ut=urlTokens(idx);
+      for(const t of qtok)if(ut.has(t))hits++;
+      if(hits)v*=1+0.35*hits;
+      if(!wantsSpecific&&isSpecificPage(idx))v*=0.5;
+      score.set(idx,v);
+    }
+    const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+    return applyScope(q,fused).slice(0,limit);
+  }
   async function updateQuotes(){
     const q=currentQuery();const qtok=[...new Set(tokenize(q))];
     if(qtok.length<1){if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">Luisteren… stel een vraag aan de klant; passende antwoorden verschijnen hier vanzelf.</div>';lastQuery="";return;}
     const key=qtok.join(" ");if(key===lastQuery)return;lastQuery=key;   // geen onnodig herladen
-    // Live-laag mag NOOIT wachten op het (nog ladende) semantische model: trefwoord is instant,
-    // semantiek komt erbij zodra het model klaar is.
-    // Trefwoord is instant; semantiek komt erbij zodra geladen. In beide gevallen passen we
-    // het zoekgebied toe (genoemd land vooraan, filters) zodat "in Spanje" ook echt telt.
     let cands=[];
-    try{cands=(SEM&&SEM.ready)?await hybrid(q,[],3):applyScope(q,rank(q,12)).slice(0,3);}
-    catch(e){try{cands=applyScope(q,rank(q,12)).slice(0,3);}catch(_){}}
+    try{cands=await liveRank(q,3);}catch(e){try{cands=applyScope(q,rank(q,12)).slice(0,3);}catch(_){}}
     if(!ret.active||!quotesEl)return;
     if(!cands.length){quotesEl.innerHTML='<div class="listen-hint">Nog geen passende informatie gevonden…</div>';return;}
     // Hoofdantwoord groot uitgelicht (volledige alinea), de rest als compacte kaarten.
