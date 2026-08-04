@@ -210,7 +210,19 @@ a{color:var(--rijk-licht);}
 .lai-opt input{margin-top:4px;flex:0 0 auto;}
 .lai-opt input:disabled+span{opacity:.5;}
 .lai-hint{color:var(--ink-licht);font-size:.82rem;}
-.lai-warn{margin:10px 0 0;font-size:.8rem;color:#7a5a00;background:#fff8e6;border:1px solid #f0dfa0;border-radius:8px;padding:8px 10px;line-height:1.5;}
+/* Statusbalk van de gekozen modus */
+.listen-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--grijs);border:1px solid var(--rand);border-radius:10px;padding:9px 14px;margin:0 0 14px;font-size:.86rem;}
+.listen-bar:empty{display:none;}
+.listen-bar .lb-info{flex:1;min-width:170px;color:var(--ink-licht);}
+.listen-bar .pill{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--rand);border-radius:12px;padding:3px 10px;font-size:.78rem;color:var(--ink-licht);}
+.listen-bar .pill.groen{color:var(--groen);border-color:#bfe3cb;background:#eaf7ee;}
+.listen-bar .lb-btn{background:#fff;border:1px solid var(--rand);border-radius:18px;padding:7px 15px;font-family:inherit;font-size:.85rem;color:var(--rijk-blauw);cursor:pointer;}
+.listen-bar .lb-btn:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
+.listen-bar .lb-btn.primary{background:var(--rijk-licht);color:#fff;border-color:var(--rijk-licht);font-weight:600;}
+.listen-bar .lb-btn.primary:hover{background:var(--rijk-donker);}
+.listen-bar .lb-bar{flex:0 0 130px;height:6px;background:var(--rand);border-radius:3px;overflow:hidden;}
+.listen-bar .lb-bar i{display:block;height:100%;background:var(--rijk-licht);transition:width .9s linear;}
+.listen-hero.dim{opacity:.5;}
 .listen-card{text-align:left;background:#fff;border:1px solid var(--rand);border-left:3px solid var(--rijk-licht);border-radius:10px;padding:12px 14px;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s;display:flex;flex-direction:column;gap:8px;}
 .listen-card:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
 .listen-card .lc-quote{font-size:.98rem;line-height:1.55;color:var(--ink);}
@@ -404,16 +416,6 @@ Geef ook "in_scope": true of false. NederlandWereldwijd gaat over Nederlandse ov
 Geef tot slot "sub_questions": ALLEEN als de vraag duidelijk uit MEERDERE losse informatiebehoeften bestaat (bv. "wat moet ik regelen met mijn paspoort én mijn zorgverzekering als ik verhuis"), splits hem dan in 2 tot 3 zelfstandige deelvragen; anders een lege lijst.
 Volledige JSON-vorm: {"standalone_question":"...","search_terms":["..."],"alt_queries":["..."],"hyde":"...","category":"...","in_scope":true,"sub_questions":["..."]}.`;
 // Stap 2: kies uit een brede lijst kandidaat-pagina's de pagina's die de vraag écht beantwoorden (op intentie, niet op losse woorden).
-// Systeemprompt voor de LUISTERMODUS: één compacte call die (afhankelijk van de aangevinkte
-// opties) de gesproken vraag opschoont, de beste pagina's kiest en/of de beste alinea aanwijst.
-const LISTEN_AI_SYSTEM=`Je ondersteunt een voorlichter van NederlandWereldwijd TIJDENS een live telefoongesprek met een klant. Je krijgt een RUWE spraaktranscriptie (kan verhaspeld zijn, met stopwoorden, halve zinnen of verkeerd verstane woorden) en soms een genummerde lijst kandidaat-pagina's.
-
-Taken (alleen de gevraagde velden invullen):
-- "query": herleid uit de ruwe tekst de daadwerkelijke informatiebehoefte en schrijf die als één heldere, korte zoekvraag in het Nederlands. Corrigeer duidelijke verhaspelingen en afkortingen (IND, VFS, BSN, RNI, MVV, DigiD). Verzin NIETS wat er niet in zit.
-- "pages": kies uit de kandidaten de nummers die de vraag het best beantwoorden, beste eerst (maximaal 3). Let op de BEDOELING, niet op losse woorden. Neem GEEN situatie-specifieke pagina ("voor uw kind", "voor het eerst", "verloren/gestolen") tenzij de klant daar zelf om vraagt. Past er niets, geef dan een lege lijst.
-- "passage": geef de code (bv. "0.2") van de alinea die de vraag het meest direct beantwoordt. Kies een inhoudelijke alinea, geen kopje of linktekst.
-
-Antwoord UITSLUITEND met JSON, zonder tekst eromheen.`;
 const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
@@ -795,7 +797,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 49";
+const APP_VERSION="build 50";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -990,7 +992,7 @@ const LISTEN=(function initListen(){
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.WebAssembly)){micBtn.hidden=true;return ret;}
   micBtn.hidden=false;
   let model=null,modelPromise=null,recognizer=null,stream=null,audioCtx=null,srcNode=null,proc=null;
-  let finals=[],partial="",updTimer=null,lastQuery="",panel=null,transcriptEl=null,quotesEl=null,headEl=null;
+  let finals=[],partial="",updTimer=null,lastQuery="",panel=null,transcriptEl=null,quotesEl=null,headEl=null,barEl=null;
   // Laadvoortgang, zodat de gebruiker nooit naar een stilstaand scherm kijkt.
   const warm={phase:"idle",pct:0};   // idle -> downloaden -> uitpakken -> klaar
   const onWarm=[];
@@ -1081,11 +1083,21 @@ const LISTEN=(function initListen(){
   // onderwerp meteen mee ("…paspoort…" -> "…reisadvies Spanje…") zonder dat oude woorden
   // blijven meewegen.
   function currentQuery(){
-    const live=partial.trim(),recent=recentFinals();
-    let q=live;
-    if(tokenize(q).length<2&&recent.length)q=(recent[recent.length-1]+" "+live).trim();
-    if(tokenize(q).length<2&&recent.length>1)q=(recent.slice(-2).join(" ")+" "+live).trim();
-    return expandAbbrev((q.match(/\S+/g)||[]).slice(-14).join(" "));
+    const live=partial.trim();
+    let q,cap=14;
+    if(MODE==="een"||MODE==="verzoek"){
+      // Alles sinds de start / sinds de vorige klik telt mee.
+      q=(finalsSince(ctxStart).join(" ")+" "+live).trim();cap=60;
+    }else if(MODE==="rustig"){
+      // Alleen het venster van de laatste 10 seconden.
+      q=(finalsSince(Math.max(ctxStart,Date.now()-WINDOW_MS)).join(" ")+" "+live).trim();cap=30;
+    }else{
+      // Standaard: de lopende zin is leidend, aangevuld als die te kort is.
+      const recent=recentFinals();q=live;
+      if(tokenize(q).length<2&&recent.length)q=(recent[recent.length-1]+" "+live).trim();
+      if(tokenize(q).length<2&&recent.length>1)q=(recent.slice(-2).join(" ")+" "+live).trim();
+    }
+    return expandAbbrev((q.match(/\S+/g)||[]).slice(-cap).join(" "));
   }
   // Ranking speciaal voor de luistermodus. Bovenop de gewone hybride fusie (semantisch +
   // trefwoord) twee correcties die het getypte pad al had, maar de live-laag miste:
@@ -1117,75 +1129,33 @@ const LISTEN=(function initListen(){
     const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
     return applyScope(q,fused).slice(0,limit);
   }
-  // ---- Optionele AI-verfijning (A: paginakeuze, B: passage, C: spraak opschonen) ----
-  // Werkt NON-BLOCKING: de lokale resultaten staan er meteen; komt de AI later terug, dan
-  // worden de kaarten stil bijgewerkt. Verouderde antwoorden worden weggegooid.
-  const LSET={rerank:false,passage:false,clean:false};
-  try{Object.assign(LSET,JSON.parse(localStorage.getItem("vk_listen_ai")||"{}"));}catch(e){}
-  const saveLSET=()=>{try{localStorage.setItem("vk_listen_ai",JSON.stringify(LSET));}catch(e){}};
-  ret.settings=LSET;
-  const aiCache=new Map();let aiSeq=0;
-  function paragraphsOf(idx,max){return (CORPUS[idx].text||"").split("\n").map(s=>s.trim()).filter(s=>s.length>60).slice(0,max||6);}
-  async function aiRefine(q,qtok,cands){
-    const key=keyInput.value.trim();
-    if(key.length<=10)return;                                  // geen sleutel -> alleen lokaal
-    if(!(LSET.rerank||LSET.passage||LSET.clean))return;         // niets aangevinkt
-    const seq=++aiSeq,cacheKey=[LSET.rerank,LSET.passage,LSET.clean,q].join("|");
-    if(aiCache.has(cacheKey)){applyAI(aiCache.get(cacheKey),q,qtok,cands,seq);return;}
-    if(headEl)headEl.dataset.busy="1";
-    // Compact bericht: alleen wat nodig is voor de aangevinkte opties.
-    const parts=["Gesproken tekst (ruwe transcriptie uit een klantgesprek):\n"+q];
-    if(LSET.rerank||LSET.passage){
-      parts.push("\nKandidaat-pagina's:"+cands.map((idx,n)=>{
-        let s="\n["+n+"] "+cleanTitle(CORPUS[idx].title);
-        if(LSET.passage)s+=paragraphsOf(idx).map((p,m)=>`\n   ${n}.${m} ${p.slice(0,220)}`).join("");
-        return s;}).join(""));
-    }
-    const want=[];
-    if(LSET.clean)want.push('"query":"<de vraag helder geformuleerd>"');
-    if(LSET.rerank)want.push('"pages":[<nummers, beste eerst>]');
-    if(LSET.passage)want.push('"passage":"<n.m van de best passende alinea>"');
-    parts.push('\nAntwoord UITSLUITEND met JSON: {'+want.join(",")+'}');
-    try{
-      const text=await PROVIDERS[provSel.value].call(key,modelSel.value,LISTEN_AI_SYSTEM,parts.join("\n"));
-      const j=parseModelJSON(text);
-      aiCache.set(cacheKey,j);if(aiCache.size>60)aiCache.delete(aiCache.keys().next().value);
-      applyAI(j,q,qtok,cands,seq);
-    }catch(e){console.warn("AI-verfijning:",e);}
-    finally{if(headEl)delete headEl.dataset.busy;}
-  }
-  async function applyAI(j,q,qtok,cands,seq){
-    if(seq!==aiSeq||!ret.active||!quotesEl)return;             // verouderd of gestopt -> negeren
-    let list=cands,tok=qtok,heroSnip=null;
-    // C: opgeschoonde vraag -> lokaal opnieuw zoeken (alleen als er geen AI-paginakeuze is)
-    const cq=(j.query||"").toString().trim();
-    if(LSET.clean&&cq&&!LSET.rerank){
-      try{const r=await liveRank(cq,3);if(seq!==aiSeq)return;if(r.length){list=r;tok=[...new Set(tokenize(cq))];}}catch(e){}
-    }
-    // A: door AI gekozen volgorde
-    if(LSET.rerank&&Array.isArray(j.pages)){
-      const pick=j.pages.map(n=>cands[n]).filter(i=>Number.isInteger(i));
-      if(pick.length)list=[...new Set(pick)].concat(cands.filter(i=>!pick.includes(i))).slice(0,3);
-    }
-    // B: door AI gekozen alinea voor het hoofdantwoord (blijft letterlijk uit de bron)
-    if(LSET.passage&&typeof j.passage==="string"){
-      const m=j.passage.match(/(\d+)\s*\.\s*(\d+)/);
-      if(m){const pageIdx=cands[+m[1]],paras=pageIdx!==undefined?paragraphsOf(pageIdx):[];
-        const p=paras[+m[2]];
-        if(p&&list[0]===pageIdx)heroSnip=p.length>900?p.slice(0,900)+"…":p;}
-    }
-    renderQuotes(list,tok,{heroSnip,ai:true});
-  }
+  // ---- Antwoordmodus (instelbaar, zodat elke werkwijze los te testen is) ----
+  // 1 standaard : verspringt continu mee (oorspronkelijke werking)
+  // 2 een       : één antwoord; alle context sinds de start telt mee, 'Nieuwe vraag' reset
+  // 3 verzoek   : scherm blijft stil; pas bij 'Geef antwoord' wordt er gezocht
+  // 4 rustig    : hoogstens elke 10 s bijwerken, en alleen als het onderwerp echt wijzigt
+  const MODES=["standaard","een","verzoek","rustig"];
+  let MODE="standaard";
+  try{const m=localStorage.getItem("vk_listen_mode");if(MODES.includes(m))MODE=m;}catch(e){}
+  const saveMode=()=>{try{localStorage.setItem("vk_listen_mode",MODE);}catch(e){}};
+  ret.mode=()=>MODE;
+  let ctxStart=0;          // vanaf wanneer context meetelt (modus 2 en 3)
+  let shown=null;          // {list,tok,heroSnip,at} — wat er nu op het scherm staat
+  let winTimer=null,winTick=null,winAt=0;   // modus 4: venster van 10 s
+  const WINDOW_MS=10000;
+  function resetContext(){ctxStart=Date.now();lastQuery="";}
+  function finalsSince(t){return finals.filter(f=>f.t>=t).map(f=>f.text);}
+
   // Tekent de kaarten. heroSnip: eventueel door AI gekozen passage (anders de heuristiek).
   function renderQuotes(cands,qtok,opts){
     if(!quotesEl)return;
     opts=opts||{};
     const card=(idx,cls,inner)=>`<button class="${cls}" data-idx="${idx}" data-snip="${escapeHtml(inner.snip)}">${inner.html}</button>`;
-    const top=cands[0],rest=cands.slice(1);
+    const top=cands[0],rest=(MODE==="een")?[]:cands.slice(1);   // modus 2: bewust één antwoord
     const topSnip=opts.heroSnip||bestSnippet(top,qtok,true);
-    const mark=opts.ai?`<span class="lh-ai" title="Verfijnd met AI">✨ AI</span>`:"";
-    let html=card(top,"listen-hero",{snip:topSnip,html:
-      `<span class="lh-label">✓ Meest waarschijnlijke antwoord ${mark}</span>`
+    const label=(MODE==="een")?"✓ Antwoord":(opts.age?("✓ Antwoord van "+opts.age):"✓ Meest waarschijnlijke antwoord");
+    let html=card(top,"listen-hero"+(opts.dim?" dim":""),{snip:topSnip,html:
+      `<span class="lh-label">${label}</span>`
       +`<span class="lh-quote">“${escapeHtml(topSnip)}”</span>`
       +`<span class="lh-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[top].title))}</span><span class="lh-go">— lees verder op de pagina →</span></span>`});
     if(rest.length){
@@ -1196,17 +1166,110 @@ const LISTEN=(function initListen(){
     quotesEl.innerHTML=html;
     quotesEl.querySelectorAll(".listen-hero,.listen-card").forEach(btn=>btn.onclick=()=>{const i=+btn.getAttribute("data-idx");openViewer(i,btn.getAttribute("data-snip"),CORPUS[i].url,cleanTitle(CORPUS[i].title));});
   }
-  async function updateQuotes(settled){
-    const q=currentQuery();const qtok=[...new Set(tokenize(q))];
-    if(qtok.length<1){if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">Luisteren… stel een vraag aan de klant; passende antwoorden verschijnen hier vanzelf.</div>';lastQuery="";return;}
-    const key=qtok.join(" ");if(key===lastQuery)return;lastQuery=key;   // geen onnodig herladen
+  // Zoekt en toont; retourneert de gevonden lijst (of null).
+  async function search(q){
+    const qtok=[...new Set(tokenize(q))];
+    if(qtok.length<1)return null;
     let cands=[];
     try{cands=await liveRank(q,3);}catch(e){try{cands=applyScope(q,rank(q,12)).slice(0,3);}catch(_){}}
-    if(!ret.active||!quotesEl)return;
-    if(!cands.length){quotesEl.innerHTML='<div class="listen-hint">Nog geen passende informatie gevonden…</div>';return;}
-    renderQuotes(cands,qtok);                    // INSTANT: lokale resultaten, nooit wachten
-    if(settled)aiRefine(q,qtok,cands);           // en daarna (optioneel) stil verbeteren met AI
+    return cands.length?{list:cands,tok:qtok}:null;
   }
+  const hint=t=>{if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">'+escapeHtml(t)+'</div>';};
+  // Toont het huidige antwoord opnieuw (modus 3: gedimd met leeftijd).
+  function reshow(){
+    if(!shown)return;
+    const secs=Math.round((Date.now()-shown.at)/1000);
+    const dim=(MODE==="verzoek");
+    renderQuotes(shown.list,shown.tok,{dim,age:dim?(secs<60?secs+" s geleden":Math.round(secs/60)+" min geleden"):null});
+  }
+  async function updateQuotes(settled){
+    // Modus 3: niet zoeken, maar het vorige antwoord gedimd + met leeftijd tonen.
+    if(MODE==="verzoek"){if(shown)reshow();renderModeBar();return;}
+    // Modus 4: tussentijds NIET verspringen — het 10-secondenvenster bepaalt wanneer.
+    // Alleen het allereerste antwoord komt meteen, anders staar je 10 s naar een leeg scherm.
+    if(MODE==="rustig"){if(!shown)return windowCheck();renderModeBar();return;}
+    const q=currentQuery();
+    if(!tokenize(q).length){hint("Luisteren… stel een vraag aan de klant; passende antwoorden verschijnen hier vanzelf.");lastQuery="";renderModeBar();return;}
+    const key=[...new Set(tokenize(q))].join(" ");
+    if(key===lastQuery){renderModeBar();return;}
+    lastQuery=key;
+    const res=await search(q);
+    if(!ret.active||!quotesEl)return;
+    if(!res){hint("Nog geen passende informatie gevonden…");renderModeBar();return;}
+    shown={list:res.list,tok:res.tok,at:Date.now()};
+    renderQuotes(res.list,res.tok);
+    renderModeBar();
+  }
+  // Modus 4: elke 10 s beoordelen of het onderwerp echt veranderd is.
+  // "Ongewijzigd" wordt op twee manieren vastgesteld, zodat het antwoord rustig blijft staan:
+  //  a) de INHOUD van het nieuwe venster lijkt sterk op het vorige (woordoverlap), of
+  //  b) de nieuwe beste pagina staat al in het getoonde antwoord.
+  let lastWinTok=null;
+  async function windowCheck(){
+    if(!ret.active||MODE!=="rustig")return;
+    winAt=Date.now();
+    const q=currentQuery(),tok=new Set(tokenize(q));
+    if(!tok.size){renderModeBar();return;}                    // niets gezegd -> laten staan
+    if(shown&&lastWinTok&&lastWinTok.size){
+      let inter=0;for(const t of tok)if(lastWinTok.has(t))inter++;
+      const uni=new Set([...tok,...lastWinTok]).size;
+      if(uni&&inter/uni>=0.4){shown.stable=true;lastWinTok=tok;renderModeBar();return;}
+    }
+    const res=await search(q);
+    if(!ret.active||!res)return renderModeBar();
+    if(shown&&shown.list.includes(res.list[0])){shown.stable=true;lastWinTok=tok;renderModeBar();return;}
+    shown={list:res.list,tok:res.tok,at:Date.now(),stable:false};lastWinTok=tok;
+    renderQuotes(res.list,res.tok);renderModeBar();
+  }
+  // Modus 3: nu pas zoeken, op basis van alles sinds de vorige klik.
+  async function answerNow(){
+    const q=currentQuery();
+    if(!tokenize(q).length){hint("Nog niets gehoord om op te zoeken.");renderModeBar();return;}
+    const res=await search(q);
+    if(!res){hint("Nog geen passende informatie gevonden…");renderModeBar();return;}
+    shown={list:res.list,tok:res.tok,at:Date.now()};
+    resetContext();
+    renderQuotes(res.list,res.tok);renderModeBar();
+  }
+  // ---- Statusbalk per modus ----
+  function renderModeBar(){
+    if(!barEl)return;
+    if(MODE==="standaard"){
+      barEl.innerHTML='<span class="pill">⚡ Live</span><span class="lb-info">Het antwoord volgt het gesprek automatisch.</span>';
+    }else if(MODE==="een"){
+      const n=finalsSince(ctxStart).length,secs=Math.round((Date.now()-ctxStart)/1000);
+      barEl.innerHTML='<span class="pill">🧩 Context: '+n+' zin'+(n===1?"":"nen")+' · '+secs+' s</span>'
+        +'<span class="lb-info">Alles wat u zegt telt mee in één antwoord.</span>'
+        +'<button type="button" class="lb-btn" data-act="nieuw">↺ Nieuwe vraag</button>';
+    }else if(MODE==="verzoek"){
+      const n=finalsSince(ctxStart).length;
+      barEl.innerHTML='<span class="pill">👂 '+n+' nieuwe zin'+(n===1?"":"nen")+' sinds vorige antwoord</span>'
+        +'<span class="lb-info">Het scherm blijft stil tot u klikt.</span>'
+        +'<button type="button" class="lb-btn primary" data-act="antwoord">Geef antwoord</button>';
+    }else{
+      const left=Math.max(0,WINDOW_MS-(Date.now()-winAt)),pct=100-Math.round(left/WINDOW_MS*100);
+      barEl.innerHTML='<span class="lb-bar"><i style="width:'+pct+'%"></i></span>'
+        +'<span class="lb-info">Volgende controle over '+Math.ceil(left/1000)+' s…</span>'
+        +((shown&&shown.stable)?'<span class="pill groen">✓ Onderwerp ongewijzigd — antwoord blijft staan</span>':'');
+    }
+    barEl.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
+      const a=b.getAttribute("data-act");
+      if(a==="nieuw"){resetContext();shown=null;hint("Nieuwe vraag — luisteren…");renderModeBar();}
+      if(a==="antwoord")answerNow();
+    });
+  }
+  // Wisselen van modus tijdens het luisteren.
+  function setMode(m){
+    if(!MODES.includes(m))return;
+    MODE=m;saveMode();finals=[];partial="";resetContext();shown=null;renderTranscript();
+    if(winTimer){clearInterval(winTimer);winTimer=null;}
+    if(winTick){clearInterval(winTick);winTick=null;}
+    if(quotesEl)hint(MODE==="verzoek"?"Luistert mee — klik op “Geef antwoord” wanneer u een antwoord wilt.":"Luisteren…");
+    if(ret.active&&MODE==="rustig"){winAt=Date.now();winTimer=setInterval(windowCheck,WINDOW_MS);winTick=setInterval(renderModeBar,1000);}
+    renderModeBar();
+    if(ret.active&&(MODE==="standaard"||MODE==="een"))scheduleUpdate(true);
+  }
+  ret.setMode=setMode;
   // Throttle i.p.v. debounce: de eerste woorden leveren METEEN resultaat, daarna werken de
   // quotes elke ~600 ms bij terwijl er doorgepraat wordt (een debounce wachtte op stilte).
   let lastRun=0;
@@ -1222,33 +1285,35 @@ const LISTEN=(function initListen(){
     conv.innerHTML="";
     panel=document.createElement("div");panel.className="listen";
     const warmMsg=warmText(warm)||"Spraakmodel laden…";
-    const hasKey=keyInput.value.trim().length>10;
-    const cb=(k,label,hint)=>`<label class="lai-opt"><input type="checkbox" data-k="${k}"${LSET[k]?" checked":""}${hasKey?"":" disabled"}><span><b>${label}</b> <span class="lai-hint">${hint}</span></span></label>`;
+    const MODEINFO=[["standaard","1. Standaard","Antwoord verspringt continu mee met het gesprek."],
+      ["een","2. Eén antwoord per vraag","Alles wat sinds de start gezegd is telt mee. Met “Nieuwe vraag” begint u opnieuw."],
+      ["verzoek","3. Antwoord op verzoek","Luistert mee, maar toont pas een antwoord als u op “Geef antwoord” klikt."],
+      ["rustig","4. Rustig (10-seconden vensters)","Werkt automatisch bij, maar hoogstens elke 10 seconden — en alleen als het onderwerp wijzigt."]];
+    const radios=MODEINFO.map(([k,t,h])=>`<label class="lai-opt"><input type="radio" name="lmode" value="${k}"${MODE===k?" checked":""}><span><b>${t}</b> <span class="lai-hint">${h}</span></span></label>`).join("");
     panel.innerHTML=`<div class="listen-head"><span class="listen-badge">🎧 Luistermodus</span> <span class="listen-msg">${warm.phase==="klaar"?"Starten…":escapeHtml(warmMsg)}</span><button type="button" class="listen-stop">Stop luistermodus</button></div>
-      <details class="listen-ai"${(LSET.rerank||LSET.passage||LSET.clean)?" open":""}>
-        <summary>⚙︎ AI-hulp in luistermodus ${hasKey?"":"<em>(vul eerst een AI-sleutel in)</em>"}</summary>
-        <div class="lai-body">
-          ${cb("clean","Spraak opschonen","(C) AI maakt van de ruwe transcriptie een heldere zoekvraag")}
-          ${cb("rerank","Betere paginakeuze","(A) AI kiest welke pagina's het best passen")}
-          ${cb("passage","Beste passage kiezen","(B) AI wijst de alinea aan die het antwoord geeft")}
-          <p class="lai-warn">⚠︎ Let op: hiermee wordt de <strong>uitgeschreven gesprekstekst</strong> naar de AI-provider gestuurd. Zonder deze opties blijft alles op dit apparaat. De resultaten verschijnen direct; AI-verbeteringen komen er even later stil bij.</p>
-        </div>
+      <details class="listen-ai">
+        <summary>⚙︎ Manier van antwoorden</summary>
+        <div class="lai-body">${radios}</div>
       </details>
+      <div class="listen-bar" id="listen-bar"></div>
       <div class="listen-transcript" aria-live="polite"></div>
       <div class="listen-quotes"><div class="listen-hint">${warm.phase==="klaar"?"Luisteren…":"Het spraakmodel wordt eenmalig geladen (daarna direct beschikbaar)…"}</div></div>`;
     conv.appendChild(panel);
-    headEl=panel.querySelector(".listen-msg");transcriptEl=panel.querySelector(".listen-transcript");quotesEl=panel.querySelector(".listen-quotes");
+    headEl=panel.querySelector(".listen-msg");transcriptEl=panel.querySelector(".listen-transcript");quotesEl=panel.querySelector(".listen-quotes");barEl=panel.querySelector(".listen-bar");
     panel.querySelector(".listen-stop").onclick=()=>stop(true);
-    panel.querySelectorAll(".lai-opt input").forEach(inp=>inp.onchange=()=>{LSET[inp.getAttribute("data-k")]=inp.checked;saveLSET();lastQuery="";aiCache.clear();});
+    panel.querySelectorAll('input[name="lmode"]').forEach(r=>r.onchange=()=>{if(r.checked)setMode(r.value);});
+    renderModeBar();
   }
   function teardownAudio(){try{if(proc)proc.disconnect();if(srcNode)srcNode.disconnect();if(audioCtx)audioCtx.close();}catch(e){}try{if(stream)stream.getTracks().forEach(t=>t.stop());}catch(e){}proc=srcNode=audioCtx=stream=null;}
   function stop(restore){
     if(!ret.active&&!stream)return;
     if(updTimer){clearTimeout(updTimer);updTimer=null;}
+    if(winTimer){clearInterval(winTimer);winTimer=null;}
+    if(winTick){clearInterval(winTick);winTick=null;}
     setActive(false);teardownAudio();
     try{if(recognizer)recognizer.remove();}catch(e){}recognizer=null;
-    finals=[];partial="";lastQuery="";
-    if(panel&&panel.parentNode)panel.parentNode.removeChild(panel);panel=null;transcriptEl=quotesEl=headEl=null;
+    finals=[];partial="";lastQuery="";shown=null;
+    if(panel&&panel.parentNode)panel.parentNode.removeChild(panel);panel=null;transcriptEl=quotesEl=headEl=barEl=null;
     if(restore)showWelcome();
   }
   ret.stop=stop;
@@ -1285,7 +1350,11 @@ const LISTEN=(function initListen(){
       srcNode.connect(proc);proc.connect(sink);sink.connect(audioCtx.destination);
     }catch(e){if(headEl)headEl.textContent="Kon de microfoon niet openen: "+(e.message||e);teardownAudio();setActive(false);return;}
     if(headEl)headEl.textContent="Praat met de klant — passende antwoorden verschijnen automatisch en volgen het gesprek.";
-    updateQuotes();
+    resetContext();winAt=Date.now();
+    if(MODE==="rustig"){winTimer=setInterval(windowCheck,WINDOW_MS);winTick=setInterval(renderModeBar,1000);}
+    if(MODE==="verzoek")hint("Luistert mee — klik op “Geef antwoord” wanneer u een antwoord wilt.");
+    renderModeBar();
+    if(MODE==="standaard"||MODE==="een")updateQuotes(true);
   });
   return ret;
 })();
