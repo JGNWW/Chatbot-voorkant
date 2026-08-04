@@ -222,7 +222,6 @@ a{color:var(--rijk-licht);}
 .listen-bar .lb-btn.primary:hover{background:var(--rijk-donker);}
 .listen-bar .lb-bar{flex:0 0 130px;height:6px;background:var(--rand);border-radius:3px;overflow:hidden;}
 .listen-bar .lb-bar i{display:block;height:100%;background:var(--rijk-licht);transition:width .9s linear;}
-.listen-hero.dim{opacity:.5;}
 .listen-card{text-align:left;background:#fff;border:1px solid var(--rand);border-left:3px solid var(--rijk-licht);border-radius:10px;padding:12px 14px;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s;display:flex;flex-direction:column;gap:8px;}
 .listen-card:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
 .listen-card .lc-quote{font-size:.98rem;line-height:1.55;color:var(--ink);}
@@ -797,7 +796,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 50";
+const APP_VERSION="build 51";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1140,6 +1139,7 @@ const LISTEN=(function initListen(){
   const saveMode=()=>{try{localStorage.setItem("vk_listen_mode",MODE);}catch(e){}};
   ret.mode=()=>MODE;
   let ctxStart=0;          // vanaf wanneer context meetelt (modus 2 en 3)
+  let locked=false;        // modus 2: antwoord staat vast tot "Nieuwe vraag"
   let shown=null;          // {list,tok,heroSnip,at} — wat er nu op het scherm staat
   let winTimer=null,winTick=null,winAt=0;   // modus 4: venster van 10 s
   const WINDOW_MS=10000;
@@ -1153,8 +1153,8 @@ const LISTEN=(function initListen(){
     const card=(idx,cls,inner)=>`<button class="${cls}" data-idx="${idx}" data-snip="${escapeHtml(inner.snip)}">${inner.html}</button>`;
     const top=cands[0],rest=(MODE==="een")?[]:cands.slice(1);   // modus 2: bewust één antwoord
     const topSnip=opts.heroSnip||bestSnippet(top,qtok,true);
-    const label=(MODE==="een")?"✓ Antwoord":(opts.age?("✓ Antwoord van "+opts.age):"✓ Meest waarschijnlijke antwoord");
-    let html=card(top,"listen-hero"+(opts.dim?" dim":""),{snip:topSnip,html:
+    const label=(MODE==="een"||MODE==="verzoek")?"✓ Antwoord":"✓ Meest waarschijnlijke antwoord";
+    let html=card(top,"listen-hero",{snip:topSnip,html:
       `<span class="lh-label">${label}</span>`
       +`<span class="lh-quote">“${escapeHtml(topSnip)}”</span>`
       +`<span class="lh-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[top].title))}</span><span class="lh-go">— lees verder op de pagina →</span></span>`});
@@ -1175,16 +1175,11 @@ const LISTEN=(function initListen(){
     return cands.length?{list:cands,tok:qtok}:null;
   }
   const hint=t=>{if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">'+escapeHtml(t)+'</div>';};
-  // Toont het huidige antwoord opnieuw (modus 3: gedimd met leeftijd).
-  function reshow(){
-    if(!shown)return;
-    const secs=Math.round((Date.now()-shown.at)/1000);
-    const dim=(MODE==="verzoek");
-    renderQuotes(shown.list,shown.tok,{dim,age:dim?(secs<60?secs+" s geleden":Math.round(secs/60)+" min geleden"):null});
-  }
   async function updateQuotes(settled){
-    // Modus 3: niet zoeken, maar het vorige antwoord gedimd + met leeftijd tonen.
-    if(MODE==="verzoek"){if(shown)reshow();renderModeBar();return;}
+    // Modus 3: het getoonde antwoord blijft ongemoeid staan tot de volgende klik.
+    if(MODE==="verzoek"){renderModeBar();return;}
+    // Modus 2: eenmaal gevonden staat het antwoord vast tot "Nieuwe vraag".
+    if(MODE==="een"&&locked){renderModeBar();return;}
     // Modus 4: tussentijds NIET verspringen — het 10-secondenvenster bepaalt wanneer.
     // Alleen het allereerste antwoord komt meteen, anders staar je 10 s naar een leeg scherm.
     if(MODE==="rustig"){if(!shown)return windowCheck();renderModeBar();return;}
@@ -1197,6 +1192,7 @@ const LISTEN=(function initListen(){
     if(!ret.active||!quotesEl)return;
     if(!res){hint("Nog geen passende informatie gevonden…");renderModeBar();return;}
     shown={list:res.list,tok:res.tok,at:Date.now()};
+    if(MODE==="een")locked=true;                 // vastzetten: niet meer wisselen
     renderQuotes(res.list,res.tok);
     renderModeBar();
   }
@@ -1238,13 +1234,13 @@ const LISTEN=(function initListen(){
       barEl.innerHTML='<span class="pill">⚡ Live</span><span class="lb-info">Het antwoord volgt het gesprek automatisch.</span>';
     }else if(MODE==="een"){
       const n=finalsSince(ctxStart).length,secs=Math.round((Date.now()-ctxStart)/1000);
-      barEl.innerHTML='<span class="pill">🧩 Context: '+n+' zin'+(n===1?"":"nen")+' · '+secs+' s</span>'
-        +'<span class="lb-info">Alles wat u zegt telt mee in één antwoord.</span>'
-        +'<button type="button" class="lb-btn" data-act="nieuw">↺ Nieuwe vraag</button>';
+      barEl.innerHTML='<span class="pill'+(locked?" groen":"")+'">'+(locked?"🔒 Antwoord vastgezet":"🧩 Luistert…")+' · '+n+' zin'+(n===1?"":"nen")+' · '+secs+' s</span>'
+        +'<span class="lb-info">'+(locked?"Het antwoord blijft staan. Klik “Nieuwe vraag” voor een volgende vraag.":"Alles wat u zegt telt mee in één antwoord.")+'</span>'
+        +'<button type="button" class="lb-btn'+(locked?" primary":"")+'" data-act="nieuw">↺ Nieuwe vraag</button>';
     }else if(MODE==="verzoek"){
       const n=finalsSince(ctxStart).length;
       barEl.innerHTML='<span class="pill">👂 '+n+' nieuwe zin'+(n===1?"":"nen")+' sinds vorige antwoord</span>'
-        +'<span class="lb-info">Het scherm blijft stil tot u klikt.</span>'
+        +'<span class="lb-info">Klik voor een antwoord op alles sinds uw vorige klik.</span>'
         +'<button type="button" class="lb-btn primary" data-act="antwoord">Geef antwoord</button>';
     }else{
       const left=Math.max(0,WINDOW_MS-(Date.now()-winAt)),pct=100-Math.round(left/WINDOW_MS*100);
@@ -1254,14 +1250,14 @@ const LISTEN=(function initListen(){
     }
     barEl.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
       const a=b.getAttribute("data-act");
-      if(a==="nieuw"){resetContext();shown=null;hint("Nieuwe vraag — luisteren…");renderModeBar();}
+      if(a==="nieuw"){resetContext();shown=null;locked=false;hint("Nieuwe vraag — luisteren…");renderModeBar();}
       if(a==="antwoord")answerNow();
     });
   }
   // Wisselen van modus tijdens het luisteren.
   function setMode(m){
     if(!MODES.includes(m))return;
-    MODE=m;saveMode();finals=[];partial="";resetContext();shown=null;renderTranscript();
+    MODE=m;saveMode();finals=[];partial="";resetContext();shown=null;locked=false;renderTranscript();
     if(winTimer){clearInterval(winTimer);winTimer=null;}
     if(winTick){clearInterval(winTick);winTick=null;}
     if(quotesEl)hint(MODE==="verzoek"?"Luistert mee — klik op “Geef antwoord” wanneer u een antwoord wilt.":"Luisteren…");
