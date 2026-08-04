@@ -773,7 +773,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 47";
+const APP_VERSION="build 48";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1030,6 +1030,30 @@ const LISTEN=(function initListen(){
   }
   function recentFinals(){const cut=Date.now()-15000;return finals.filter(f=>f.t>=cut).map(f=>f.text);}   // laatste ~15 s
   function renderTranscript(){if(!transcriptEl)return;transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(recentFinals().slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;}
+  // ---- Afkortingen herstellen ----
+  // Vosk schrijft gespelde afkortingen uit elkaar ("i en de" / "vee ef es"). We voegen zulke
+  // letterreeksen weer samen, maar ALLEEN als het resultaat een bekende afkorting is — anders
+  // zouden gewone woorden als "en", "er" en "de" gewone zinnen kapotmaken.
+  // Lijst afgeleid uit het corpus (hoofdletterwoorden van 2-6 letters op >=3 pagina's).
+  const ABBR=new Set("ind vfs brp svb aow rni abp eer hcch duo mvv bsn rdw uwv cak wia cbr wao waz vog anw ww vbn kns sar cdc dbb eva".split(" "));
+  const LETTER={a:"a",aa:"a",be:"b",bee:"b",ce:"c",cee:"c",see:"c",de:"d",dee:"d",e:"e",ee:"e",ef:"f",eff:"f",ge:"g",gee:"g",ha:"h",haa:"h",i:"i",ie:"i",j:"j",je:"j",jee:"j",ka:"k",kaa:"k",el:"l",l:"l",em:"m",m:"m",en:"n",n:"n",o:"o",oo:"o",pe:"p",pee:"p",ku:"q",kuu:"q",er:"r",r:"r",es:"s",s:"s",te:"t",tee:"t",u:"u",uu:"u",ve:"v",vee:"v",we:"w",wee:"w",iks:"x",ei:"y",ij:"y",zet:"z",z:"z",b:"b",c:"c",d:"d",f:"f",g:"g",h:"h",k:"k",p:"p",q:"q",t:"t",v:"v",w:"w",x:"x",y:"y"};
+  function expandAbbrev(text){
+    const w=(text||"").split(/\s+/).filter(Boolean);
+    const out=[];let i=0;
+    while(i<w.length){
+      // hoe lang is de reeks woorden die als losse letters te lezen zijn?
+      let run=0;while(i+run<w.length&&LETTER[w[i+run].toLowerCase().replace(/[^a-zà-ÿ]/g,"")])run++;
+      let matched=false;
+      if(run>=2){
+        for(let len=Math.min(run,6);len>=2&&!matched;len--){
+          const cand=w.slice(i,i+len).map(x=>LETTER[x.toLowerCase().replace(/[^a-zà-ÿ]/g,"")]).join("");
+          if(ABBR.has(cand)){out.push(cand);i+=len;matched=true;}
+        }
+      }
+      if(!matched){out.push(w[i]);i++;}
+    }
+    return out.join(" ");
+  }
   // Zoekopdracht: de LOPENDE zin is leidend — dat is waar het gesprek nú over gaat. Alleen
   // als die nog te weinig inhoud heeft, vullen we aan met de vorige zin(nen). Zo wisselt het
   // onderwerp meteen mee ("…paspoort…" -> "…reisadvies Spanje…") zonder dat oude woorden
@@ -1039,7 +1063,7 @@ const LISTEN=(function initListen(){
     let q=live;
     if(tokenize(q).length<2&&recent.length)q=(recent[recent.length-1]+" "+live).trim();
     if(tokenize(q).length<2&&recent.length>1)q=(recent.slice(-2).join(" ")+" "+live).trim();
-    return (q.match(/\S+/g)||[]).slice(-14).join(" ");
+    return expandAbbrev((q.match(/\S+/g)||[]).slice(-14).join(" "));
   }
   // Ranking speciaal voor de luistermodus. Bovenop de gewone hybride fusie (semantisch +
   // trefwoord) twee correcties die het getypte pad al had, maar de live-laag miste:
