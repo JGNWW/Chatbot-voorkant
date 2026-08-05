@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 SITEMAP_URL = "https://www.nederlandwereldwijd.nl/paginas/sitemap.xml"
 OUT = Path(__file__).resolve().parent.parent / "docs" / "data" / "corpus.json"
 CONCURRENCY = 12
-MAX_TEXT = 5000
+MAX_TEXT = 20000   # ruim: 23% van de pagina's liep tegen de oude limiet van 5000 aan
 LOC_RE = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>", re.IGNORECASE)
 
 
@@ -26,7 +26,12 @@ async def fetch_urls(client: httpx.AsyncClient) -> list[str]:
     return [u for u in LOC_RE.findall(r.text) if not u.endswith(".xml")]
 
 
-def extract(html: str, url: str) -> tuple[str, str, str, list]:
+BASE = "https://www.nederlandwereldwijd.nl"
+# Terugkerende footer-blokken die op bijna elke pagina staan en geen inhoud toevoegen.
+DROP_HEADINGS = {"Contact", "Ook nuttig"}
+
+
+def extract(html: str, url: str) -> tuple[str, str, str, list, list]:
     soup = BeautifulSoup(html, "lxml")
     title = soup.title.get_text(strip=True) if soup.title else url
     # Meta-omschrijving = beknopte, redactioneel geschreven samenvatting (zoek-index).
@@ -42,9 +47,38 @@ def extract(html: str, url: str) -> tuple[str, str, str, list]:
             t = " ".join(h.get_text(separator=" ", strip=True).split())
             if t:
                 headings.append([int(h.name[1]), t])
+    # Links uit de hoofdinhoud (linktekst -> absolute href), voor de bron-viewer.
+    links: list = []
+    seen = set()
+    if main:
+        for a in main.find_all("a", href=True):
+            t = " ".join(a.get_text(" ", strip=True).split())
+            href = a["href"].strip()
+            if len(t) < 5 or href.startswith("#") or href.startswith("javascript"):
+                continue
+            if href.startswith("/"):
+                href = BASE + href
+            if (t, href) in seen:
+                continue
+            seen.add((t, href))
+            links.append([t, href])
+
     text = main.get_text(separator="\n", strip=True) if main else ""
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    return title, desc, "\n".join(lines)[:MAX_TEXT], headings
+
+    # Footer-blokken ('Contact', 'Ook nuttig') meteen weglaten: kop + alles tot de volgende kop.
+    htexts = {t for _, t in headings}
+    out, i = [], 0
+    while i < len(lines):
+        if lines[i] in DROP_HEADINGS and any(lvl == 2 and t == lines[i] for lvl, t in headings):
+            i += 1
+            while i < len(lines) and lines[i] not in htexts:
+                i += 1
+            continue
+        out.append(lines[i])
+        i += 1
+    headings = [[lvl, t] for lvl, t in headings if t not in DROP_HEADINGS]
+    return title, desc, "\n".join(out)[:MAX_TEXT], headings, links
 
 
 async def crawl():
@@ -65,9 +99,10 @@ async def crawl():
                     try:
                         r = await client.get(url, timeout=25)
                         r.raise_for_status()
-                        title, desc, text, headings = extract(r.text, url)
+                        title, desc, text, headings, links = extract(r.text, url)
                         if text:
-                            corpus.append({"url": url, "title": title, "desc": desc, "text": text, "headings": headings})
+                            corpus.append({"url": url, "title": title, "desc": desc, "text": text,
+                                           "headings": headings, "links": links})
                         break
                     except Exception:
                         if attempt == 1:

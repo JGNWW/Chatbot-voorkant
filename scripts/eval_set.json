@@ -1,77 +1,804 @@
 [
-  {"q": "hoe vraag ik een ID-kaart aan vanuit het buitenland", "expect": ["/paspoort-id-kaart"]},
-  {"q": "waar blijft mijn paspoort", "expect": ["/paspoort-id-kaart/tijdsduur-aanvragen"]},
-  {"q": "hoe lang duurt het voor ik mijn paspoort heb", "expect": ["/paspoort-id-kaart/tijdsduur-aanvragen"]},
-  {"q": "mijn paspoort is kwijt", "expect": ["/paspoort-id-kaart/kwijt-gestolen", "nooddocument"]},
-  {"q": "paspoort kwijgeraakt wat moet ik doen", "expect": ["/paspoort-id-kaart/kwijt-gestolen", "nooddocument"]},
-  {"q": "ik moet morgen reizen maar mijn paspoort is verlopen", "expect": ["nooddocument", "/paspoort-id-kaart/verlopen"]},
-  {"q": "wat zijn de eisen voor een pasfoto", "expect": ["eisen-pasfoto", "pasfoto"]},
-  {"q": "kan ik de status van mijn paspoortaanvraag volgen", "expect": ["status-aanvraag"]},
-  {"q": "paspoort aanvragen als ik in thailand woon", "expect": ["thailand"]},
-  {"q": "hoe verleng ik mijn paspoort", "expect": ["/paspoort-id-kaart"]},
-  {"q": "wat kost het aanvragen van een paspoort", "expect": ["/paspoort-id-kaart", "tarieven"]},
-  {"q": "schengenvisum aanvragen voor familiebezoek", "expect": ["schengenvisum", "/visum-nederland"]},
-  {"q": "visum voor langer verblijf in nederland aanvragen", "expect": ["mvv", "visum-lang-verblijf"]},
-  {"q": "mijn visumaanvraag is afgewezen kan ik bezwaar maken", "expect": ["afwijzing", "bezwaar"]},
-  {"q": "wanneer krijg ik bericht over mijn visumaanvraag", "expect": ["wanneer-bericht"]},
-  {"q": "heb ik een visum nodig voor curacao", "expect": ["caribisch"]},
-  {"q": "mijn schengenvisum staat in mijn verloren paspoort", "expect": ["schengenvisum-kwijt", "schengenvisum-verlopen-paspoort"]},
-  {"q": "verklaring van in leven zijn nodig voor mijn pensioen", "expect": ["in-leven-zijn"]},
-  {"q": "bewijs nodig dat ik ongehuwd ben", "expect": ["burgerlijke-staat", "huwelijksbevoegdheid"]},
-  {"q": "verklaring van nederlanderschap aanvragen", "expect": ["nederlanderschap"]},
-  {"q": "vog aanvragen vanuit het buitenland", "expect": ["vog"]},
-  {"q": "wat is een apostille", "expect": ["legaliseren", "apostille"]},
-  {"q": "buitenlandse geboorteakte legaliseren voor gebruik in nederland", "expect": ["legaliseren"]},
-  {"q": "nederlands diploma geldig maken voor het buitenland", "expect": ["nederlands-diploma-buitenland", "legaliseren"]},
-  {"q": "ik kan niet inloggen met digid", "expect": ["/digid-buiten-nederland"]},
-  {"q": "digid aanvragen als ik in het buitenland woon", "expect": ["/digid-buiten-nederland"]},
-  {"q": "wat is een BSN en hoe krijg ik het in het buitenland", "expect": ["bsn"]},
-  {"q": "wat is de rni", "expect": ["rni"]},
-  {"q": "ik wil me uitschrijven uit nederland", "expect": ["uitschrijven", "/brp"]},
-  {"q": "post van de overheid digitaal ontvangen in het buitenland", "expect": ["mijnoverheid"]},
-  {"q": "ik wil trouwen in het buitenland", "expect": ["/trouwen"]},
-  {"q": "trouwen in denemarken", "expect": ["/trouwen/denemarken"]},
-  {"q": "scheiden in het buitenland", "expect": ["scheiden"]},
-  {"q": "kind geboren in het buitenland aangeven", "expect": ["/geboorte-aangeven-buiten-nederland"]},
-  {"q": "buitenlands kind adopteren", "expect": ["adoptie"]},
-  {"q": "gedwongen uitgehuwelijkt en achtergelaten in het buitenland", "expect": ["huwelijksdwang"]},
-  {"q": "er is iemand overleden tijdens vakantie", "expect": ["/overlijden-buitenland"]},
-  {"q": "overledene terug naar nederland brengen", "expect": ["repatriering"]},
-  {"q": "begrafenis in het buitenland regelen", "expect": ["begrafenis"]},
-  {"q": "mijn rijbewijs is bijna verlopen en ik woon in het buitenland", "expect": ["/rijbewijs-buitenland"]},
-  {"q": "rijbewijs gestolen in het buitenland", "expect": ["/rijbewijs-buitenland/kwijt"]},
-  {"q": "is mijn nederlandse rijbewijs geldig in het buitenland", "expect": ["/rijbewijs-buitenland/geldig"]},
-  {"q": "aow ontvangen in het buitenland", "expect": ["aow"]},
-  {"q": "ww-uitkering meenemen naar het buitenland", "expect": ["ww-uitkering"]},
-  {"q": "kinderbijslag als ik in het buitenland woon", "expect": ["kinderbijslag"]},
-  {"q": "zorgtoeslag in het buitenland", "expect": ["zorgtoeslag"]},
-  {"q": "belastingaangifte doen vanuit het buitenland", "expect": ["belastingaangifte"]},
-  {"q": "nabestaandenuitkering anw in het buitenland", "expect": ["anw"]},
-  {"q": "arbeidsongeschiktheidsuitkering in het buitenland", "expect": ["arbeidsongeschiktheid"]},
-  {"q": "studiefinanciering voor studeren in het buitenland", "expect": ["studiefinanciering"]},
-  {"q": "zorgverzekering als ik emigreer", "expect": ["zorgverzekering"]},
-  {"q": "is het veilig om naar marokko te reizen", "expect": ["/reisadvies", "marokko"]},
-  {"q": "ik ben bestolen op reis", "expect": ["/bestolen-buitenland"]},
-  {"q": "ik ben verkracht in het buitenland", "expect": ["/slachtoffer-geweld/slachtoffer-van-seksueel-geweld"]},
-  {"q": "ik ben slachtoffer van geweld in het buitenland", "expect": ["/slachtoffer-geweld"]},
-  {"q": "ik heb dringend hulp nodig in het buitenland", "expect": ["/hulp-bij-nood", "/contact"]},
-  {"q": "wat doet de ambassade bij een crisis", "expect": ["crisis"]},
-  {"q": "er is oorlog uitgebroken in het land waar ik ben", "expect": ["crisis", "hulp-bij-nood", "reisadvies"]},
-  {"q": "kan ik vanuit het buitenland stemmen", "expect": ["stemmen"]},
-  {"q": "ik heb geen stempapieren ontvangen", "expect": ["geen-stempapieren"]},
-  {"q": "hoe word ik nederlander", "expect": ["naturalisatie", "nationaliteit"]},
-  {"q": "verlies ik mijn nederlandse nationaliteit als ik een andere aanneem", "expect": ["nederlandse-nationaliteit"]},
-  {"q": "basisexamen inburgering doen in het buitenland", "expect": ["basisexamen"]},
-  {"q": "afstand doen van de nederlandse nationaliteit", "expect": ["afstand"]},
-  {"q": "werken in het buitenland wat moet ik regelen", "expect": ["werken-buitenland"]},
-  {"q": "verhuizen naar het buitenland checklist", "expect": ["checklist-verhuizen", "emigreren"]},
-  {"q": "auto meenemen bij emigratie", "expect": ["auto-exporteren", "meeverhuizen"]},
-  {"q": "auto importeren in nederland", "expect": ["auto-importeren"]},
-  {"q": "terugkeren naar nederland na jaren in het buitenland", "expect": ["terug-naar-nederland", "immigreren"]},
-  {"q": "afspraak maken bij de ambassade", "expect": ["afspraak-maken"]},
-  {"q": "wat kost een consulaire dienst", "expect": ["tarieven"]},
-  {"q": "nederlandse pasfoto laten maken in het buitenland", "expect": ["pasfoto"]},
-  {"q": "ik verhuis naar spanje wat moet ik regelen met paspoort en zorgverzekering", "expect": ["checklist-verhuizen", "emigreren", "zorgverzekering"]},
-  {"q": "mijn kind is geboren wat nu", "expect": ["geboorte-aangeven", "kind-krijgen"]},
-  {"q": "ik ga voor mijn werk lang naar het buitenland", "expect": ["werken-buitenland", "checklist-verhuizen", "emigreren"]}
+ {
+  "q": "hoe vraag ik een ID-kaart aan vanuit het buitenland",
+  "expect": [
+   "/paspoort-id-kaart"
+  ]
+ },
+ {
+  "q": "waar blijft mijn paspoort",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen"
+  ]
+ },
+ {
+  "q": "hoe lang duurt het voor ik mijn paspoort heb",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen"
+  ]
+ },
+ {
+  "q": "mijn paspoort is kwijt",
+  "expect": [
+   "/paspoort-id-kaart/kwijt-gestolen",
+   "nooddocument"
+  ]
+ },
+ {
+  "q": "paspoort kwijgeraakt wat moet ik doen",
+  "expect": [
+   "/paspoort-id-kaart/kwijt-gestolen",
+   "nooddocument"
+  ]
+ },
+ {
+  "q": "ik moet morgen reizen maar mijn paspoort is verlopen",
+  "expect": [
+   "nooddocument",
+   "/paspoort-id-kaart/verlopen"
+  ]
+ },
+ {
+  "q": "wat zijn de eisen voor een pasfoto",
+  "expect": [
+   "eisen-pasfoto",
+   "pasfoto"
+  ]
+ },
+ {
+  "q": "kan ik de status van mijn paspoortaanvraag volgen",
+  "expect": [
+   "status-aanvraag"
+  ]
+ },
+ {
+  "q": "paspoort aanvragen als ik in thailand woon",
+  "expect": [
+   "thailand"
+  ]
+ },
+ {
+  "q": "hoe verleng ik mijn paspoort",
+  "expect": [
+   "/paspoort-id-kaart"
+  ]
+ },
+ {
+  "q": "wat kost het aanvragen van een paspoort",
+  "expect": [
+   "/paspoort-id-kaart",
+   "tarieven"
+  ]
+ },
+ {
+  "q": "schengenvisum aanvragen voor familiebezoek",
+  "expect": [
+   "schengenvisum",
+   "/visum-nederland"
+  ]
+ },
+ {
+  "q": "visum voor langer verblijf in nederland aanvragen",
+  "expect": [
+   "mvv",
+   "visum-lang-verblijf"
+  ]
+ },
+ {
+  "q": "mijn visumaanvraag is afgewezen kan ik bezwaar maken",
+  "expect": [
+   "afwijzing",
+   "bezwaar"
+  ]
+ },
+ {
+  "q": "wanneer krijg ik bericht over mijn visumaanvraag",
+  "expect": [
+   "wanneer-bericht"
+  ]
+ },
+ {
+  "q": "heb ik een visum nodig voor curacao",
+  "expect": [
+   "caribisch"
+  ]
+ },
+ {
+  "q": "mijn schengenvisum staat in mijn verloren paspoort",
+  "expect": [
+   "schengenvisum-kwijt",
+   "schengenvisum-verlopen-paspoort"
+  ]
+ },
+ {
+  "q": "verklaring van in leven zijn nodig voor mijn pensioen",
+  "expect": [
+   "in-leven-zijn"
+  ]
+ },
+ {
+  "q": "bewijs nodig dat ik ongehuwd ben",
+  "expect": [
+   "burgerlijke-staat",
+   "huwelijksbevoegdheid"
+  ]
+ },
+ {
+  "q": "verklaring van nederlanderschap aanvragen",
+  "expect": [
+   "nederlanderschap"
+  ]
+ },
+ {
+  "q": "vog aanvragen vanuit het buitenland",
+  "expect": [
+   "vog"
+  ]
+ },
+ {
+  "q": "wat is een apostille",
+  "expect": [
+   "legaliseren",
+   "apostille"
+  ]
+ },
+ {
+  "q": "buitenlandse geboorteakte legaliseren voor gebruik in nederland",
+  "expect": [
+   "legaliseren"
+  ]
+ },
+ {
+  "q": "nederlands diploma geldig maken voor het buitenland",
+  "expect": [
+   "nederlands-diploma-buitenland",
+   "legaliseren"
+  ]
+ },
+ {
+  "q": "ik kan niet inloggen met digid",
+  "expect": [
+   "/digid-buiten-nederland"
+  ]
+ },
+ {
+  "q": "digid aanvragen als ik in het buitenland woon",
+  "expect": [
+   "/digid-buiten-nederland"
+  ]
+ },
+ {
+  "q": "wat is een BSN en hoe krijg ik het in het buitenland",
+  "expect": [
+   "bsn"
+  ]
+ },
+ {
+  "q": "wat is de rni",
+  "expect": [
+   "rni"
+  ]
+ },
+ {
+  "q": "ik wil me uitschrijven uit nederland",
+  "expect": [
+   "uitschrijven",
+   "/brp"
+  ]
+ },
+ {
+  "q": "post van de overheid digitaal ontvangen in het buitenland",
+  "expect": [
+   "mijnoverheid"
+  ]
+ },
+ {
+  "q": "ik wil trouwen in het buitenland",
+  "expect": [
+   "/trouwen"
+  ]
+ },
+ {
+  "q": "trouwen in denemarken",
+  "expect": [
+   "/trouwen/denemarken"
+  ]
+ },
+ {
+  "q": "scheiden in het buitenland",
+  "expect": [
+   "scheiden"
+  ]
+ },
+ {
+  "q": "kind geboren in het buitenland aangeven",
+  "expect": [
+   "/geboorte-aangeven-buiten-nederland"
+  ]
+ },
+ {
+  "q": "buitenlands kind adopteren",
+  "expect": [
+   "adoptie"
+  ]
+ },
+ {
+  "q": "gedwongen uitgehuwelijkt en achtergelaten in het buitenland",
+  "expect": [
+   "huwelijksdwang"
+  ]
+ },
+ {
+  "q": "er is iemand overleden tijdens vakantie",
+  "expect": [
+   "/overlijden-buitenland"
+  ]
+ },
+ {
+  "q": "overledene terug naar nederland brengen",
+  "expect": [
+   "repatriering"
+  ]
+ },
+ {
+  "q": "begrafenis in het buitenland regelen",
+  "expect": [
+   "begrafenis"
+  ]
+ },
+ {
+  "q": "mijn rijbewijs is bijna verlopen en ik woon in het buitenland",
+  "expect": [
+   "/rijbewijs-buitenland"
+  ]
+ },
+ {
+  "q": "rijbewijs gestolen in het buitenland",
+  "expect": [
+   "/rijbewijs-buitenland/kwijt"
+  ]
+ },
+ {
+  "q": "is mijn nederlandse rijbewijs geldig in het buitenland",
+  "expect": [
+   "/rijbewijs-buitenland/geldig"
+  ]
+ },
+ {
+  "q": "aow ontvangen in het buitenland",
+  "expect": [
+   "aow"
+  ]
+ },
+ {
+  "q": "ww-uitkering meenemen naar het buitenland",
+  "expect": [
+   "ww-uitkering"
+  ]
+ },
+ {
+  "q": "kinderbijslag als ik in het buitenland woon",
+  "expect": [
+   "kinderbijslag"
+  ]
+ },
+ {
+  "q": "zorgtoeslag in het buitenland",
+  "expect": [
+   "zorgtoeslag"
+  ]
+ },
+ {
+  "q": "belastingaangifte doen vanuit het buitenland",
+  "expect": [
+   "belastingaangifte"
+  ]
+ },
+ {
+  "q": "nabestaandenuitkering anw in het buitenland",
+  "expect": [
+   "anw"
+  ]
+ },
+ {
+  "q": "arbeidsongeschiktheidsuitkering in het buitenland",
+  "expect": [
+   "arbeidsongeschiktheid"
+  ]
+ },
+ {
+  "q": "studiefinanciering voor studeren in het buitenland",
+  "expect": [
+   "studiefinanciering"
+  ]
+ },
+ {
+  "q": "zorgverzekering als ik emigreer",
+  "expect": [
+   "zorgverzekering"
+  ]
+ },
+ {
+  "q": "is het veilig om naar marokko te reizen",
+  "expect": [
+   "/reisadvies",
+   "marokko"
+  ]
+ },
+ {
+  "q": "ik ben bestolen op reis",
+  "expect": [
+   "/bestolen-buitenland"
+  ]
+ },
+ {
+  "q": "ik ben verkracht in het buitenland",
+  "expect": [
+   "/slachtoffer-geweld/slachtoffer-van-seksueel-geweld"
+  ]
+ },
+ {
+  "q": "ik ben slachtoffer van geweld in het buitenland",
+  "expect": [
+   "/slachtoffer-geweld"
+  ]
+ },
+ {
+  "q": "ik heb dringend hulp nodig in het buitenland",
+  "expect": [
+   "/hulp-bij-nood",
+   "/contact"
+  ]
+ },
+ {
+  "q": "wat doet de ambassade bij een crisis",
+  "expect": [
+   "crisis"
+  ]
+ },
+ {
+  "q": "er is oorlog uitgebroken in het land waar ik ben",
+  "expect": [
+   "crisis",
+   "hulp-bij-nood",
+   "reisadvies"
+  ]
+ },
+ {
+  "q": "kan ik vanuit het buitenland stemmen",
+  "expect": [
+   "stemmen"
+  ]
+ },
+ {
+  "q": "ik heb geen stempapieren ontvangen",
+  "expect": [
+   "geen-stempapieren"
+  ]
+ },
+ {
+  "q": "hoe word ik nederlander",
+  "expect": [
+   "naturalisatie",
+   "nationaliteit"
+  ]
+ },
+ {
+  "q": "verlies ik mijn nederlandse nationaliteit als ik een andere aanneem",
+  "expect": [
+   "nederlandse-nationaliteit"
+  ]
+ },
+ {
+  "q": "basisexamen inburgering doen in het buitenland",
+  "expect": [
+   "basisexamen"
+  ]
+ },
+ {
+  "q": "afstand doen van de nederlandse nationaliteit",
+  "expect": [
+   "afstand"
+  ]
+ },
+ {
+  "q": "werken in het buitenland wat moet ik regelen",
+  "expect": [
+   "werken-buitenland"
+  ]
+ },
+ {
+  "q": "verhuizen naar het buitenland checklist",
+  "expect": [
+   "checklist-verhuizen",
+   "emigreren"
+  ]
+ },
+ {
+  "q": "auto meenemen bij emigratie",
+  "expect": [
+   "auto-exporteren",
+   "meeverhuizen"
+  ]
+ },
+ {
+  "q": "auto importeren in nederland",
+  "expect": [
+   "auto-importeren"
+  ]
+ },
+ {
+  "q": "terugkeren naar nederland na jaren in het buitenland",
+  "expect": [
+   "terug-naar-nederland",
+   "immigreren"
+  ]
+ },
+ {
+  "q": "afspraak maken bij de ambassade",
+  "expect": [
+   "afspraak-maken"
+  ]
+ },
+ {
+  "q": "wat kost een consulaire dienst",
+  "expect": [
+   "tarieven"
+  ]
+ },
+ {
+  "q": "nederlandse pasfoto laten maken in het buitenland",
+  "expect": [
+   "pasfoto"
+  ]
+ },
+ {
+  "q": "ik verhuis naar spanje wat moet ik regelen met paspoort en zorgverzekering",
+  "expect": [
+   "checklist-verhuizen",
+   "emigreren",
+   "zorgverzekering"
+  ]
+ },
+ {
+  "q": "mijn kind is geboren wat nu",
+  "expect": [
+   "geboorte-aangeven",
+   "kind-krijgen"
+  ]
+ },
+ {
+  "q": "ik ga voor mijn werk lang naar het buitenland",
+  "expect": [
+   "werken-buitenland",
+   "checklist-verhuizen",
+   "emigreren"
+  ]
+ },
+ {
+  "q": "schengenvisum aanvragen voor kort verblijf in nederland",
+  "expect": [
+   "schengenvisum",
+   "/visum-nederland"
+  ]
+ },
+ {
+  "q": "visum voor de cariben aanvragen",
+  "expect": [
+   "caribisch-visum"
+  ]
+ },
+ {
+  "q": "hoe lang mag ik met een schengenvisum in nederland blijven",
+  "expect": [
+   "/visum-nederland"
+  ]
+ },
+ {
+  "q": "mijn visum is verlopen wat nu",
+  "expect": [
+   "visum",
+   "verlopen"
+  ]
+ },
+ {
+  "q": "wie kan mij uitnodigen voor een visum",
+  "expect": [
+   "/visum-nederland"
+  ]
+ },
+ {
+  "q": "verklaring van woonplaats nodig",
+  "expect": [
+   "/verklaring/woonplaats"
+  ]
+ },
+ {
+  "q": "ik wil trouwen en heb een verklaring van huwelijksbevoegdheid nodig",
+  "expect": [
+   "huwelijksbevoegdheid"
+  ]
+ },
+ {
+  "q": "consulaire verklaring aanvragen",
+  "expect": [
+   "/verklaring"
+  ]
+ },
+ {
+  "q": "wat is een apostille en wanneer heb ik die nodig",
+  "expect": [
+   "/legaliseren/apostille",
+   "/legaliseren"
+  ]
+ },
+ {
+  "q": "nederlands document laten legaliseren voor gebruik in het buitenland",
+  "expect": [
+   "/legaliseren"
+  ]
+ },
+ {
+  "q": "basisexamen inburgering in het buitenland doen",
+  "expect": [
+   "basisexamen"
+  ]
+ },
+ {
+  "q": "wat kosten consulaire diensten",
+  "expect": [
+   "consulaire-tarieven",
+   "tarieven"
+  ]
+ },
+ {
+  "q": "afspraak maken bij de ambassade in duitsland",
+  "expect": [
+   "afspraak-maken"
+  ]
+ },
+ {
+  "q": "digid activeren met een activeringscode",
+  "expect": [
+   "/digid-buiten-nederland"
+  ]
+ },
+ {
+  "q": "berichten van de overheid bekijken vanuit het buitenland",
+  "expect": [
+   "mijnoverheid"
+  ]
+ },
+ {
+  "q": "inschrijven in de registratie niet-ingezetenen",
+  "expect": [
+   "/rni"
+  ]
+ },
+ {
+  "q": "mijn gegevens in de basisregistratie kloppen niet",
+  "expect": [
+   "/brp"
+  ]
+ },
+ {
+  "q": "kind krijgen in het buitenland wat moet ik regelen",
+  "expect": [
+   "kind-krijgen",
+   "geboorte-aangeven"
+  ]
+ },
+ {
+  "q": "mijn kind erkennen in het buitenland",
+  "expect": [
+   "geboorte-aangeven",
+   "erkenning"
+  ]
+ },
+ {
+  "q": "werken in het buitenland en verzekerd blijven",
+  "expect": [
+   "werken-buitenland",
+   "uitkering"
+  ]
+ },
+ {
+  "q": "ziektewetuitkering ontvangen in het buitenland",
+  "expect": [
+   "ziektewetuitkering"
+  ]
+ },
+ {
+  "q": "arbeidsongeschiktheidsuitkering meenemen naar het buitenland",
+  "expect": [
+   "arbeidsongeschiktheid"
+  ]
+ },
+ {
+  "q": "kinderopvangtoeslag als ik in het buitenland woon",
+  "expect": [
+   "kinderopvangtoeslag"
+  ]
+ },
+ {
+  "q": "kindgebonden budget buiten nederland",
+  "expect": [
+   "kindgebonden-budget"
+  ]
+ },
+ {
+  "q": "aangifte inkomstenbelasting doen vanuit het buitenland",
+  "expect": [
+   "belastingaangifte"
+  ]
+ },
+ {
+  "q": "studiefinanciering meenemen naar het buitenland",
+  "expect": [
+   "studiefinanciering"
+  ]
+ },
+ {
+  "q": "met welk document mag ik naar nederland reizen",
+  "expect": [
+   "reizen-paspoort-id-kaart",
+   "reizen-naar-nederland"
+  ]
+ },
+ {
+  "q": "spullen meenemen naar nederland douane",
+  "expect": [
+   "reizen-naar-nederland"
+  ]
+ },
+ {
+  "q": "auto meenemen naar het buitenland exporteren",
+  "expect": [
+   "auto-exporteren"
+  ]
+ },
+ {
+  "q": "auto invoeren in nederland",
+  "expect": [
+   "auto-importeren"
+  ]
+ },
+ {
+  "q": "er is een ramp gebeurd in het land waar ik ben",
+  "expect": [
+   "crisis",
+   "hulp-bij-nood"
+  ]
+ },
+ {
+  "q": "is mijn nederlandse diploma geldig in het buitenland",
+  "expect": [
+   "nederlands-diploma-buitenland"
+  ]
+ },
+ {
+  "q": "buitenlands diploma laten waarderen in nederland",
+  "expect": [
+   "buitenlands-diploma-in-nederland"
+  ]
+ },
+ {
+  "q": "ik ben mijn paspoort verloren in het buitenland wat moet ik nu doen",
+  "expect": [
+   "kwijt-gestolen",
+   "nooddocument"
+  ]
+ },
+ {
+  "q": "kan ik met spoed een paspoort krijgen",
+  "expect": [
+   "nooddocument",
+   "tijdsduur",
+   "paspoort-id-kaart"
+  ]
+ },
+ {
+  "q": "waar moet ik zijn voor een pasfoto die voldoet",
+  "expect": [
+   "pasfoto"
+  ]
+ },
+ {
+  "q": "ik ga emigreren wat moet ik doorgeven",
+  "expect": [
+   "checklist-verhuizen",
+   "emigreren",
+   "uitschrijven"
+  ]
+ },
+ {
+  "q": "ik kom terug naar nederland wat moet ik regelen",
+  "expect": [
+   "terug-naar-nederland",
+   "immigreren"
+  ]
+ },
+ {
+  "q": "trouwen met iemand met een andere nationaliteit",
+  "expect": [
+   "/trouwen"
+  ]
+ },
+ {
+  "q": "mijn partner is overleden in het buitenland",
+  "expect": [
+   "overlijden-buitenland"
+  ]
+ },
+ {
+  "q": "hoe stem ik als ik in het buitenland woon",
+  "expect": [
+   "stemmen"
+  ]
+ },
+ {
+  "q": "kan ik nederlander worden als ik in het buitenland woon",
+  "expect": [
+   "nationaliteit",
+   "naturalisatie"
+  ]
+ },
+ {
+  "q": "vog nodig voor werk in het buitenland",
+  "expect": [
+   "vog"
+  ]
+ },
+ {
+  "q": "bewijs dat ik nog leef voor mijn pensioenfonds",
+  "expect": [
+   "in-leven-zijn"
+  ]
+ },
+ {
+  "q": "rijbewijs omwisselen in het buitenland",
+  "expect": [
+   "rijbewijs-buitenland"
+  ]
+ },
+ {
+  "q": "zorgverzekering opzeggen bij emigratie",
+  "expect": [
+   "zorgverzekering"
+  ]
+ },
+ {
+  "q": "aow aanvragen vanuit het buitenland",
+  "expect": [
+   "aow"
+  ]
+ },
+ {
+  "q": "waar vind ik het aanvraagformulier voor een paspoort",
+  "expect": [
+   "aanvraagformulier",
+   "paspoort-id-kaart"
+  ]
+ },
+ {
+  "q": "wat moet ik meenemen naar mijn afspraak",
+  "expect": [
+   "welke-documenten",
+   "waar-op-letten",
+   "afspraak"
+  ]
+ },
+ {
+  "q": "kan iemand anders mijn paspoort ophalen",
+  "expect": [
+   "paspoort-id-kaart"
+  ]
+ },
+ {
+  "q": "hoe weet ik of mijn aanvraag klaar is",
+  "expect": [
+   "status-aanvraag",
+   "tijdsduur"
+  ]
+ }
 ]

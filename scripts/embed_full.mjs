@@ -12,20 +12,42 @@ const CORPUS = ROOT + "/corpus.json";
 const OUT_BIN = OUT + "/embeddings.bin";
 const OUT_META = OUT + "/embeddings.json";
 
-const MAX_WORDS = 200, OVERLAP = 25, MAX_CHUNKS = 8, BATCH = 32;
+const MAX_WORDS = 200, MIN_WORDS = 40, MAX_CHUNKS = 24, BATCH = 32;
 
-// Knip een pagina in overlappende stukken; titel vooraan elk stuk voor context.
+// CONTEXTUELE CHUNKING:
+// - grenzen op ALINEA's (niet hard op woordaantal), zodat een stuk niet midden in een zin breekt
+// - elk stuk krijgt de PAGINATITEL en het dichtstbijzijnde TUSSENKOPJE mee als context,
+//   zodat "Kosten" onder de paspoortpagina ook echt over paspoortkosten gaat
 function chunksOf(p) {
-  const title = (p.title || "").replace(/\s+/g, " ").trim();
-  const body = (p.text || "").replace(/\s+/g, " ").trim();
-  const words = body.split(" ").filter(Boolean);
+  const title = (p.title || "").replace(/\s*\|\s*NederlandWereldwijd\s*$/i, "").replace(/\s+/g, " ").trim();
+  const headings = new Map();
+  for (const [lvl, t] of (p.headings || [])) if (t && !headings.has(t)) headings.set(t, lvl);
+  const lines = (p.text || "").split("\n").map((l) => l.trim()).filter(Boolean);
   const out = [];
-  if (!words.length) { out.push(title); return out; }
-  for (let i = 0; i < words.length && out.length < MAX_CHUNKS; i += (MAX_WORDS - OVERLAP)) {
-    const seg = words.slice(i, i + MAX_WORDS).join(" ");
-    out.push((title ? title + ". " : "") + seg);
+  let head = "";          // laatst geziene tussenkopje
+  let buf = [], bufWords = 0, bufHead = "";
+
+  const flush = () => {
+    if (!buf.length) return;
+    const ctx = [title, bufHead].filter(Boolean).join(" — ");
+    out.push((ctx ? ctx + ". " : "") + buf.join(" "));
+    buf = []; bufWords = 0;
+  };
+
+  for (const ln of lines) {
+    if (headings.has(ln)) { flush(); head = ln; continue; }   // kop = natuurlijke grens
+    const w = ln.split(/\s+/).length;
+    if (!buf.length) bufHead = head;
+    if (bufWords + w > MAX_WORDS && bufWords >= MIN_WORDS) { flush(); bufHead = head; }
+    buf.push(ln); bufWords += w;
+    if (out.length >= MAX_CHUNKS) break;
   }
-  return out;
+  flush();
+  if (!out.length) out.push(title || (p.desc || "").slice(0, 300));
+  // Extra vector op titel + samenvatting: korte, hoge-signaaltekst voor titelachtige vragen.
+  const brief = [title, (p.desc || "").replace(/\s+/g, " ").trim()].filter(Boolean).join(". ");
+  if (brief) out.unshift(brief);
+  return out.slice(0, MAX_CHUNKS + 1);
 }
 
 const corpus = JSON.parse(fs.readFileSync(CORPUS, "utf-8"));
