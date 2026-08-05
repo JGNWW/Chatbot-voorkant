@@ -25,7 +25,7 @@ function stem(w){ if(w.length<5)return w; for(const s of ["ingen","ing","heden",
 function tokenize(t){ return (t||"").toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w=>w.length>2&&!STOP.has(w)).map(stem); }
 
 // --- BM25 index ---
-const PT = corpus.map(p=>{ const m=new Map(); const add=(t,w)=>{for(const x of tokenize(t||""))m.set(x,(m.get(x)||0)+w);}; add(p.title,3); add(p.summary||p.desc,2); add(p.url,2); add(p.text,1); return m; });
+const PT = corpus.map(p=>{ const m=new Map(); const add=(t,w)=>{for(const x of tokenize(t||""))m.set(x,(m.get(x)||0)+w);}; add(p.title,4); add(p.summary||p.desc,1); add(p.url,3); add(p.text,1); return m; });
 const N = PT.length; const DF=new Map(); const DLEN=new Array(N); let tot=0;
 for(let i=0;i<N;i++){ let len=0; for(const [t,c] of PT[i]){ DF.set(t,(DF.get(t)||0)+1); len+=c; } DLEN[i]=len; tot+=len; }
 const AVGDL=tot/N;
@@ -85,7 +85,7 @@ function forceProduct(text,list){ let best=-1,len=0;
 // --- hybride (RRF) ---
 async function hybrid(q,limit){ const K=Math.max(limit,12); const sem=await semanticRank(q,K); const kw=rank(q,K);
   const score=new Map();
-  const addW=(l,w)=>l.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(10+r))); addW(sem,1.5);addW(kw,1.0);
+  const addW=(l,w)=>l.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(14+r))); addW(sem,1.0);addW(kw,0.75);
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]); return forceProduct(q,applyCountry(q,fused)).slice(0,limit); }
 
 // --- meten ---
@@ -106,7 +106,8 @@ if(misses.length){ console.log(`\nMissers (${misses.length}):`); for(const m of 
 // Regressie-gate: `node eval.mjs [embeddings-map] --gate` faalt (exit 1) als de score onder
 // de drempels zakt. Gebruik dit vóór het pushen van wijzigingen aan de zoeklaag.
 // Drempels met marge onder de gemeten waarden (volledig 95%/0,860; --no-sem 87%/0,775).
-const GATE_RECALL=0.82, GATE_MRR=0.70;
+// Drempels met marge onder de gemeten waarden; per set in te stellen via omgevingsvariabelen.
+const GATE_RECALL=Number(process.env.GATE_RECALL||0.82), GATE_MRR=Number(process.env.GATE_MRR||0.70);
 if(process.argv.includes("--gate")){
   const r=recall/n, m=mrrSum/n;
   if(r<GATE_RECALL||m<GATE_MRR){ console.error(`\nGATE GEFAALD: recall ${(r*100).toFixed(0)}% (eis ${GATE_RECALL*100}%), MRR ${m.toFixed(3)} (eis ${GATE_MRR})`); process.exit(1); }

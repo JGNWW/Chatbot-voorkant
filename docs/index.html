@@ -489,8 +489,12 @@ const PROVIDERS={
 const STOP=new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
 const SAMPLES=["Hoe vraag ik een ID-kaart aan vanuit het buitenland?","Wat kost een paspoort vanuit het buitenland?","Wat is een BSN?","Mijn rijbewijs is gestolen in het buitenland, wat nu?","Ik ben mijn DigiD-wachtwoord vergeten","Wat is een apostille?"];
 const TOPK=6; // aantal kandidaat-pagina's dat naar het AI-model gaat
-// Fusie-instellingen, empirisch bepaald op de 126 testvragen (scripts/eval_set.json).
-const RRF_K=10, W_SEM=1.5, W_KW=1.0;
+// Fusie- en veldgewichten, afgesteld met scripts/tune.mjs (660 varianten) op 1000 uit het corpus
+// afgeleide vragen (scripts/eval_set_auto.json), met als HARDE EIS dat de 126 handgemaakte
+// vragen (scripts/eval_set.json) er niet op achteruit gaan — anders koop je winst op
+// gegenereerde vragen af met verlies op echte.
+const RRF_K=14, W_SEM=1.0, W_KW=0.75;
+const FW_TITLE=4, FW_DESC=1, FW_URL=3, FW_TEXT=1;
 let CORPUS=[],PTOKENS=[],DF=null,NDOCS=0;
 
 // Lichte Nederlandse stemmer: haalt veelvoorkomende uitgangen weg zodat varianten
@@ -508,7 +512,7 @@ function tokenize(t){return t.toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w=>w
 function tokensOf(p){
   const m=new Map();
   const add=(text,w)=>{for(const t of tokenize(text||""))m.set(t,(m.get(t)||0)+w);};
-  add(p.title,3);add(p.summary||p.desc,2);add(p.url,2);add(p.text,1);
+  add(p.title,FW_TITLE);add(p.summary||p.desc,FW_DESC);add(p.url,FW_URL);add(p.text,FW_TEXT);
   return m;
 }
 // Document-frequenties + lengtes voor BM25.
@@ -861,7 +865,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 57";
+const APP_VERSION="build 58";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 

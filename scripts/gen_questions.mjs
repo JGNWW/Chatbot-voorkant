@@ -77,13 +77,37 @@ function rewrite(text, seed) {
   for (const [re, to] of YOU) s = s.replace(re, to);
   if (seed % 2 === 0) for (const [re, to] of SWAP) if (re.test(s)) { s = s.replace(re, to); break; }
   s = s.toLowerCase().replace(/\s+/g, " ").trim();
-  if (seed % 6 === 5) s = s.replace(/^(hoe|wat|waar|wanneer|welke|kan|mag) /, "");   // telegramstijl
   s = OPEN[seed % OPEN.length] + s;
   if (seed % 7 === 3) s = typo(s, seed);
   return s.trim();
 }
 
 // --- 3. selecteren: eenduidig label, geen dubbelen, gespreid over de rubrieken ---
+// Een vraag moet OP ZICHZELF te beantwoorden zijn. "Welke wijzigingen moet ik doorgeven?" staat
+// op tientallen uitkeringspagina's en is zonder context onbeantwoordbaar; zulke kopjes leverden
+// missers op die niets over de zoeklaag zeggen. Eis daarom minstens één onderscheidend woord:
+// een term die in hooguit 1% van de pagina's voorkomt.
+const STOPQ = new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden".split(" "));
+const words = t => (t || "").toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w => w.length > 2 && !STOPQ.has(w));
+const DFW = new Map();
+for (const p of corpus) { for (const t of new Set(words([p.title, p.desc, p.text].join(" ")))) DFW.set(t, (DFW.get(t) || 0) + 1); }
+const RARE = Math.max(10, Math.round(corpus.length * 0.01));
+const distinctive = q => words(q).some(t => (DFW.get(t) || 0) <= RARE);
+// Een kopje staat in de CONTEXT van zijn pagina; aan de telefoon noemt de beller die context zelf
+// ("welke wijzigingen moet ik doorgeven" -> bij welke uitkering?). Ontbreekt het onderwerp van de
+// rubriek in de vraag, dan plakken we het eraan. Zonder dat meet je onbeantwoordbare vragen.
+const GENERIEK = new Set("buiten nederland buitenland naar het een van voor thema".split(" "));
+function rubriek(u) {
+  const seg = u.split("/")[1] || "";
+  const w = seg.split("-").filter(x => x.length > 2 && !GENERIEK.has(x));
+  return w.slice(0, 2).join(" ");
+}
+function withTopic(q, u) {
+  const r = rubriek(u); if (!r) return q;
+  const qs = new Set(words(q));
+  if (r.split(" ").some(x => qs.has(x))) return q;
+  return q + " " + r;
+}
 const section = u => (u.split("/")[1] || "overig");
 const perSection = new Map(), seen = new Set(), out = [];
 const CAP = Math.max(8, Math.ceil(N / 22));       // spreiding houden, maar wel genoeg vragen halen
@@ -101,8 +125,9 @@ for (const c of order) {
   if (n >= CAP) continue;
   const q = rewrite(c.text, seed++);
   if (q.split(/\s+/).length < 3) continue;
+  if (!distinctive(q)) continue;                  // te algemeen om een goed antwoord te hebben
   seen.add(c.key); perSection.set(sec, n + 1);
-  out.push({ q, expect: [...own], src: c.src });
+  out.push({ q: c.src === "kop" ? withTopic(q, c.url) : q, expect: [...own], src: c.src });
 }
 
 // --- 4. aanvullen met landvragen ---

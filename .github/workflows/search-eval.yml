@@ -22,6 +22,7 @@ on:
       - docs/data/embeddings.json
       - scripts/eval.mjs
       - scripts/eval_set.json
+      - scripts/eval_set_auto.json
 
 jobs:
   eval:
@@ -31,5 +32,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Run search eval gate (keyword-only)
+      - name: Gate op de handgemaakte vragen (126)
         run: node scripts/eval.mjs --no-sem --gate
+      - name: Gate op de gegenereerde vragen (1000)
+        env:
+          GATE_RECALL: "0.88"
+          GATE_MRR: "0.78"
+        run: node scripts/eval.mjs --no-sem --gate --set=eval_set_auto.json
