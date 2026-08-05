@@ -12,7 +12,7 @@ const CORPUS = ROOT + "/corpus.json";
 const OUT_BIN = OUT + "/embeddings.bin";
 const OUT_META = OUT + "/embeddings.json";
 
-const MAX_WORDS = 200, MIN_WORDS = 40, MAX_CHUNKS = 24, BATCH = 32;
+const MAX_WORDS = 220, MIN_WORDS = 90, MAX_CHUNKS = 16, BATCH = 32;
 
 // CONTEXTUELE CHUNKING:
 // - grenzen op ALINEA's (niet hard op woordaantal), zodat een stuk niet midden in een zin breekt
@@ -35,7 +35,7 @@ function chunksOf(p) {
   };
 
   for (const ln of lines) {
-    if (headings.has(ln)) { flush(); head = ln; continue; }   // kop = natuurlijke grens
+    if (headings.has(ln)) { if (bufWords >= MIN_WORDS) flush(); head = ln; if (!buf.length) bufHead = head; continue; }   // kop = grens, mits er genoeg staat
     const w = ln.split(/\s+/).length;
     if (!buf.length) bufHead = head;
     if (bufWords + w > MAX_WORDS && bufWords >= MIN_WORDS) { flush(); bufHead = head; }
@@ -60,8 +60,24 @@ corpus.forEach((p, idx) => { for (const c of chunksOf(p)) { texts.push("passage:
 console.log("Chunks:", texts.length);
 
 let DIM = 0;
-const int8 = [];
-for (let i = 0; i < texts.length; i += BATCH) {
+let int8 = [];
+// Hervatbaar: elke ~2000 chunks tussentijds wegschrijven, zodat een onderbreking
+// (of een afgebroken sessie) geen uren rekenwerk kost.
+const PART = OUT + "/embeddings.part";
+const PART_META = OUT + "/embeddings.part.json";
+let start = 0;
+try {
+  const pm = JSON.parse(fs.readFileSync(PART_META, "utf-8"));
+  if (pm.total === texts.length && pm.model === MODEL) {
+    const buf = fs.readFileSync(PART);
+    int8 = Array.from(new Int8Array(buf.buffer, buf.byteOffset, buf.length));
+    DIM = pm.dim; start = pm.done;
+    console.log(`Hervatten vanaf ${start}/${texts.length}`);
+  }
+} catch (e) { /* geen bruikbaar deelbestand: gewoon opnieuw */ }
+
+let sinceSave = 0;
+for (let i = start; i < texts.length; i += BATCH) {
   const out = await extractor(texts.slice(i, i + BATCH), { pooling: "mean", normalize: true });
   DIM = out.dims[out.dims.length - 1];
   const data = out.data;
@@ -69,10 +85,18 @@ for (let i = 0; i < texts.length; i += BATCH) {
     let q = Math.round(data[k] * 127);
     int8.push(q < -127 ? -127 : q > 127 ? 127 : q);
   }
-  if ((i / BATCH) % 20 === 0) console.log(`  ${Math.min(i + BATCH, texts.length)}/${texts.length}`);
+  sinceSave += BATCH;
+  const done = Math.min(i + BATCH, texts.length);
+  if (sinceSave >= 2000 || done === texts.length) {
+    fs.writeFileSync(PART, Buffer.from(Int8Array.from(int8).buffer));
+    fs.writeFileSync(PART_META, JSON.stringify({ done, total: texts.length, dim: DIM, model: MODEL }));
+    sinceSave = 0;
+    console.log(`  ${done}/${texts.length} (opgeslagen)`);
+  } else if ((i / BATCH) % 20 === 0) console.log(`  ${done}/${texts.length}`);
 }
 
 fs.writeFileSync(OUT_BIN, Buffer.from(Int8Array.from(int8).buffer));
+try { fs.unlinkSync(PART); fs.unlinkSync(PART_META); } catch (e) {}
 fs.writeFileSync(OUT_META, JSON.stringify({
   model: MODEL, dim: DIM, pages: corpus.length, vectors: owner.length,
   doc_prefix: "passage: ", query_prefix: "query: ", quant: "int8/127",

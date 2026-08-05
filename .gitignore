@@ -10,3 +10,7 @@ frontend/dist/
 
 # Diversen
 .DS_Store
+
+# Tijdelijke deelbestanden van het embed-script (hervatbaarheid)
+docs/data/embeddings.part
+docs/data/embeddings.part.json
