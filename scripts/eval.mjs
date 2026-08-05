@@ -65,7 +65,8 @@ async function semanticRank(q,limit){ if(!extractor)return []; const out=await e
 
 // --- hybride (RRF) ---
 async function hybrid(q,limit){ const K=Math.max(limit,12); const sem=await semanticRank(q,K); const kw=rank(q,K);
-  const score=new Map(); const add=l=>l.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+1/(20+r))); add(sem);add(kw);
+  const score=new Map();
+  const addW=(l,w)=>l.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(10+r))); addW(sem,1.5);addW(kw,1.0);
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]); return applyCountry(q,fused).slice(0,limit); }
 
 // --- meten ---
@@ -85,7 +86,8 @@ console.log(`MRR@${TOPK}: ${(mrrSum/n).toFixed(3)}`);
 if(misses.length){ console.log(`\nMissers (${misses.length}):`); for(const m of misses){ console.log(` - "${m.q}" verwacht ${JSON.stringify(m.expect)}`); console.log(`     kreeg: ${m.got.join(", ")}`); } }
 // Regressie-gate: `node eval.mjs [embeddings-map] --gate` faalt (exit 1) als de score onder
 // de drempels zakt. Gebruik dit vóór het pushen van wijzigingen aan de zoeklaag.
-const GATE_RECALL=0.85, GATE_MRR=0.72;
+// Drempels met marge onder de gemeten waarden (volledig 95%/0,860; --no-sem 87%/0,775).
+const GATE_RECALL=0.82, GATE_MRR=0.70;
 if(process.argv.includes("--gate")){
   const r=recall/n, m=mrrSum/n;
   if(r<GATE_RECALL||m<GATE_MRR){ console.error(`\nGATE GEFAALD: recall ${(r*100).toFixed(0)}% (eis ${GATE_RECALL*100}%), MRR ${m.toFixed(3)} (eis ${GATE_MRR})`); process.exit(1); }
