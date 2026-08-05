@@ -616,6 +616,10 @@ async function initSemantic(){
     SEM.owner=Array.isArray(SEM.meta.owner)?Int32Array.from(SEM.meta.owner):null;
     const nvec=SEM.owner?SEM.owner.length:SEM.meta.count;
     if(SEM.vecs.length!==nvec*SEM.meta.dim)throw new Error("embeddings passen niet bij corpus");
+    // Vangnet: hoort de index wel bij DIT corpus? Zo niet (bv. corpus vernieuwd maar embeddings
+    // nog niet), val netjes terug op trefwoord-zoeken i.p.v. naar verkeerde pagina's te wijzen.
+    const pages=SEM.meta.pages||SEM.meta.count;
+    if(pages&&pages!==CORPUS.length)throw new Error("embeddings horen bij een andere corpusversie");
     setSearchStatus("semantisch model laden…");
     SEM.modelPromise=(async()=>{
       const tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
