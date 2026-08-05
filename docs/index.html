@@ -395,7 +395,7 @@ Stel een antwoord samen dat bestaat uit:
    - VOLGORDE & TUSSENKOPJES: zet de citaten in een logische leesvolgorde en groepeer ze met een "heading" per citaat onder korte tussenkopjes (bv. "Waar aanvragen", "Kosten", "Wat u nodig heeft", "Hoe lang het duurt", "Uitzonderingen"). Een tussenkopje is een KORT, beschrijvend label van 2 tot 4 woorden — GEEN zin en GEEN dubbele punt. Citaten die bij elkaar horen krijgen EXACT dezelfde "heading" (dan komen ze onder één kopje); een nieuw onderwerp krijgt een nieuwe heading. Houd een logische volgorde aan: eerst het kernantwoord, dan waar/hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. Laat de "heading" van het EERSTE citaat ALTIJD LEEG — dat citaat is het kernantwoord en wordt zonder kopje getoond. Gebruik dus GEEN kopje zoals "Kernantwoord". Gebruik tussenkopjes alleen als het antwoord uit meerdere onderdelen bestaat; bij één kort, samenhangend antwoord laat je alle headings leeg.
 2. "clarifications": als het juiste antwoord AFHANGT van de situatie van de burger, neem dan geen aanname maar zet hier de vraag/vragen die de voorlichter moet stellen. Veel antwoorden hangen af van: het LAND waar de aanvrager woont, of het een EERSTE aanvraag of een VERVANGING/VERLENGING is, en of het voor een VOLWASSENE of voor een KIND is. Geef per verduidelijking een "question" (wat de voorlichter uitvraagt) en een "prefill" (begin van een vervolgvraag dat de voorlichter aanvult, bv. "ID-kaart aanvragen vanuit "). Geef bij een situatie-afhankelijke vraag ALTIJD minstens één verduidelijking, zodat de voorlichter de juiste situatie kan uitvragen in plaats van dat jij iets aanneemt. Laat leeg als er echt niets te verduidelijken valt.
 3. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
-4. "intro": EÉN korte zin (max 18 woorden) in de aanspreekvorm "u" die de INFORMATIEBEHOEFTE van de burger herformuleert, grammaticaal naadloos overloopt in het eerste citaat, en de voorlichter helpt de vraag goed te kaderen. VARIEER de opening — gebruik bv. "Als ik het goed begrijp, wilt u weten…", "U vraagt waarschijnlijk naar…", "U zoekt informatie over…", "Begrijp ik goed dat u wilt weten…" of een vergelijkbare natuurlijke variant. Schrijf de zin PAS NADAT je het eerste citaat hebt gekozen, zodat hij precies daarop aansluit. Strikte regels: noem GEEN feiten, bedragen, termijnen of conclusies — herformuleer ALLEEN de VRAAG. Geef GEEN aanname over de situatie (bv. niet "voor uw kind" tenzij de burger dat zelf zei). Eindig NIET op een dubbele punt als het citaat met een vraag begint. Laat "intro" LEEG als er geen citaat is.
+4. "intro": EÉN korte zin (max 18 woorden; gebruik dezelfde vakterm als de vraag — herinterpreteer die niet) in de aanspreekvorm "u" die de INFORMATIEBEHOEFTE van de burger herformuleert, grammaticaal naadloos overloopt in het eerste citaat, en de voorlichter helpt de vraag goed te kaderen. VARIEER de opening — gebruik bv. "Als ik het goed begrijp, wilt u weten…", "U vraagt waarschijnlijk naar…", "U zoekt informatie over…", "Begrijp ik goed dat u wilt weten…" of een vergelijkbare natuurlijke variant. Schrijf de zin PAS NADAT je het eerste citaat hebt gekozen, zodat hij precies daarop aansluit. Strikte regels: noem GEEN feiten, bedragen, termijnen of conclusies — herformuleer ALLEEN de VRAAG. Geef GEEN aanname over de situatie (bv. niet "voor uw kind" tenzij de burger dat zelf zei). Eindig NIET op een dubbele punt als het citaat met een vraag begint. Laat "intro" LEEG als er geen citaat is.
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
 {"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"heading":"<kort tussenkopje of leeg>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
@@ -405,7 +405,7 @@ Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat 
 // Herschrijft een (mogelijk elliptische) vervolgvraag tot een zelfstandige vraag, met gesprekscontext.
 const CONDENSE_SYSTEM=`Je krijgt de samenvatting van een lopend gesprek tussen een voorlichter en een AI over overheidsvragen, plus een nieuwe vraag. Herschrijf de NIEUWE vraag tot één zelfstandige, op zichzelf staande vraag die ook zonder de context te begrijpen is (vul ontbrekend onderwerp aan uit de context). Betreft de nieuwe vraag duidelijk een nieuw onderwerp, geef hem dan vrijwel ongewijzigd terug. Antwoord UITSLUITEND met JSON: {"standalone_question":"<de zelfstandige vraag>"}`;
 // Stap 1: maak de vraag zelfstandig én genereer zoektermen (spreektaal -> ambtelijke/officiële termen) voor betere recall.
-const PREPARE_SYSTEM=`Je helpt bij het zoeken op NederlandWereldwijd.nl (Nederlandse overheid, consulaire zaken voor Nederlanders in het buitenland). Je krijgt de vraag van een burger en eventueel gesprekscontext. Bepaal de ONDERLIGGENDE INFORMATIEBEHOEFTE en interpreteer Nederlandse spreektaal/idiomen, en herschrijf de vraag tot een heldere, zelfstandige informatiebehoefte. Dit geldt voor ELK onderwerp (o.a. paspoort/ID-kaart, visum, DigiD, rijbewijs, geboorte- of overlijdensaangifte, trouwen, legaliseren, uitschrijven/BRP, AOW/uitkering, reisadvies, hulp bij nood) — niet alleen reisdocumenten.
+const PREPARE_SYSTEM=`Je helpt bij het zoeken op NederlandWereldwijd.nl (Nederlandse overheid, consulaire zaken voor Nederlanders in het buitenland). Je krijgt de vraag van een burger en eventueel gesprekscontext. Bepaal de ONDERLIGGENDE INFORMATIEBEHOEFTE en interpreteer Nederlandse spreektaal/idiomen, en herschrijf de vraag tot een heldere, zelfstandige informatiebehoefte. LET OP: neem VAKTERMEN LETTERLIJK over en vervang ze NOOIT door een andere of bredere term. NederlandWereldwijd kent veel op elkaar lijkende producten die iets ANDERS zijn — bijvoorbeeld "inreisvisum" (bij een verlopen of verloren verblijfsvergunning) is iets anders dan "Schengenvisum kort verblijf", en "MVV" iets anders dan "verblijfsvergunning". Noemt de burger zo'n term, houd die dan exact aan. Dit geldt voor ELK onderwerp (o.a. paspoort/ID-kaart, visum, DigiD, rijbewijs, geboorte- of overlijdensaangifte, trouwen, legaliseren, uitschrijven/BRP, AOW/uitkering, reisadvies, hulp bij nood) — niet alleen reisdocumenten.
 Geef UITSLUITEND JSON: {"standalone_question":"<de herschreven informatiebehoefte; vul ontbrekend onderwerp aan uit de context>","search_terms":["<term>", ...]}. "search_terms" zijn 5 tot 12 losse Nederlandse zoekwoorden die helpen de juiste overheidspagina te vinden: vertaal spreektaal naar de OFFICIËLE/ambtelijke term en voeg synoniemen toe. Voorbeelden uit verschillende onderwerpen:
 - "waar blijft mijn paspoort" -> standalone_question "Hoe lang duurt het voordat ik mijn aangevraagde paspoort ontvang of kan ophalen?", search_terms ["doorlooptijd","levertijd","hoelang","ophalen","wachttijd","klaar"]
 - "ik kom niet in DigiD" -> "Hoe los ik een inlogprobleem met DigiD op vanuit het buitenland?", ["digid","inloggen","activeren","herstellen","app","sms"]
@@ -422,7 +422,7 @@ Volledige JSON-vorm: {"standalone_question":"...","search_terms":["..."],"alt_qu
 // (nooit antwoordtekst), zodat het getoonde citaat letterlijk uit de bron blijft komen.
 const LISTEN_Q_SYSTEM=`Je luistert mee met een telefoongesprek tussen een voorlichter van NederlandWereldwijd en een klant. Je krijgt een RUWE spraaktranscriptie (verhaspeld, met stopwoorden en halve zinnen) en een genummerde lijst kandidaat-pagina's.
 
-1. "vraag": vat in ÉÉN korte zin samen wat de klant feitelijk wil weten. Corrigeer duidelijke verhaspelingen en afkortingen (IND, VFS, BSN, RNI, MVV, DigiD). Verzin niets wat er niet in zit; is het onduidelijk, geef dan de best mogelijke interpretatie.
+1. "vraag": vat in ÉÉN korte zin samen wat de klant feitelijk wil weten. Corrigeer duidelijke verhaspelingen en afkortingen (IND, VFS, BSN, RNI, MVV, DigiD). Neem VAKTERMEN letterlijk over en vervang ze nooit door een andere term ("inreisvisum" is iets anders dan "Schengenvisum"). Verzin niets wat er niet in zit; is het onduidelijk, geef dan de best mogelijke interpretatie.
 2. "pages": kies uit de kandidaten de nummers die die vraag het best beantwoorden, beste eerst (maximaal 3). Let op de BEDOELING, niet op losse woorden. Kies GEEN situatie-specifieke pagina ("voor uw kind", "voor het eerst", "verloren/gestolen") tenzij de klant daar zelf om vraagt. Past er niets, geef dan een lege lijst.
 
 Antwoord UITSLUITEND met JSON: {"vraag":"...","pages":[...]}`;
@@ -691,10 +691,14 @@ function withHub(cands){
 }
 // Voeg bovenliggende hub-pagina's toe aan de kandidatenlijst (alleen voor recall, geen herordening),
 // zodat de AI-herrangschikking ook een algemene pagina kan kiezen als dat past.
-function hubCandidates(cands){
+function hubCandidates(cands,text){
   const extra=[];
   for(const i of cands)for(const a of ancestorsOf(CORPUS[i].url))if(!cands.includes(a)&&!extra.includes(a))extra.push(a);
-  return [...cands,...extra];
+  if(!extra.length)return cands;
+  // Zoekgebied opnieuw toepassen, zodat een toegevoegde ALGEMENE pagina (bv.
+  // /visum-nederland/inreisvisum) boven de vele land-specifieke varianten uitkomt
+  // wanneer er geen land genoemd is.
+  return applyScope(text||"",[...cands,...extra]);
 }
 // Eenvoudige retrieval (gebruikt in demo/zonder-sleutel pad).
 async function rankFor(q){return withHub(await hybrid(q,[],TOPK));}
@@ -815,7 +819,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 52";
+const APP_VERSION="build 53";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -945,13 +949,15 @@ async function runQuestion(rawQ){
       // Samengestelde vraag: haal per deelvraag op en verdeel de plekken round-robin,
       // zodat ALLE aspecten gedekt zijn (RRF zou één dominant aspect laten winnen).
       const lists=[];
-      for(const sq of pre.subs)lists.push(await fuseRetrieval([sq],[sq,...pre.terms].join(" "),pre.category,10));
+      for(const sq of pre.subs)lists.push(await fuseRetrieval([sq],[sq,rawQ,...pre.terms].join(" "),pre.category,10));
       const merged=[];const seen=new Set();
       for(let r=0;r<10&&merged.length<25;r++)for(const l of lists){const idx=l[r];if(idx!==undefined&&!seen.has(idx)){seen.add(idx);merged.push(idx);}}
-      broad=hubCandidates(merged);
+      broad=hubCandidates(merged,[rawQ,q].join(" "));
     }else{
-      const semTexts=[q,...pre.queries,pre.hyde].filter(Boolean);
-      broad=hubCandidates(await fuseRetrieval(semTexts,[q,...pre.terms].join(" "),pre.category,25));
+      // De ORIGINELE vraag gaat altijd mee: als de AI een vakterm herschrijft ("inreisvisum"
+      // -> "Schengenvisum"), blijven de oorspronkelijke woorden toch meetellen in het zoeken.
+      const semTexts=[q,rawQ,...pre.queries,pre.hyde].filter(Boolean);
+      broad=hubCandidates(await fuseRetrieval(semTexts,[rawQ,q,...pre.terms].join(" "),pre.category,25),[rawQ,q].join(" "));
     }
     const picked=await rerankCandidates(q,broad);
     if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
