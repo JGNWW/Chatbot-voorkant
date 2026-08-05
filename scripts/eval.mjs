@@ -63,11 +63,28 @@ async function semanticRank(q,limit){ if(!extractor)return []; const out=await e
   for(let k=0;k<owner.length;k++){ let dot=0; const off=k*dim; for(let d=0;d<dim;d++)dot+=qv[d]*(bin[off+d]/127); const pg=owner[k],c=best.get(pg); if(c===undefined||dot>c)best.set(pg,dot); }
   return [...best.entries()].map(([pg,sc])=>[sc,pg]).sort((a,b)=>b[0]-a[0]).slice(0,limit).map(x=>x[1]); }
 
+// --- productpagina's (spiegel van index.html): genoemde vakterm hoort bovenaan ---
+const _idx=new Map(corpus.map((p,i)=>[(p.url||"").replace(/\/+$/,""),i]));
+const _kids=new Map();
+for(const p of corpus){const u=(p.url||"").replace(/\/+$/,""),par=u.slice(0,u.lastIndexOf("/"));if(_idx.has(par))_kids.set(par,(_kids.get(par)||0)+1);}
+const PBLOCK=new Set(["buitenland","aanvragen","contact","thema","nederland","overzicht","landen"]);
+const _cand=[];
+for(const [u,n] of _kids){const seg=u.slice(u.lastIndexOf("/")+1).toLowerCase();
+  if(n<50||PBLOCK.has(seg)||seg.length<4||seg.includes("-"))continue;
+  const i=_idx.get(u);if(i===undefined)continue;
+  if(!(corpus[i].title||"").toLowerCase().replace(/-/g,"").includes(seg))continue;_cand.push([u,seg,i]);}
+const _urls=new Set(_cand.map(c=>c[0]));
+const PRODUCT=new Map();
+for(const [u,seg,i] of _cand){ if([..._urls].some(o=>o!==u&&o.startsWith(u+"/")))continue; PRODUCT.set(stem(seg),i); }
+function forceProduct(text,list){ let best=-1,len=0;
+  for(const t of new Set(tokenize(text||""))){const i=PRODUCT.get(t);if(i!==undefined&&t.length>len){best=i;len=t.length;}}
+  if(best<0||list[0]===best)return list; return [best,...list.filter(x=>x!==best)]; }
+
 // --- hybride (RRF) ---
 async function hybrid(q,limit){ const K=Math.max(limit,12); const sem=await semanticRank(q,K); const kw=rank(q,K);
   const score=new Map();
   const addW=(l,w)=>l.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(10+r))); addW(sem,1.5);addW(kw,1.0);
-  const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]); return applyCountry(q,fused).slice(0,limit); }
+  const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]); return forceProduct(q,applyCountry(q,fused)).slice(0,limit); }
 
 // --- meten ---
 const url=i=>corpus[i].url.replace("https://www.nederlandwereldwijd.nl","");

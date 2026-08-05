@@ -659,6 +659,48 @@ function ancestorsOf(url){
   while(u.length>base.length){const cut=u.lastIndexOf("/");if(cut<base.length)break;u=u.slice(0,cut);if(u.length>base.length&&m.has(u))out.push(m.get(u));}
   return out;
 }
+// ---- Productpagina's: harde regel voor genoemde vaktermen ----
+// Uit de site-structuur afgeleid: een pagina die zelf subpagina's heeft én waarvan het
+// URL-segment in de eigen titel voorkomt, is een PRODUCT (inreisvisum, nooddocument,
+// schengenvisum, ...). Noemt de burger zo'n term letterlijk, dan hoort die pagina bovenaan —
+// dat laten we niet aan het taalmodel over, want dat koos soms de algemene rubriekspagina.
+let PRODUCT=null;
+function buildProducts(){
+  PRODUCT=new Map();
+  const m=urlIndex(),kids=new Map();
+  for(const p of CORPUS){const u=(p.url||"").replace(/\/+$/,""),par=u.slice(0,u.lastIndexOf("/"));if(m.has(par))kids.set(par,(kids.get(par)||0)+1);}
+  const BLOCK=new Set(["buitenland","aanvragen","contact","thema","nederland","overzicht","landen"]);
+  const cand=[];
+  for(const [u,n] of kids){
+    const seg=u.slice(u.lastIndexOf("/")+1).toLowerCase();
+    // Alleen echte PRODUCTFAMILIES (veel subpagina's). Zonder deze drempel zouden gewone
+    // woorden als "pensioen" of "crisis" onterecht een pagina forceren.
+    if(n<50||BLOCK.has(seg)||seg.length<4||seg.includes("-"))continue;
+    const i=m.get(u);if(i===undefined)continue;
+    if(!(CORPUS[i].title||"").toLowerCase().replace(/-/g,"").includes(seg))continue;
+    cand.push([u,seg,i]);
+  }
+  // Ouderpagina's van andere productpagina's overslaan (bv. /verklaring boven
+  // /verklaring/woonplaats), anders verdringen ze hun eigen, specifiekere subpagina's.
+  const urls=new Set(cand.map(c=>c[0]));
+  for(const [u,seg,i] of cand){
+    if([...urls].some(o=>o!==u&&o.startsWith(u+"/")))continue;
+    PRODUCT.set(stem(seg),i);
+  }
+}
+// Geeft de paginaindex van de meest SPECIFIEKE genoemde vakterm (langste match), of -1.
+function productMatch(text){
+  if(!PRODUCT)buildProducts();
+  let best=-1,len=0;
+  for(const t of new Set(tokenize(text||""))){const i=PRODUCT.get(t);if(i!==undefined&&t.length>len){best=i;len=t.length;}}
+  return best;
+}
+// Zet de productpagina vooraan; verandert verder niets aan de volgorde.
+function forceProduct(text,list){
+  const i=productMatch(text);
+  if(i<0||!Array.isArray(list)||list[0]===i)return list;
+  return [i,...list.filter(x=>x!==i)];
+}
 // Pagina die een specifieke situatie aanneemt (eerste aanvraag, kind, verlies/diefstal).
 const SPECIFIC_RX=/voor het eerst|eerste keer|voor (mijn|uw|je|een) kind|verloren|gestolen|kwijt|vermist/i;
 const isSpecificPage=idx=>SPECIFIC_RX.test(CORPUS[idx].title||"");
@@ -701,7 +743,7 @@ function hubCandidates(cands,text){
   return applyScope(text||"",[...cands,...extra]);
 }
 // Eenvoudige retrieval (gebruikt in demo/zonder-sleutel pad).
-async function rankFor(q){return withHub(await hybrid(q,[],TOPK));}
+async function rankFor(q){return forceProduct(q,withHub(await hybrid(q,[],TOPK)));}
 
 // Repareer afgekapte JSON: knip terug tot na de laatst afgesloten haak en sluit
 // de nog openstaande haken. Afgemaakte citaten blijven zo behouden.
@@ -819,7 +861,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 54";
+const APP_VERSION="build 55";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -966,6 +1008,7 @@ async function runQuestion(rawQ){
       const nores={restated_question:q,citations:[],note:"Ik vond geen pagina die deze vraag duidelijk beantwoordt. Controleer op nederlandwereldwijd.nl of stel de vraag specifieker.",used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],followups:[]};
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }else cands=picked;
+    cands=forceProduct(rawQ+" "+q,cands);   // genoemde vakterm hoort bovenaan
   }else{
     q=await condenseQuestion(rawQ);
     cands=await rankFor(q);
@@ -1151,7 +1194,7 @@ const LISTEN=(function initListen(){
       score.set(idx,v);
     }
     const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
-    return applyScope(q,fused).slice(0,limit);
+    return forceProduct(q,applyScope(q,fused)).slice(0,limit);
   }
   // ---- Antwoordmodus (instelbaar, zodat elke werkwijze los te testen is) ----
   // 1 standaard : verspringt continu mee (oorspronkelijke werking)
