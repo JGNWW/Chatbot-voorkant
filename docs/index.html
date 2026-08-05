@@ -861,7 +861,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 56";
+const APP_VERSION="build 57";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1120,7 +1120,12 @@ const LISTEN=(function initListen(){
     return best.length>max?best.slice(0,max)+"…":best;
   }
   function recentFinals(){const cut=Date.now()-15000;return finals.filter(f=>f.t>=cut).map(f=>f.text);}   // laatste ~15 s
-  function renderTranscript(){if(!transcriptEl)return;transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(recentFinals().slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;}
+  function renderTranscript(){
+    if(!transcriptEl)return;
+    transcriptEl.hidden=!SHOWTXT;
+    if(!SHOWTXT){transcriptEl.innerHTML="";return;}
+    transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(recentFinals().slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;
+  }
   // ---- Afkortingen herstellen ----
   // Vosk schrijft gespelde afkortingen uit elkaar ("i en de" / "vee ef es"). We voegen zulke
   // letterreeksen weer samen, maar ALLEEN als het resultaat een bekende afkorting is — anders
@@ -1216,6 +1221,11 @@ const LISTEN=(function initListen(){
   let AIQ=false;
   try{AIQ=localStorage.getItem("vk_listen_aiq")==="1";}catch(e){}
   const saveAIQ=()=>{try{localStorage.setItem("vk_listen_aiq",AIQ?"1":"0");}catch(e){}};
+  // Meelopende gesprekstekst: handig om te zien of de spraakherkenning je goed verstaat,
+  // maar ook een bewegend element naast het antwoord. Standaard aan, uit te zetten.
+  let SHOWTXT=true;
+  try{SHOWTXT=localStorage.getItem("vk_listen_txt")!=="0";}catch(e){}
+  const saveTxt=()=>{try{localStorage.setItem("vk_listen_txt",SHOWTXT?"1":"0");}catch(e){}};
   const aiCache=new Map();let aiSeq=0,aiVraag="";
   function resetContext(){ctxStart=Date.now();lastQuery="";}
   function finalsSince(t){return finals.filter(f=>f.t>=t).map(f=>f.text);}
@@ -1428,6 +1438,7 @@ const LISTEN=(function initListen(){
         <summary>⚙︎ Manier van antwoorden</summary>
         <div class="lai-body">${radios}
           <label class="lai-opt lai-ai"><input type="checkbox" id="lai-q"${AIQ?" checked":""}${hasKey?"":" disabled"}><span><b>AI-vraagherkenning</b> <span class="lai-hint">AI vat uit het gesprek samen wat de klant vraagt en kiest daar het passende antwoord bij.${hasKey?"":" (vul eerst een AI-sleutel in)"}</span></span></label>
+          <label class="lai-opt"><input type="checkbox" id="lai-txt"${SHOWTXT?" checked":""}><span><b>Gesprekstekst tonen</b> <span class="lai-hint">Laat zien wat er verstaan wordt. Uitzetten geeft rust op het scherm; het luisteren en zoeken gaat gewoon door.</span></span></label>
           <p class="lai-warn">⚠︎ Met AI-vraagherkenning wordt de uitgeschreven gesprekstekst naar de AI-provider gestuurd. Staat hij uit, dan blijft alles op dit apparaat.</p>
         </div>
       </details>
@@ -1439,6 +1450,8 @@ const LISTEN=(function initListen(){
     panel.querySelector(".listen-stop").onclick=()=>stop(true);
     panel.querySelectorAll('input[name="lmode"]').forEach(r=>r.onchange=()=>{if(r.checked)setMode(r.value);});
     const aiq=panel.querySelector("#lai-q");if(aiq)aiq.onchange=()=>{AIQ=aiq.checked;saveAIQ();aiVraag="";aiCache.clear();renderModeBar();};
+    const txt=panel.querySelector("#lai-txt");if(txt)txt.onchange=()=>{SHOWTXT=txt.checked;saveTxt();renderTranscript();};
+    renderTranscript();
     renderModeBar();
   }
   function teardownAudio(){try{if(proc)proc.disconnect();if(srcNode)srcNode.disconnect();if(audioCtx)audioCtx.close();}catch(e){}try{if(stream)stream.getTracks().forEach(t=>t.stop());}catch(e){}proc=srcNode=audioCtx=stream=null;}
