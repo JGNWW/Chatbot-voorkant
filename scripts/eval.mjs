@@ -14,7 +14,9 @@ const embArg = process.argv[2] && !process.argv[2].startsWith("--") ? process.ar
 const corpus = JSON.parse(fs.readFileSync(dataURL("corpus.json"), "utf-8"));
 const meta = JSON.parse(fs.readFileSync(embArg + "/embeddings.json", "utf-8"));
 const bin = NO_SEM ? null : new Int8Array(fs.readFileSync(embArg + "/embeddings.bin").buffer);
-const evalSet = JSON.parse(fs.readFileSync(new URL("./eval_set.json", import.meta.url), "utf-8"));
+// --set <bestand> draait een andere vragenlijst (bv. de gegenereerde eval_set_auto.json).
+const setArg = (process.argv.find(a => a.startsWith("--set=")) || "").slice(6) || "eval_set.json";
+const evalSet = JSON.parse(fs.readFileSync(new URL("./" + setArg, import.meta.url), "utf-8"));
 const TOPK = 6;
 
 // --- tekstverwerking (identiek aan index.html) ---

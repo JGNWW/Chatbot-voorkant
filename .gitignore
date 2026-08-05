@@ -14,3 +14,7 @@ frontend/dist/
 # Tijdelijke deelbestanden van het embed-script (hervatbaarheid)
 docs/data/embeddings.part
 docs/data/embeddings.part.json
+
+# Lokale node-afhankelijkheden en tussenbestanden van het afstelscript
+node_modules/
+scripts/.tune_cache.json
