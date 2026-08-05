@@ -861,7 +861,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 55";
+const APP_VERSION="build 56";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1113,7 +1113,7 @@ const LISTEN=(function initListen(){
   // full=true (hoofdantwoord): de VOLLEDIGE alinea; anders een compacte weergave.
   function bestSnippet(idx,qtok,full){
     const max=full?900:320;
-    const lines=(CORPUS[idx].text||"").split("\n").map(s=>s.trim()).filter(s=>s.length>50);
+    const lines=proseLines(idx);
     if(!lines.length)return (CORPUS[idx].desc||CORPUS[idx].text||"").slice(0,max);
     let best=lines[0],bestSc=-1;
     for(const ln of lines){const t=new Set(tokenize(ln));let sc=0;for(const q of qtok)if(t.has(q))sc++;if(sc>bestSc){bestSc=sc;best=ln;}}
@@ -1223,27 +1223,34 @@ const LISTEN=(function initListen(){
   // Tekent de kaarten. heroSnip: eventueel door AI gekozen passage (anders de heuristiek).
   // ---- Optioneel: AI vat de vraag samen en kiest de passende pagina ----
   // Non-blocking: het lokale antwoord staat er al; de AI werkt het daarna stil bij.
-  async function aiPick(q,cands){
+  // Vraagt de AI om de volgorde; geeft de nieuwe lijst terug (of null als er niets te doen is).
+  async function aiOrder(q,cands){
     const key=keyInput.value.trim();
-    if(!AIQ||key.length<=10||!cands.length)return;
-    const seq=++aiSeq,ck=q;
-    const done=j=>{
-      if(seq!==aiSeq||!ret.active||!quotesEl||!j)return;
-      const pick=(Array.isArray(j.pages)?j.pages:[]).map(n=>cands[n]).filter(i=>Number.isInteger(i));
-      const list=pick.length?[...new Set(pick)].concat(cands.filter(i=>!pick.includes(i))).slice(0,3):cands;
-      aiVraag=(j.vraag||"").toString().trim().slice(0,140);
-      shown={list,tok:shown?shown.tok:[...new Set(tokenize(q))],at:Date.now(),stable:shown&&shown.stable};
-      renderQuotes(list,shown.tok);renderModeBar();
-    };
-    if(aiCache.has(ck))return done(aiCache.get(ck));
-    const listing=cands.map((idx,n)=>"["+n+"] "+cleanTitle(CORPUS[idx].title)).join("\n");
-    try{
-      const text=await PROVIDERS[provSel.value].call(key,modelSel.value,LISTEN_Q_SYSTEM,
-        "Gespreksfragment:\n"+q+"\n\nKandidaat-pagina's:\n"+listing);
-      const j=parseModelJSON(text);
-      aiCache.set(ck,j);if(aiCache.size>60)aiCache.delete(aiCache.keys().next().value);
-      done(j);
-    }catch(e){console.warn("AI-vraagherkenning:",e);}
+    if(!AIQ||key.length<=10||!cands.length)return null;
+    let j=aiCache.get(q);
+    if(j===undefined){
+      const listing=cands.map((idx,n)=>"["+n+"] "+cleanTitle(CORPUS[idx].title)).join("\n");
+      try{
+        const text=await PROVIDERS[provSel.value].call(key,modelSel.value,LISTEN_Q_SYSTEM,
+          "Gespreksfragment:\n"+q+"\n\nKandidaat-pagina's:\n"+listing);
+        j=parseModelJSON(text);
+        aiCache.set(q,j);if(aiCache.size>60)aiCache.delete(aiCache.keys().next().value);
+      }catch(e){console.warn("AI-vraagherkenning:",e);return null;}
+    }
+    if(!j)return null;
+    const pick=(Array.isArray(j.pages)?j.pages:[]).map(n=>cands[n]).filter(i=>Number.isInteger(i));
+    const list=pick.length?[...new Set(pick)].concat(cands.filter(i=>!pick.includes(i))).slice(0,3):cands;
+    // Dezelfde harde regel als bij het typen: een genoemde vakterm blijft bovenaan staan.
+    return {list:forceProduct(q,list),vraag:(j.vraag||"").toString().trim().slice(0,140)};
+  }
+  // Live-modi (1 en 4): het lokale antwoord staat er al; de AI werkt het daarna stil bij.
+  async function aiPick(q,cands){
+    const seq=++aiSeq;
+    const r=await aiOrder(q,cands);
+    if(!r||seq!==aiSeq||!ret.active||!quotesEl)return;
+    aiVraag=r.vraag;
+    shown={list:r.list,tok:shown?shown.tok:[...new Set(tokenize(q))],at:Date.now(),stable:shown&&shown.stable};
+    renderQuotes(r.list,shown.tok);renderModeBar();
   }
   // Modus 2: pas na EEN_DELAY_MS luisteren het (enige) antwoord bepalen en vastzetten.
   async function maybeAnswerEen(){
@@ -1254,9 +1261,14 @@ const LISTEN=(function initListen(){
     const res=await search(q);
     if(!ret.active)return;
     if(!res)return renderModeBar();
-    shown={list:res.list,tok:res.tok,at:Date.now()};locked=true;
-    renderQuotes(res.list,res.tok);renderModeBar();
-    aiPick(q,res.list);
+    locked=true;                                          // niet nogmaals proberen tijdens het wachten
+    const seq=++aiSeq;
+    const r=await aiOrder(q,res.list);                    // ook hier: één keer tekenen, geen sprong
+    if(seq!==aiSeq||!ret.active||MODE!=="een")return;
+    const list=r?r.list:res.list;
+    aiVraag=r?r.vraag:"";
+    shown={list,tok:res.tok,at:Date.now()};
+    renderQuotes(list,res.tok);renderModeBar();
   }
   function renderQuotes(cands,qtok,opts){
     if(!quotesEl)return;
@@ -1329,15 +1341,22 @@ const LISTEN=(function initListen(){
     renderQuotes(res.list,res.tok);renderModeBar();aiPick(q,res.list);
   }
   // Modus 3: nu pas zoeken, op basis van alles sinds de vorige klik.
+  // Eén klik = één antwoord: staat de AI aan, dan wachten we die eerst af en tekenen we daarna
+  // één keer. Anders zag je eerst het lokale antwoord en verspringt het scherm een seconde later.
   async function answerNow(){
     const q=currentQuery();
     if(!tokenize(q).length){hint("Nog niets gehoord om op te zoeken.");renderModeBar();return;}
     const res=await search(q);
     if(!res){hint("Nog geen passende informatie gevonden…");renderModeBar();return;}
-    shown={list:res.list,tok:res.tok,at:Date.now()};
+    const seq=++aiSeq;
+    if(AIQ&&keyInput.value.trim().length>10){hint("Zoekt het beste antwoord…");renderModeBar();}
+    const r=await aiOrder(q,res.list);
+    if(seq!==aiSeq||!ret.active)return;                   // er is intussen opnieuw geklikt
+    const list=r?r.list:res.list;
+    aiVraag=r?r.vraag:"";
+    shown={list,tok:res.tok,at:Date.now()};
     resetContext();
-    renderQuotes(res.list,res.tok);renderModeBar();
-    aiPick(q,res.list);
+    renderQuotes(list,res.tok);renderModeBar();
   }
   // ---- Statusbalk per modus ----
   function renderModeBar(){
@@ -1481,10 +1500,27 @@ const LISTEN=(function initListen(){
 
 function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
 
+// LOPENDE TEKST van een pagina, zonder navigatie.
+// De crawler neemt ook de links uit de hoofdinhoud mee; op hubpagina's bestaat de "tekst"
+// daardoor vrijwel alleen uit menu-items ("Toestemmingsformulier reizen met kinderen
+// (Rijksoverheid.nl)"). Dat is geen antwoord, dus tonen we het niet als citaat. We gaan af op
+// de linklijst van de pagina zelf: is een regel letterlijk de tekst van een link, dan is het
+// navigatie. Blijft er niets over, dan valt de aanroeper terug op de paginabeschrijving.
+const PROSE=[];
+function proseLines(idx){
+  if(PROSE[idx])return PROSE[idx];
+  const p=CORPUS[idx]||{};
+  const anchors=new Set((p.links||[]).map(l=>(Array.isArray(l)?l[0]:l||"").trim().toLowerCase()));
+  const out=(p.text||"").split("\n").map(s=>s.trim())
+    .filter(s=>s.length>50&&!anchors.has(s.toLowerCase()));
+  return (PROSE[idx]=out);
+}
+
 function demoAnswer(q,cands){
-  const p=CORPUS[cands[0]];const paras=p.text.split("\n").filter(x=>x.length>40);
+  const paras=proseLines(cands[0]);
+  const body=paras.slice(0,2).join("\n")||CORPUS[cands[0]].desc||"";
   return {restated_question:q,demo:true,
-    citations:[{text:paras.slice(0,2).join("\n"),verified:true,src:srcOf(cands[0]),srcIdx:cands[0]}],
+    citations:[{text:body,verified:true,src:srcOf(cands[0]),srcIdx:cands[0]}],
     note:"DEMO-modus: begin van de best-matchende pagina, niet door AI geselecteerd of geciteerd. Vul een sleutel in voor een echte inleiding + letterlijke citaten.",
     used:[srcOf(cands[0])],related:cands.slice(1).map(srcOf)};
 }
