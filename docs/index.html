@@ -40,8 +40,6 @@ html,body{height:100%;overflow:hidden;}
 .brand-text h1{margin:0;font-size:1rem;font-weight:700;color:var(--rijk-blauw);line-height:1.2;}
 .brand-sub{font-weight:400;font-size:.82em;color:var(--ink-licht);}
 .brand-text p{margin:1px 0 0;font-size:.74rem;color:var(--ink-licht);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.new-chat{display:flex;align-items:center;justify-content:center;gap:7px;margin:6px 14px 10px;padding:10px 14px;background:var(--rijk-licht);color:#fff;border:none;border-radius:12px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .12s;}
-.new-chat:hover{background:var(--rijk-donker);}
 .convo-section{flex:1;min-height:0;overflow-y:auto;padding:4px 8px 8px;}
 .sidebar-spacer{flex:1;}
 .convo-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-licht);font-weight:700;padding:8px 8px 4px;}
@@ -169,7 +167,11 @@ a{color:var(--rijk-licht);}
 .composer-pill{display:flex;align-items:center;gap:8px;max-width:860px;margin:0 auto;background:#fff;border:1.5px solid var(--rand);border-radius:26px;padding:5px 6px 5px 18px;box-shadow:0 2px 12px rgba(20,40,70,.07);transition:border-color .15s,box-shadow .15s;}
 .composer-pill:focus-within{border-color:var(--rijk-licht);box-shadow:0 3px 16px rgba(0,123,199,.15);}
 .composer input{flex:1;padding:10px 0;border:none;outline:none;font-size:1rem;background:transparent;font-family:inherit;color:var(--ink);}
-.send-btn{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:var(--rijk-licht);color:#fff;border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,transform .08s;}
+.send-btn{flex:0 0 auto;height:40px;padding:0 16px;border-radius:20px;gap:7px;background:var(--rijk-licht);color:#fff;border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:.9rem;font-weight:600;transition:background .12s,transform .08s;}
+/* "Nieuw gesprek" staat naast Verstuur: daar neem je de beslissing om de context los te laten. */
+.pill-btn{flex:0 0 auto;height:40px;padding:0 14px;border-radius:20px;gap:7px;background:#fff;color:var(--ink);border:1.5px solid var(--rand-sterk);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:.9rem;font-weight:600;transition:border-color .12s,color .12s,background .12s;}
+.pill-btn:hover{border-color:var(--rijk-licht);color:var(--rijk-blauw);background:var(--blauw-bg);}
+.pill-btn[hidden]{display:none;}
 .mic-btn{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:#f0f3f7;color:var(--ink-licht);border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,color .12s;}
 .mic-btn:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
 .mic-btn.rec{background:#fde7e7;color:#c62828;animation:micpulse 1.4s infinite;}
@@ -313,6 +315,8 @@ body.viewer-active .viewer{width:min(560px,94vw);}
   body.sidebar-open .sidebar-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);border:0;z-index:64;}
   .conversation{padding:20px 16px;}
   .composer{padding:10px 12px 16px;}
+  .btn-label{display:none;}
+  .send-btn,.pill-btn{padding:0;width:40px;}
   .bubble{max-width:90%;}
   .bubble.antwoord{max-width:96%;}
   .welcome{font-size:1.04rem;}
@@ -330,7 +334,6 @@ body.viewer-active .viewer{width:min(560px,94vw);}
         <p>NederlandWereldwijd — testomgeving</p>
       </div>
     </div>
-    <button id="reset" class="new-chat" title="Begin een nieuw gesprek"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Nieuw gesprek</button>
     <div class="sidebar-spacer"></div>
     <div class="sidebar-foot">
       <button id="settings-toggle" class="settings-btn" aria-expanded="false" aria-controls="keybar"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.74 8.2a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.33.61.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.09.47 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>AI-instellingen <span id="mode-badge"></span></button>
@@ -367,7 +370,8 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <div class="composer-pill">
         <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus aria-expanded="false" aria-controls="suggest" />
         <button type="button" id="mic" class="mic-btn" title="Start luistermodus (spraak → automatisch passende antwoorden)" aria-label="Luistermodus starten" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-        <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+        <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="btn-label">Verstuur</span></button>
+        <button type="button" id="reset" class="pill-btn" title="Begin een nieuw gesprek zonder de context van de vorige vragen" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></svg><span class="btn-label">Nieuw gesprek</span></button>
       </div>
     </form>
   </div>
@@ -865,7 +869,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 58";
+const APP_VERSION="build 59";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -876,7 +880,7 @@ settingsToggle.addEventListener("click",()=>setSettings(keybar.classList.contain
 setSettings(keyInput.value.trim().length<=10);
 
 const inputEl=document.getElementById("input");
-function askText(t){inputEl.value=t;document.getElementById("form").requestSubmit();}
+function askText(t){inputEl.value=t;refreshComposer();document.getElementById("form").requestSubmit();}
 function prefill(t){inputEl.value=t;inputEl.focus();inputEl.setSelectionRange(t.length,t.length);}
 
 const samples=document.getElementById("samples");
@@ -894,7 +898,18 @@ function showWelcome(){
   SAMPLES.forEach(x=>{const b=document.createElement("button");b.textContent=x;b.onclick=()=>askText(x);s.appendChild(b);});
   conv.appendChild(s);
 }
-function newConversation(){history=[];showWelcome();closeSidebar();inputEl&&inputEl.focus();}
+// Het typvak vertelt in welke staat het gesprek is. Zolang er context is, luidt de uitnodiging
+// "Stel een vervolgvraag" en staat "Nieuw gesprek" ernaast — zo is zichtbaar dat alles wat je
+// vraagt op het vorige voortbouwt, en waar je dat loslaat.
+const PH_EERSTE="Typ hier de vraag van de burger…", PH_VERVOLG="Stel een vervolgvraag";
+let gesprekLoopt=false,corpusKlaar=false;
+function refreshComposer(){
+  const lopend=gesprekLoopt||history.length>0;
+  if(inputEl)inputEl.placeholder=lopend?PH_VERVOLG:PH_EERSTE;
+  const r=document.getElementById("reset");if(r)r.hidden=!lopend;
+  sendBtn.disabled=!corpusKlaar||!inputEl||!inputEl.value.trim();
+}
+function newConversation(){history=[];gesprekLoopt=false;showWelcome();refreshComposer();closeSidebar();inputEl&&inputEl.focus();}
 function recordTurn(){}  // no-op: gesprekken worden niet bewaard
 function restoreTurn(){}  // no-op
 function loadConversation(){} // no-op
@@ -916,7 +931,7 @@ document.getElementById("reset").addEventListener("click",newConversation);
     const withSum=CORPUS.filter(p=>p.summary).length;
     document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
       +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Stel een vraag — bijvoorbeeld:</span>";
-    sendBtn.disabled=false;
+    corpusKlaar=true;refreshComposer();
     initFilters();
     initSemantic();
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
@@ -926,7 +941,7 @@ async function condenseQuestion(rawQ){
   if(!history.length)return rawQ;
   const key=keyInput.value.trim();
   if(key.length<=10)return rawQ; // demo-modus: geen herschrijving mogelijk
-  const ctx=history.slice(-2).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n");
+  const ctx=history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n");
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,CONDENSE_SYSTEM,`Gesprek tot nu toe:\n${ctx}\n\nNieuwe vraag: ${rawQ}`);
     const sq=(parseModelJSON(text).standalone_question||"").trim();
@@ -938,7 +953,7 @@ async function condenseQuestion(rawQ){
 async function prepareQuery(rawQ){
   const key=keyInput.value.trim();
   if(key.length<=10)return {q:rawQ,terms:[]};
-  const ctx=history.length?("Gesprek tot nu toe:\n"+history.slice(-2).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n")+"\n\n"):"";
+  const ctx=history.length?("Gesprek tot nu toe:\n"+history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n")+"\n\n"):"";
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,PREPARE_SYSTEM,ctx+"Vraag van de burger: "+rawQ);
     const j=parseModelJSON(text);
@@ -977,9 +992,10 @@ async function rerankCandidates(q,cands){
 }
 
 async function runQuestion(rawQ){
-  if(sendBtn.disabled||!rawQ)return;
+  if(!corpusKlaar||!rawQ)return;
   if(typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.active)LISTEN.stop(false);  // getypte vraag -> luistermodus uit
   const turn=addTurn(rawQ);               // toon de vraag zoals gesteld
+  gesprekLoopt=true;refreshComposer();    // vanaf nu: vervolgvragen bouwen voort op dit gesprek
   const key=keyInput.value.trim();const ai=key.length>10;
   let q,cands;
   if(ai){
@@ -1025,12 +1041,13 @@ async function runQuestion(rawQ){
     if(result.citations&&result.citations.length){
       const summary=(result.citations[0].text||"").slice(0,220);
       history.push({q:result.restated_question||q,summary});
-      if(history.length>6)history.shift();
+      if(history.length>12)history.shift();
+      refreshComposer();
     }
   }
   catch(err){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';}
 }
-document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";hideSuggest();runQuestion(q);});
+document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";hideSuggest();runQuestion(q);refreshComposer();});
 
 // ---- Typeahead: "bedoelt u dit?"-suggesties op basis van de paginatitels (trefwoordzoeker) ----
 const suggestEl=document.getElementById("suggest");
@@ -1046,7 +1063,7 @@ function showSuggest(){
   suggestEl.querySelectorAll(".suggest-item").forEach(b=>b.addEventListener("mousedown",e=>{e.preventDefault();askText(b.getAttribute("data-q"));}));
 }
 let suggestTimer=null;
-inputEl.addEventListener("input",()=>{clearTimeout(suggestTimer);suggestTimer=setTimeout(showSuggest,120);});
+inputEl.addEventListener("input",()=>{refreshComposer();clearTimeout(suggestTimer);suggestTimer=setTimeout(showSuggest,120);});
 inputEl.addEventListener("keydown",e=>{if(e.key==="Escape")hideSuggest();});
 inputEl.addEventListener("blur",()=>setTimeout(hideSuggest,150));
 inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSuggest();});
