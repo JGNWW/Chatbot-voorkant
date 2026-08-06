@@ -375,19 +375,24 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 const SYSTEM=`Je helpt een voorlichter van het klantcontactcentrum van NederlandWereldwijd. Je krijgt de vraag van de burger en enkele genummerde pagina's van NederlandWereldwijd.nl met hun LETTERLIJKE tekst.
 
 Stel een antwoord samen dat bestaat uit:
-1. "citations": de relevante passages die samen de vraag beantwoorden. Geef NIET de volledige tekst, maar per passage alleen een VERWIJZING: "source_index" (paginanummer), "start" (de eerste 4 tot 8 woorden van de passage, EXACT overgenomen uit de paginatekst) en "end" (de laatste 4 tot 8 woorden van de passage, EXACT overgenomen). De app knipt zelf het stuk tussen start en end uit de pagina. Begin en eindig op een natuurlijke zinsgrens; de passage moet aaneengesloten in de tekst staan. Kopieer "start" en "end" exact (zelfde woorden, leestekens en hoofdletters) zodat ze letterlijk terug te vinden zijn. Je mag passages uit verschillende pagina's combineren. REGELS voor goede citaten:
-   - Citeer alleen VOLLEDIGE, op zichzelf staande zinnen of alinea's met inhoud. Citeer NOOIT een los kopje, sectietitel, knoptekst of navigatielabel (korte regels zonder werkwoord, zoals "Buitenland", "Let op:" of "Tijdelijke aanvraaglocaties").
+1. "citations": de relevante passages die samen de vraag beantwoorden. Geef per passage:
+   - "source_index": het paginanummer;
+   - "quote": de passage LETTERLIJK overgeschreven uit de paginatekst — zelfde woorden, leestekens en hoofdletters. De app zoekt dit stuk terug op de pagina; wijkt het af, dan valt het citaat af. Schrijf dus geen samenvatting en verander niets, maar KNIP WEL PRECIES: begin bij de eerste zin die de vraag beantwoordt en stop bij de laatste. Laat alles ervoor en erna weg;
+   - "start" en "end": de eerste en de laatste 4 tot 8 woorden van diezelfde passage, exact overgenomen (reservemethode als "quote" niet exact terug te vinden is).
+   Je mag passages uit verschillende pagina's combineren. REGELS voor goede citaten:
+   - Citeer alleen VOLLEDIGE, op zichzelf staande zinnen of alinea's met inhoud. Citeer NOOIT een los kopje, sectietitel, knoptekst of navigatielabel (korte regels zonder werkwoord, zoals "Buitenland", "Let op:" of "Tijdelijke aanvraaglocaties"), en laat ze ook niet MIDDEN in een citaat staan: loopt de alinea door tot waar een nieuw kopje of een lijst met links begint, stop het citaat dan daarvóór.
+   - KORT: hoogstens ongeveer 80 woorden per citaat. Dit is tekst die de voorlichter aan de telefoon voorleest. Beantwoordt één zin de vraag, citeer dan die ene zin.
    - AANTAL: begin met ÉÉN kort kerncitaat (1 tot 4 zinnen) dat de vraag het meest direct beantwoordt. Voeg alleen een tweede of derde citaat toe als de vraag ECHT uit meerdere onderdelen bestaat (bv. "wat kost het én hoe lang duurt het", of een vraag die per situatie of per land anders wordt beantwoord). Elk extra citaat moet een ANDER onderdeel van de vraag beantwoorden — herhaal niet in andere woorden wat er al staat, en vul niet aan met wat de burger niet gevraagd heeft. Maximaal 3. Beantwoordt één citaat de hele vraag, geef er dan ook maar één; de voorlichter leest de rest van de pagina door op het citaat te klikken. Houd elk citaat kernachtig en op zichzelf staand; geen lange of samengestelde citaten.
    - RELEVANTIE & GEEN AANNAMES: kies citaten die de vraag DIRECT en ALGEMEEN beantwoorden. Neem NOOIT een situatie aan die de burger niet zelf heeft genoemd. Bij een algemene vraag als "Hoe vraag ik een ID-kaart of paspoort aan?" mag je er dus NIET van uitgaan dat het een EERSTE aanvraag is, een aanvraag VOOR EEN KIND, of een vervanging na verlies/diefstal. Citeer dan een passage die voor IEDEREEN geldt (de algemene aanvraag- of overzichtspagina). Het EERSTE citaat (kernantwoord) mag NOOIT openen met een situatie-aanname zoals "Heeft u of uw kind…", "Voor het eerst…" of "Bent u uw paspoort verloren…". Staan er zowel een algemene als een situatie-specifieke pagina ("Voor het eerst…", "voor uw kind", "verloren of gestolen", of een specifiek land) tussen de pagina's, kies dan ALTIJD de algemene — tenzij de vraag duidelijk over die specifieke situatie gaat. UITZONDERING: noemt de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille"), citeer dan van de pagina die over JUIST dat product gaat en NIET van de algemene rubriekspagina — ook niet als de vraag maar uit één woord bestaat.
    - BEKNOPT: houd elk citaat KORT en gefocust — kies één samenhangende alinea (liefst 2 tot 5 zinnen) die precies het betreffende punt beantwoordt. Citeer NOOIT een hele paginasectie met meerdere tussenkopjes, opsommingen van links, "Bekijk…"- of "Lees…"-knopteksten, of losse "Let op:"-blokken. Stopt de relevante alinea waar een nieuw kopje of navigatietekst begint, zet "end" dan vóór dat kopje.
    - VOLGORDE: zet de citaten in de volgorde waarin je ze zou uitleggen — eerst het kernantwoord, dan waar of hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. De samenhang breng je aan met de "bridge"-zin vóór elk citaat, niet met tussenkopjes.
 2. "clarifications": als het juiste antwoord AFHANGT van de situatie van de burger, neem dan geen aanname maar zet hier de vraag/vragen die de voorlichter moet stellen. Veel antwoorden hangen af van: het LAND waar de aanvrager woont, of het een EERSTE aanvraag of een VERVANGING/VERLENGING is, en of het voor een VOLWASSENE of voor een KIND is. Geef per verduidelijking een "question" (wat de voorlichter uitvraagt) en een "prefill" (begin van een vervolgvraag dat de voorlichter aanvult, bv. "ID-kaart aanvragen vanuit "). Geef bij een situatie-afhankelijke vraag ALTIJD minstens één verduidelijking, zodat de voorlichter de juiste situatie kan uitvragen in plaats van dat jij iets aanneemt. Laat leeg als er echt niets te verduidelijken valt.
-3. "bridge" (per citaat): ÉÉN korte overbruggende zin (max 16 woorden) die de lezer naar dat citaat toe leidt, bv. "Volg de volgende stappen om een BSN aan te vragen:" of "Over de kosten staat op de website:". Strikte regels, net als bij "intro": noem GEEN feiten, bedragen, termijnen, voorwaarden of conclusies — de zin kondigt alleen aan wat er komt, de inhoud staat in het citaat zelf. Gebruik dezelfde vakterm als de vraag. Schrijf de zin PAS NADAT je het citaat hebt gekozen. Bij het EERSTE citaat volgt de brug direct op "intro", dus die twee moeten op elkaar aansluiten en elkaar niet herhalen.
+3. "bridge" (per citaat): ÉÉN korte overbruggende zin (max 16 woorden) die de lezer naar dat citaat toe leidt. Zeg NIET hetzelfde als de eerste zin van het citaat — de brug kondigt aan, het citaat vertelt. Belooft de brug iets ("bij deze locaties:", "in deze stappen:"), dan MOET het citaat daar ook echt mee beginnen; klopt dat niet, kies dan een andere brug of een ander citaat, bv. "Volg de volgende stappen om een BSN aan te vragen:" of "Over de kosten staat op de website:". Strikte regels, net als bij "intro": noem GEEN feiten, bedragen, termijnen, voorwaarden of conclusies — de zin kondigt alleen aan wat er komt, de inhoud staat in het citaat zelf. Gebruik dezelfde vakterm als de vraag. Schrijf de zin PAS NADAT je het citaat hebt gekozen. Bij het EERSTE citaat volgt de brug direct op "intro", dus die twee moeten op elkaar aansluiten en elkaar niet herhalen.
 4. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
 5. "intro": EÉN korte zin (max 18 woorden; gebruik dezelfde vakterm als de vraag — herinterpreteer die niet) in de aanspreekvorm "u" die de INFORMATIEBEHOEFTE van de burger herformuleert, grammaticaal naadloos overloopt in het eerste citaat, en de voorlichter helpt de vraag goed te kaderen. VARIEER de opening — gebruik bv. "Als ik het goed begrijp, wilt u weten…", "U vraagt waarschijnlijk naar…", "U zoekt informatie over…", "Begrijp ik goed dat u wilt weten…" of een vergelijkbare natuurlijke variant. Schrijf de zin PAS NADAT je het eerste citaat hebt gekozen, zodat hij precies daarop aansluit. Strikte regels: noem GEEN feiten, bedragen, termijnen of conclusies — herformuleer ALLEEN de VRAAG. Geef GEEN aanname over de situatie (bv. niet "voor uw kind" tenzij de burger dat zelf zei). Eindig NIET op een dubbele punt als het citaat met een vraag begint. Laat "intro" LEEG als er geen citaat is.
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
-{"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"bridge":"<korte overbruggende zin naar dit citaat>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+{"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"bridge":"<korte overbruggende zin naar dit citaat>","quote":"<de passage letterlijk>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
@@ -785,6 +790,57 @@ function findFrom(text,phrase,from){
   return m?{i:from+m.index,len:m[0].length}:null;
 }
 // Knip op basis van start/end-verwijzing het exacte, aaneengesloten stuk uit de paginatekst.
+// Zoekt een door het model LETTERLIJK teruggegeven citaat terug in de paginatekst en geeft de
+// tekst uit de PAGINA terug (niet die van het model). Verschillen in spaties, aanhalingstekens en
+// streepjes worden genegeerd; alle andere tekens moeten kloppen. Zo mag het model zelf bepalen
+// waar het citaat begint en eindigt, terwijl het resultaat aantoonbaar van de site komt.
+const NORM_MAP=[["“","\""],["”","\""],["„","\""],["‘","'"],["’","'"],["–","-"],["—","-"],["\u00a0"," "]];
+function normForMatch(t){
+  let out="",map=[];
+  for(let i=0;i<t.length;i++){
+    let c=t[i];
+    for(const [a,b] of NORM_MAP)if(c===a){c=b;break;}
+    if(/\s/.test(c)){ if(out.length&&out[out.length-1]===" ")continue; c=" "; }
+    out+=c;map.push(i);
+  }
+  return {s:out.toLowerCase(),map};
+}
+function findVerbatim(text,quote){
+  const q=(quote||"").trim();
+  if(q.length<12)return null;
+  const a=normForMatch(text),b=normForMatch(q);
+  const needle=b.s.trim();
+  const i=a.s.indexOf(needle);
+  if(i<0)return null;
+  return text.slice(a.map[i],a.map[i+needle.length-1]+1);
+}
+// Snijdt het citaat af waar het niet meer bij de vraag hoort: bij een KOPJE of een LINKTEKST van
+// diezelfde pagina begint een nieuw onderwerp, en losse labels ("Let op:") zijn geen antwoord.
+// Daarnaast een harde bovengrens, afgekapt op een zinseinde — een citaat van twintig regels
+// leest niemand voor aan de telefoon.
+const MAX_QUOTE_WORDS=110;
+function trimQuote(idx,quote){
+  const p=CORPUS[idx]||{};
+  const heads=new Set((p.headings||[]).map(h=>(h[1]||"").trim()).filter(Boolean));
+  const anchors=new Set((p.links||[]).map(l=>(Array.isArray(l)?l[0]:l||"").trim()).filter(Boolean));
+  const grens=ln=>heads.has(ln)||anchors.has(ln);
+  const lines=(quote||"").split("\n").map(l=>l.trim()).filter(Boolean);
+  const uit=[];let woorden=0;
+  for(const ln of lines){
+    if(grens(ln)){ if(uit.length)break; continue; }   // kop vooraan: overslaan, in het midden: stoppen
+    uit.push(ln);woorden+=ln.split(/\s+/).length;
+    if(woorden>=MAX_QUOTE_WORDS)break;
+  }
+  // Sluit niet af met een aankondiging zonder inhoud ("Let op:", "U heeft nodig:").
+  while(uit.length>1&&/:$/.test(uit[uit.length-1])&&uit[uit.length-1].split(/\s+/).length<=6)uit.pop();
+  let q=uit.join("\n").trim();
+  if(woorden>MAX_QUOTE_WORDS){                        // te lang: afkappen op het laatste zinseinde
+    const w=q.split(/\s+/).slice(0,MAX_QUOTE_WORDS).join(" ");
+    const m=w.lastIndexOf(". ");
+    q=(m>60?w.slice(0,m+1):w+"…");
+  }
+  return q;
+}
 function extractQuote(text,start,end){
   const s=findFrom(text,(start||"").trim(),0);
   if(!s)return null;
@@ -806,21 +862,6 @@ function isWeakQuote(q){
   return looksLikeHeading(t);        // korte regel zonder zin-einde = kopje/label
 }
 // Begint het citaat met een los kopje? Voeg dan de eerstvolgende inhoudsregel toe.
-function expandHeading(text,quote){
-  const t=(quote||"").trim();
-  if(t.includes("\n")||!looksLikeHeading(t))return quote;
-  // Het kopje moet als HELE regel voorkomen (niet als deel van een woord, bv. "Buitenlandse Zaken").
-  const lines=text.split("\n");const li=lines.findIndex(l=>l.trim()===t);
-  if(li<0)return quote;
-  for(let j=li+1;j<lines.length;j++){
-    const c=lines[j].trim();
-    if(c.length>=25||/[.!?]$/.test(c)){       // eerste echte inhoudsregel
-      let take=c.slice(0,500);const m=take.match(/[.!?](\s|$)/);if(m)take=take.slice(0,m.index+1);
-      return t+" "+take.trim();               // letterlijk: kopje gevolgd door de eerste inhoudszin
-    }
-  }
-  return quote;
-}
 // Sterke overlap tussen twee citaten (de één bevat (vrijwel) de ander).
 function quotesOverlap(a,b){
   const x=a.toLowerCase().trim(),y=b.toLowerCase().trim();
@@ -857,7 +898,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 62";
+const APP_VERSION="build 63";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1555,10 +1596,12 @@ async function askAI(q,cands,key){
   for(const c of rawCites){
     const local=c.source_index;const gi=Number.isInteger(local)?cands[local]:null;if(gi===null)continue;
     // Knip het exacte stuk zelf uit de pagina o.b.v. de start/end-verwijzing -> altijd letterlijk.
-    let quote=extractQuote(CORPUS[gi].text,c.start,c.end);
+    // Het model geeft het citaat woordelijk terug; wij zoeken het terug op de pagina en gebruiken
+    // de tekst van de PAGINA. Lukt dat niet, dan valt het terug op de oude start/eind-ankers.
+    let quote=findVerbatim(CORPUS[gi].text,c.quote)||extractQuote(CORPUS[gi].text,c.start,c.end);
     if(!quote){notFound++;continue;}
-    quote=expandHeading(CORPUS[gi].text,quote);   // los kopje? vul aan met de inhoud eronder
-    if(isWeakQuote(quote)){notFound++;continue;}  // nog steeds te kort/kopje -> overslaan
+    quote=trimQuote(gi,quote);                    // kopjes, navigatie en overlengte eraf
+    if(isWeakQuote(quote)){notFound++;continue;}  // te kort of alleen een kopje -> overslaan
     if(citations.some(x=>quotesOverlap(x.text,quote)))continue; // dubbel/overlappend -> overslaan
     const bridge=(c.bridge||"").toString().trim().replace(/\s+/g," ").slice(0,180);
     citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,bridge});usedSet.add(gi);
