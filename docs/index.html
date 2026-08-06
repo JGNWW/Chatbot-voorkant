@@ -32,44 +32,28 @@
 body{margin:0;font-family:"Source Sans 3","Segoe UI",system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.6;background:#eef1f5;color:var(--ink);-webkit-font-smoothing:antialiased;}
 html,body{height:100%;overflow:hidden;}
 .layout{display:flex;height:100vh;width:100%;overflow:hidden;background:#fff;}
-/* Zijbalk met merk + recente gesprekken (zoals ChatGPT/Claude) */
-.sidebar{flex:0 0 270px;background:#f7f8fa;border-right:1px solid var(--rand);display:flex;flex-direction:column;min-height:0;}
-.sidebar-head{display:flex;align-items:center;gap:10px;padding:16px 16px 12px;}
-.brand-logo{width:40px;height:40px;border-radius:50%;flex:0 0 40px;object-fit:cover;border:1px solid var(--rand);background:#fff;}
-.brand-text{min-width:0;}
-.brand-text h1{margin:0;font-size:1rem;font-weight:700;color:var(--rijk-blauw);line-height:1.2;}
+/* Bovenbalk: merk links, zoekgebied + tandwiel rechts. De zijbalk is vervallen — die droeg
+   alleen de naam en de instellingenknop, en beide passen hier. */
+.brand-logo{width:32px;height:32px;border-radius:50%;flex:0 0 32px;object-fit:cover;border:1px solid var(--rand);background:#fff;}
+.brand-text{min-width:0;display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;}
+.brand-text h1{margin:0;font-size:1rem;font-weight:700;color:var(--rijk-blauw);line-height:1.2;white-space:nowrap;}
 .brand-sub{font-weight:400;font-size:.82em;color:var(--ink-licht);}
-.brand-text p{margin:1px 0 0;font-size:.74rem;color:var(--ink-licht);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.convo-section{flex:1;min-height:0;overflow-y:auto;padding:4px 8px 8px;}
-.sidebar-spacer{flex:1;}
-.convo-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-licht);font-weight:700;padding:8px 8px 4px;}
-.convo-list{list-style:none;margin:0;padding:0;}
-.convo-item{display:flex;align-items:center;gap:6px;border-radius:10px;padding:9px 10px;font-size:.88rem;color:var(--ink);cursor:pointer;transition:background .12s;}
-.convo-item:hover{background:#eceff3;}
-.convo-item.active{background:var(--blauw-bg);color:var(--rijk-blauw);font-weight:600;}
-.convo-item .convo-title{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.convo-del{flex:0 0 auto;border:none;background:transparent;color:var(--ink-licht);cursor:pointer;font-size:1rem;line-height:1;padding:2px 4px;border-radius:6px;opacity:0;}
-.convo-item:hover .convo-del{opacity:1;}
-.convo-del:hover{background:#dfe3e8;color:var(--rood);}
-.convo-empty{color:var(--ink-licht);font-size:.82rem;font-style:italic;padding:8px 10px;}
-.sidebar-foot{border-top:1px solid var(--rand);padding:10px 12px;}
-.settings-btn{display:flex;align-items:center;gap:8px;width:100%;background:transparent;color:var(--ink-licht);border:none;border-radius:10px;padding:9px 10px;font-size:.86rem;font-family:inherit;cursor:pointer;transition:background .12s,color .12s;}
-.settings-btn:hover{background:#eceff3;color:var(--rijk-blauw);}
-.settings-btn[aria-expanded="true"]{background:var(--blauw-bg);color:var(--rijk-blauw);}
-.settings-btn #mode-badge{margin-left:auto;}
+.brand-text p{margin:0;font-size:.74rem;color:var(--ink-licht);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.settings-btn{display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--ink-licht);border:1px solid transparent;border-radius:9px;padding:6px 9px;font-size:.85rem;font-family:inherit;cursor:pointer;transition:background .12s,color .12s,border-color .12s;}
+.settings-btn:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
+.settings-btn[aria-expanded="true"]{background:var(--blauw-bg);color:var(--rijk-blauw);border-color:var(--blauw-licht);}
 /* Chat-kolom */
 .chat{flex:1;display:flex;flex-direction:column;min-width:0;background:#fff;}
-.chat-topbar{display:none;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--rand);background:#fff;}
-.sidebar-toggle{background:transparent;border:none;color:var(--rijk-blauw);cursor:pointer;padding:4px;display:inline-flex;}
-.chat-topbar-title{font-weight:700;color:var(--rijk-blauw);font-size:1rem;}
-.sidebar-backdrop{display:none;}
+.chat-topbar{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--rand);background:#fff;}
+.topbar-spacer{flex:1;}
 .keybar.hidden{display:none;}
 .keybar{background:var(--grijs);color:var(--ink);padding:14px 20px;font-size:.82rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--rand);}
 .keybar select,.keybar input{padding:8px 10px;border:1px solid var(--rand);border-radius:8px;font-size:.85rem;background:#fff;color:var(--ink);font-family:inherit;}
 .keybar input{flex:1;min-width:180px;}
-.filterbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 20px;background:#fff;border-bottom:1px solid var(--rand);font-size:.82rem;}
+/* Zoekgebied staat in de bovenbalk: je moet kunnen zien dat een filter aanstaat. */
+.filterbar{display:flex;gap:7px;align-items:center;font-size:.82rem;}
 .filterbar-label{color:var(--ink-licht);font-weight:600;}
-.filterbar select{padding:6px 9px;border:1px solid var(--rand);border-radius:8px;font-size:.82rem;background:#fff;color:var(--ink);font-family:inherit;max-width:48%;}
+.filterbar select{padding:5px 8px;border:1px solid var(--rand);border-radius:8px;font-size:.8rem;background:#fff;color:var(--ink);font-family:inherit;max-width:150px;}
 .filterbar select:not([data-all]){border-color:var(--rijk-licht);color:var(--rijk-blauw);font-weight:600;}
 .filter-clear{background:none;border:none;color:var(--ink-licht);cursor:pointer;font-family:inherit;font-size:.78rem;text-decoration:underline;}
 .filter-clear:hover{color:var(--rood);}
@@ -309,10 +293,15 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 .viewer-backdrop[hidden]{display:none;}
 /* Mobiel: zijbalk wordt off-canvas met hamburger */
 @media (max-width:760px){
-  .chat-topbar{display:flex;}
-  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:65;transform:translateX(-100%);transition:transform .25s ease;box-shadow:6px 0 40px rgba(20,40,70,.18);}
-  body.sidebar-open .sidebar{transform:translateX(0);}
-  body.sidebar-open .sidebar-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.35);border:0;z-index:64;}
+  /* Smal scherm: de bovenbalk breekt af, het zoekgebied krijgt zijn eigen regel. */
+  .chat-topbar{flex-wrap:wrap;padding:8px 12px;}
+  .brand-text{flex:1;min-width:0;}
+  .brand-text p,.brand-sub{display:none;}
+  .topbar-spacer{display:none;}
+  #mode-badge{order:2;}
+  .filterbar{order:3;width:100%;padding-top:2px;}
+  .filterbar select{flex:1;min-width:0;max-width:none;}
+  .settings-btn .btn-label{display:inline;}
   .conversation{padding:20px 16px;}
   .composer{padding:10px 12px 16px;}
   .btn-label{display:none;}
@@ -326,24 +315,22 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 </head>
 <body class="is-welcome">
 <div class="layout">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-head">
+  <div class="chat">
+    <div class="chat-topbar">
       <img class="brand-logo" src="assets/avatar.png" alt="" onerror="this.style.display='none'" />
       <div class="brand-text">
         <h1>Leo <span class="brand-sub">(voorlichter assistent)</span></h1>
-        <p>NederlandWereldwijd — testomgeving</p>
+        <p>· NederlandWereldwijd — testomgeving</p>
       </div>
-    </div>
-    <div class="sidebar-spacer"></div>
-    <div class="sidebar-foot">
-      <button id="settings-toggle" class="settings-btn" aria-expanded="false" aria-controls="keybar"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.74 8.2a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.33.61.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.09.47 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>AI-instellingen <span id="mode-badge"></span></button>
-    </div>
-  </aside>
-  <button class="sidebar-backdrop" id="sidebar-backdrop" hidden aria-hidden="true"></button>
-  <div class="chat">
-    <div class="chat-topbar">
-      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Gesprekken tonen" title="Gesprekken"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-      <span class="chat-topbar-title">Leo <span class="brand-sub">(voorlichter assistent)</span></span>
+      <div class="topbar-spacer"></div>
+      <div class="filterbar" id="filterbar">
+        <span class="filterbar-label">Zoekgebied:</span>
+        <select id="filter-country" title="Beperk tot een land"><option value="">Alle landen</option></select>
+        <select id="filter-topic" title="Beperk tot een onderwerp"><option value="">Alle onderwerpen</option></select>
+        <button type="button" id="filter-clear" class="filter-clear" hidden title="Filters wissen">wissen ✕</button>
+      </div>
+      <button id="settings-toggle" class="settings-btn" aria-expanded="false" aria-controls="keybar" title="AI-instellingen"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.74 8.2a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.33.61.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.09.47 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg><span class="btn-label">Instellingen</span></button>
+      <span id="mode-badge"></span>
     </div>
     <div class="keybar hidden" id="keybar">
       <select id="provider" title="Kies AI-provider"></select>
@@ -354,12 +341,6 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <span class="status" id="semstatus">zoeken laden…</span>
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
       <button type="button" class="fb-export" id="fb-export" title="Download de lokaal opgeslagen feedback en gemiste vragen als CSV">feedback exporteren ↓</button>
-    </div>
-    <div class="filterbar" id="filterbar">
-      <span class="filterbar-label">Zoekgebied:</span>
-      <select id="filter-country" title="Beperk tot een land"><option value="">Alle landen</option></select>
-      <select id="filter-topic" title="Beperk tot een onderwerp"><option value="">Alle onderwerpen</option></select>
-      <button type="button" id="filter-clear" class="filter-clear" hidden title="Filters wissen">wissen ✕</button>
     </div>
     <main class="conversation" id="conv">
       <p class="empty welcome" id="loadmsg">Corpus laden…</p>
@@ -869,7 +850,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 59";
+const APP_VERSION="build 60";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -909,7 +890,7 @@ function refreshComposer(){
   const r=document.getElementById("reset");if(r)r.hidden=!lopend;
   sendBtn.disabled=!corpusKlaar||!inputEl||!inputEl.value.trim();
 }
-function newConversation(){history=[];gesprekLoopt=false;showWelcome();refreshComposer();closeSidebar();inputEl&&inputEl.focus();}
+function newConversation(){history=[];gesprekLoopt=false;showWelcome();refreshComposer();inputEl&&inputEl.focus();}
 function recordTurn(){}  // no-op: gesprekken worden niet bewaard
 function restoreTurn(){}  // no-op
 function loadConversation(){} // no-op
@@ -917,9 +898,6 @@ function deleteConversation(){} // no-op
 function renderConvoList(){} // no-op
 
 /* Zijbalk in-/uitklappen op mobiel */
-function closeSidebar(){document.body.classList.remove("sidebar-open");}
-document.getElementById("sidebar-toggle").addEventListener("click",()=>document.body.classList.toggle("sidebar-open"));
-document.getElementById("sidebar-backdrop").addEventListener("click",closeSidebar);
 
 document.getElementById("reset").addEventListener("click",newConversation);
 
