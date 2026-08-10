@@ -375,10 +375,12 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 <script>
 const SYSTEM=`Je helpt een voorlichter van het klantcontactcentrum van NederlandWereldwijd. Je krijgt de vraag van de burger en enkele genummerde pagina's van NederlandWereldwijd.nl met hun LETTERLIJKE tekst.
 
+UITGANGSPUNT: DE BRON IS LEIDEND, DE AI VERBINDT ALLEEN. Het antwoord bestaat uit LETTERLIJKE passages van de website, met daartussen zo min mogelijk eigen tekst. Je schrijft dus geen eigen antwoord met citaten erbij gezocht, maar je KIEST passages en verbindt ze. Alles wat inhoud is — feiten, bedragen, termijnen, voorwaarden, uitzonderingen, stappen — komt uit de bron; jouw tekst voegt daar niets aan toe. Kan iets niet uit de bron worden geciteerd, dan hoort het niet in het antwoord.
+
 Stel een antwoord samen dat bestaat uit:
 1. "citations": de relevante passages die samen de vraag beantwoorden. Geef per passage:
    - "source_index": het paginanummer;
-   - "quote": de passage LETTERLIJK overgeschreven uit de paginatekst — zelfde woorden, leestekens en hoofdletters. De app zoekt dit stuk terug op de pagina; wijkt het af, dan valt het citaat af. Schrijf dus geen samenvatting en verander niets, maar KNIP WEL PRECIES: begin bij de eerste zin die de vraag beantwoordt en stop bij de laatste. Laat alles ervoor en erna weg;
+   - "quote": de passage LETTERLIJK overgeschreven uit de paginatekst — zelfde woorden, leestekens en hoofdletters. De app zoekt dit stuk terug op de pagina; wijkt het af, dan valt het citaat af. Schrijf dus geen samenvatting, parafraseer niet, laat geen woorden weg en gebruik NOOIT beletseltekens (…) om een weggelaten stuk te maskeren. Knip wel precies: begin bij de eerste zin die de vraag beantwoordt en stop bij de laatste. VOLLEDIG: begin en eindig op een hele zin, nooit midden in een zin; hoort er een opsomming of stappenplan bij, neem die dan compleet mee. Staat er midden in de zin een link op een eigen regel, dan hoort die gewoon bij de zin — schrijf de zin dus in zijn geheel over;
    - "start" en "end": de eerste en de laatste 4 tot 8 woorden van diezelfde passage, exact overgenomen (reservemethode als "quote" niet exact terug te vinden is).
    Je mag passages uit verschillende pagina's combineren. REGELS voor goede citaten:
    - Citeer alleen VOLLEDIGE, op zichzelf staande zinnen of alinea's met inhoud. Citeer NOOIT een los kopje, sectietitel, knoptekst of navigatielabel (korte regels zonder werkwoord, zoals "Buitenland", "Let op:" of "Tijdelijke aanvraaglocaties"), en laat ze ook niet MIDDEN in een citaat staan: loopt de alinea door tot waar een nieuw kopje of een lijst met links begint, stop het citaat dan daarvóór.
@@ -388,12 +390,14 @@ Stel een antwoord samen dat bestaat uit:
    - BEKNOPT: houd elk citaat KORT en gefocust — kies één samenhangende alinea (liefst 2 tot 5 zinnen) die precies het betreffende punt beantwoordt. Citeer NOOIT een hele paginasectie met meerdere tussenkopjes, opsommingen van links, "Bekijk…"- of "Lees…"-knopteksten, of losse "Let op:"-blokken. Stopt de relevante alinea waar een nieuw kopje of navigatietekst begint, zet "end" dan vóór dat kopje.
    - VOLGORDE: zet de citaten in de volgorde waarin je ze zou uitleggen — eerst het kernantwoord, dan waar of hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. De samenhang breng je aan met de "bridge"-zin vóór elk citaat, niet met tussenkopjes.
 2. "clarifications": als het juiste antwoord AFHANGT van de situatie van de burger, neem dan geen aanname maar zet hier de vraag/vragen die de voorlichter moet stellen. Veel antwoorden hangen af van: het LAND waar de aanvrager woont, of het een EERSTE aanvraag of een VERVANGING/VERLENGING is, en of het voor een VOLWASSENE of voor een KIND is. Geef per verduidelijking een "question" (wat de voorlichter uitvraagt) en een "prefill" (begin van een vervolgvraag dat de voorlichter aanvult, bv. "ID-kaart aanvragen vanuit "). Geef bij een situatie-afhankelijke vraag ALTIJD minstens één verduidelijking, zodat de voorlichter de juiste situatie kan uitvragen in plaats van dat jij iets aanneemt. Laat leeg als er echt niets te verduidelijken valt.
-3. "bridge" (per citaat, MAG LEEG ZIJN): een korte zin die van het voorgaande naar dit citaat toe leidt — ALLEEN als dat de tekst echt vloeiender maakt. Schrijf zoals een ervaren voorlichter het aan een collega zou uitleggen: natuurlijk verbonden met wat er net gezegd is, niet als vast sjabloon dat je voor elk citaat herhaalt. Vermijd het stramien "Over <onderwerp> zegt de site:" bij elk citaat — wissel de vorm af, of verbind inhoudelijk aan de vorige zin ("Dat geldt ook voor de kosten." / "Let daarbij wel op het volgende:" / "Zo simpel is het niet altijd:"). Regels:
-   - WAARHEIDSPLICHT: de brug moet exact kloppen met wat het citaat DAADWERKELIJK zegt. Kondig geen "stappen" aan als het citaat geen opsomming van stappen geeft, geen "voorwaarden" als het citaat geen voorwaarden noemt, geen "deze documenten" als het citaat maar één document noemt. Lees het gekozen citaat dus goed terug voor je de brug schrijft, en beschrijf specifiek wat erin staat — niet wat je verwacht dat er zou kunnen staan.
-   - Herhaal NOOIT in andere woorden wat de eerste zin van het citaat al zegt.
-   - Noem zelf GEEN feiten, bedragen, termijnen, voorwaarden of conclusies — die horen in het citaat, niet in de brug.
-   - LAAT LEEG wanneer er niets zinvols te overbruggen valt: het citaat sluit vanzelfsprekend aan op "intro" of op het vorige citaat, of een brug zou alleen maar ballast zijn. Een leeg bridge-veld is een goede uitkomst, geen tekortkoming — gebruik het vaker dan je geneigd bent.
-   - Gebruik dezelfde vakterm als de vraag. Schrijf de zin PAS NADAT je het citaat hebt gekozen. Bij het EERSTE citaat volgt de brug (indien niet leeg) direct op "intro"; die twee moeten dan op elkaar aansluiten en elkaar niet herhalen.
+3. "bridge" (per citaat, MAG LEEG ZIJN): korte verbindende tekst. Dit is de ENIGE plek waar je eigen woorden staan, en hoe minder je er gebruikt, hoe beter.
+   - WAT EEN BRUG WEL MAG: de volgorde verduidelijken, aangeven dat er verschillende situaties zijn, aangeven dat de volgende passage over een andere situatie gaat, of de lezer naar het volgende onderdeel leiden.
+   - WAT EEN BRUG NOOIT MAG: nieuwe feiten noemen; conclusies trekken die niet letterlijk uit de bron volgen; voorwaarden, termijnen, bedragen of uitzonderingen introduceren; juridische of procedurele betekenis toevoegen; stelliger zijn dan de bron; of informatie uit twee passages samenvoegen tot een nieuwe conclusie. Bedragen, aantallen en termijnen in een brug worden door de app gecontroleerd tegen het citaat en anders verwijderd.
+   - LAAT LEEG als twee passages ook zonder verbindende zin logisch achter elkaar staan. Een leeg bridge-veld is een goede uitkomst; gebruik het vaker dan je geneigd bent.
+   - Houd hem zeer kort (hooguit een zin, maximaal 20 woorden) en sluit aan op wat er staat. Vermijd het stramien "Over <onderwerp> zegt de site:" bij elk citaat.
+   - WAARHEIDSPLICHT: wat de brug aankondigt moet het citaat ook echt bieden. Kondig geen "stappen" aan als het citaat geen stappen geeft, en geen "voorwaarden" als die er niet staan. Lees het gekozen citaat dus terug voor je de brug schrijft.
+   - Voorbeeld goed: "Woont u in een ander EU-land? Dan gelden andere stappen." Voorbeeld fout: "Als u in een ander EU-land woont, moet u uw rijbewijs opnieuw aanvragen bij de lokale autoriteiten." — dat laatste voegt inhoud toe die uit de bron moet komen.
+
 4. "followups": 2 tot 4 logische vervolgvragen die de burger waarschijnlijk ook heeft (volledige, op zichzelf staande vragen).
 5. "intro": EÉN korte zin (max 18 woorden; gebruik dezelfde vakterm als de vraag — herinterpreteer die niet) in de aanspreekvorm "u" die de INFORMATIEBEHOEFTE van de burger herformuleert, grammaticaal naadloos overloopt in het eerste citaat, en de voorlichter helpt de vraag goed te kaderen. VARIEER de opening — gebruik bv. "Als ik het goed begrijp, wilt u weten…", "U vraagt waarschijnlijk naar…", "U zoekt informatie over…", "Begrijp ik goed dat u wilt weten…" of een vergelijkbare natuurlijke variant. Schrijf de zin PAS NADAT je het eerste citaat hebt gekozen, zodat hij precies daarop aansluit. Strikte regels: noem GEEN feiten, bedragen, termijnen of conclusies — herformuleer ALLEEN de VRAAG. Geef GEEN aanname over de situatie (bv. niet "voor uw kind" tenzij de burger dat zelf zei). Eindig NIET op een dubbele punt als het citaat met een vraag begint. Laat "intro" LEEG als er geen citaat is.
 
@@ -492,6 +496,16 @@ const TOPK=6; // aantal kandidaat-pagina's dat naar het AI-model gaat
 // Hoeveel citaten een antwoord hoogstens telt. Eén citaat blijft de regel; meer alleen als de
 // vraag echt uit meerdere onderdelen bestaat (kosten én doorlooptijd, of per situatie anders).
 const MAX_CITES=3;
+// Koppen en linkteksten per pagina, gecachet: nodig om blokgrenzen en inline links te herkennen.
+const _HEADS=[],_ANCH=[];
+function headingSet(i){
+  if(!_HEADS[i])_HEADS[i]=new Set(((CORPUS[i]||{}).headings||[]).map(h=>(h[1]||"").trim()).filter(Boolean));
+  return _HEADS[i];
+}
+function anchorSet(i){
+  if(!_ANCH[i])_ANCH[i]=new Set(((CORPUS[i]||{}).links||[]).map(l=>(Array.isArray(l)?l[0]:l||"").trim()).filter(Boolean));
+  return _ANCH[i];
+}
 // Fusie- en veldgewichten, afgesteld met scripts/tune.mjs (660 varianten) op 1000 uit het corpus
 // afgeleide vragen (scripts/eval_set_auto.json), met als HARDE EIS dat de 126 handgemaakte
 // vragen (scripts/eval_set.json) er niet op achteruit gaan — anders koop je winst op
@@ -795,12 +809,24 @@ function findFrom(text,phrase,from){
   const m=new RegExp(words.join("\\s+"),"i").exec(text.slice(from));
   return m?{i:from+m.index,len:m[0].length}:null;
 }
-// Knip op basis van start/end-verwijzing het exacte, aaneengesloten stuk uit de paginatekst.
-// Zoekt een door het model LETTERLIJK teruggegeven citaat terug in de paginatekst en geeft de
-// tekst uit de PAGINA terug (niet die van het model). Verschillen in spaties, aanhalingstekens en
-// streepjes worden genegeerd; alle andere tekens moeten kloppen. Zo mag het model zelf bepalen
-// waar het citaat begint en eindigt, terwijl het resultaat aantoonbaar van de site komt.
-const NORM_MAP=[["“","\""],["”","\""],["„","\""],["‘","'"],["’","'"],["–","-"],["—","-"],["\u00a0"," "]];
+// ===== <<CITAAT-LOGICA>> =====================================================================
+// Gedeeld met scripts/quote_test.mjs — dat bestand knipt dit blok uit index.html en test het.
+//
+// KERNIDEE: een citaat is nooit een willekeurig stuk tekst, maar altijd een aaneengesloten reeks
+// hele ZINNEN uit de paginatekst, aangewezen met offsets. De getoonde tekst is daarmee per
+// constructie een letterlijk substring van de bron — er wordt niets samengevoegd of herschreven.
+//
+// WAAROM ZINNEN EN GEEN REGELS: de crawler zet elke link op een eigen regel, ook midden in een
+// zin ("… heeft u" / "DigiD" / "nodig."). Regelgebaseerd knippen brak zulke zinnen doormidden.
+// Een menu-item eronder is óók een eigen regel, maar hoort juist NIET bij de zin. Het verschil:
+// bij een inline link loopt de zin daarna door met een kleine letter of een leesteken.
+const NORM_MAP=[["“","\""],["”","\""],["„","\""],["‘","'"],["’","'"],["–","-"],["—","-"],[" "," "]];
+const ZIN_EIND=/[.!?][)"'”’]?$/;
+const eindigtZin=s=>ZIN_EIND.test((s||"").trim());
+// Zet de zin zich hierin voort? Kleine letter, of een leesteken dat aan de vorige zin vastzit.
+const startVervolg=s=>{const t=(s||"").trim();return !!t&&/^[a-zà-ÿ(.,;:)]/.test(t);};
+
+// Normaliseren is UITSLUITEND om te vergelijken; de getoonde tekst blijft de originele.
 function normForMatch(t){
   let out="",map=[];
   for(let i=0;i<t.length;i++){
@@ -811,63 +837,181 @@ function normForMatch(t){
   }
   return {s:out.toLowerCase(),map};
 }
-function findVerbatim(text,quote){
-  const q=(quote||"").trim();
-  if(q.length<12)return null;
+
+// Verdeelt een paginatekst in eenheden met offsets: elke eenheid is één hele zin, of anders een
+// kop, label of menu-item. Twee stappen: eerst regels samenvoegen die één alinea vormen, dan
+// die alinea's opsplitsen op zinsgrenzen.
+function buildUnits(text,anchors,heads){
+  const T=text||"";
+  const H=heads instanceof Set?heads:new Set(heads||[]);
+  const A=anchors instanceof Set?anchors:new Set(anchors||[]);
+  const lines=[];let pos=0;
+  for(const raw of T.split("\n")){lines.push({t:raw.trim(),start:pos,end:pos+raw.length});pos+=raw.length+1;}
+
+  // Stap 1: regels aaneenrijgen zolang de zin doorloopt. Na een dubbele punt volgt meestal een
+  // OPSOMMING; die regels blijven juist los, anders plakt de weergave alle items aan elkaar.
+  const alineas=[];let i=0,lijst=false;
+  while(i<lines.length){
+    if(!lines[i].t){i++;continue;}
+    if(lijst){
+      const t=lines[i].t;
+      if(H.has(t)||(eindigtZin(t)&&telWoorden(t)>15))lijst=false;             // lopende tekst hervat
+      else{
+        // Elk lijstitem is een eigen regel, MAAR een inline link binnen een item hoort erbij
+        // ("een kopie van het" / "paspoortaanvraagformulier" / "(ondertekend door…)").
+        let j=i;
+        while(j+1<lines.length){
+          const cur=lines[j].t,nx=lines[j+1].t,nn=(lines[j+2]||{}).t;
+          if(!nx||eindigtZin(cur)||H.has(nx))break;
+          if(!(A.has(nx)||A.has(cur)||/^[(.,;:)]/.test(nx)||(nn&&/^[(.,;:)]/.test(nn))))break;
+          j++;
+        }
+        alineas.push({start:lines[i].start,end:lines[j].end,lijst:true});
+        i=j+1;continue;
+      }
+    }
+    let j=i;
+    while(j+1<lines.length){
+      const cur=lines[j].t,nx=lines[j+1].t,nn=(lines[j+2]||{}).t;
+      if(!nx)break;
+      if(eindigtZin(cur)||/:$/.test(cur))break;       // zin is af, of er volgt een opsomming
+      if(H.has(cur)||H.has(nx))break;                 // een kop staat op zichzelf
+      // Doorlopen als de volgende regel de zin voortzet, of als er een inline element (link)
+      // tussen staat waarna de zin aantoonbaar verdergaat.
+      if(!(startVervolg(nx)||(nn&&startVervolg(nn))))break;
+      j++;
+    }
+    alineas.push({start:lines[i].start,end:lines[j].end,lijst:false});
+    if(/:$/.test(lines[j].t))lijst=true;
+    i=j+1;
+  }
+
+  // Stap 2: alinea's opdelen in zinnen, met behoud van offsets.
+  const units=[];
+  const maak=(s,e,isLijst)=>{
+    while(s<e&&/\s/.test(T[s]))s++;
+    while(e>s&&/\s/.test(T[e-1]))e--;
+    if(e<=s)return;
+    const txt=T.slice(s,e);
+    units.push({start:s,end:e,text:txt,af:eindigtZin(txt),lijst:!!isLijst});
+  };
+  for(const al of alineas){
+    const seg=T.slice(al.start,al.end);
+    let last=0;const re=/[.!?][)"'”’]?/g;let m;
+    while((m=re.exec(seg))){
+      const na=seg.slice(m.index+m[0].length);
+      // Alleen een zinsgrens als er daarna witruimte en een hoofdletter/cijfer volgt.
+      if(na&&!/^\s+["'“(]?[A-ZÀ-Þ0-9]/.test(na))continue;
+      maak(al.start+last,al.start+m.index+m[0].length,al.lijst);
+      last=m.index+m[0].length;
+    }
+    if(last<seg.length)maak(al.start+last,al.end,al.lijst);
+  }
+  return units;
+}
+
+// Grens tussen onderwerpen: een kop of een los menu-item. Zo'n eenheid hoort niet in een citaat
+// en markeert het einde van het stuk waar het citaat bij hoort.
+function isBlokGrens(u,heads,anchors){
+  const t=u.text.trim();
+  if(u.af)return false;                                 // een hele zin is nooit een grens
+  return heads.has(t)||anchors.has(t);
+}
+
+// Zoekt het door het model letterlijk gegeven citaat terug -> {start,end} in de paginatekst.
+function locateSpan(text,quote){
+  const q=(quote||"").trim();if(q.length<12)return null;
   const a=normForMatch(text),b=normForMatch(q);
-  const needle=b.s.trim();
-  const i=a.s.indexOf(needle);
-  if(i<0)return null;
-  return text.slice(a.map[i],a.map[i+needle.length-1]+1);
+  const needle=b.s.trim();if(!needle)return null;
+  const i=a.s.indexOf(needle);if(i<0)return null;
+  return {start:a.map[i],end:a.map[i+needle.length-1]+1};
 }
-// Snijdt het citaat af waar het niet meer bij de vraag hoort: bij een KOPJE of een LINKTEKST van
-// diezelfde pagina begint een nieuw onderwerp, en losse labels ("Let op:") zijn geen antwoord.
-// Daarnaast een harde bovengrens, afgekapt op een zinseinde — een citaat van twintig regels
-// leest niemand voor aan de telefoon.
-const MAX_QUOTE_WORDS=110;
-function trimQuote(idx,quote){
-  const p=CORPUS[idx]||{};
-  const heads=new Set((p.headings||[]).map(h=>(h[1]||"").trim()).filter(Boolean));
-  const anchors=new Set((p.links||[]).map(l=>(Array.isArray(l)?l[0]:l||"").trim()).filter(Boolean));
-  const grens=ln=>heads.has(ln)||anchors.has(ln);
-  const lines=(quote||"").split("\n").map(l=>l.trim()).filter(Boolean);
-  const uit=[];let woorden=0;
-  for(const ln of lines){
-    if(grens(ln)){ if(uit.length)break; continue; }   // kop vooraan: overslaan, in het midden: stoppen
-    uit.push(ln);woorden+=ln.split(/\s+/).length;
-    if(woorden>=MAX_QUOTE_WORDS)break;
-  }
-  // Sluit niet af met een aankondiging zonder inhoud ("Let op:", "U heeft nodig:").
-  while(uit.length>1&&/:$/.test(uit[uit.length-1])&&uit[uit.length-1].split(/\s+/).length<=6)uit.pop();
-  let q=uit.join("\n").trim();
-  if(woorden>MAX_QUOTE_WORDS){                        // te lang: afkappen op het laatste zinseinde
-    const w=q.split(/\s+/).slice(0,MAX_QUOTE_WORDS).join(" ");
-    const m=w.lastIndexOf(". ");
-    q=(m>60?w.slice(0,m+1):w+"…");
-  }
-  return q;
-}
-function extractQuote(text,start,end){
-  const s=findFrom(text,(start||"").trim(),0);
-  if(!s)return null;
+// Reservemethode: span op basis van de eerste/laatste woorden van de passage.
+function spanFromAnchors(text,start,end){
+  const s=findFrom(text,(start||"").trim(),0);if(!s)return null;
   const ep=(end||"").trim();
-  if(ep){const e=findFrom(text,ep,s.i);if(e&&e.i+e.len>s.i){let q=text.slice(s.i,e.i+e.len);return q.length>2000?q.slice(0,2000):q;}}
-  const nl=text.indexOf("\n",s.i);
-  return text.slice(s.i, nl>s.i?nl:Math.min(text.length,s.i+600)).trim();
+  if(ep){const e=findFrom(text,ep,s.i);if(e&&e.i+e.len>s.i)return {start:s.i,end:e.i+e.len};}
+  return {start:s.i,end:s.i+s.len};                     // alleen begin bekend: de zinnen vullen aan
 }
-// Een regel is een kopje/label als hij kort is en niet op een zin-einde eindigt.
+
+const MAX_QUOTE_WORDS=110;
+const telWoorden=t=>((t||"").trim().match(/\S+/g)||[]).length;
+
+// Bouwt uit een ruwe span het definitieve citaat: hele zinnen, binnen één blok, nooit midden in
+// een zin, zonder beletseltekens. Geeft {text,start,end} of null als er niets bruikbaars is.
+function buildCitation(text,span,heads,anchors){
+  if(!span)return null;
+  const H=heads instanceof Set?heads:new Set(heads||[]);
+  const A=anchors instanceof Set?anchors:new Set(anchors||[]);
+  const units=buildUnits(text,A,H);
+  if(!units.length)return null;
+
+  // 1. Welke zinnen raakt de span? De span wordt opgerekt tot HELE zinnen.
+  let a=-1,b=-1;
+  for(let k=0;k<units.length;k++){
+    if(a<0&&units[k].end>span.start)a=k;
+    if(units[k].start<span.end)b=k;
+  }
+  if(a<0)return null;
+  if(b<a)b=a;
+
+  // 2. Kop of menu-item vooraan hoort niet in het citaat; verderop markeert die het einde.
+  while(a<=b&&isBlokGrens(units[a],H,A))a++;
+  if(a>b)return null;
+  for(let k=a;k<=b;k++)if(isBlokGrens(units[k],H,A)){b=k-1;break;}
+  if(b<a)return null;
+
+  // 2b. Een lijstitem zonder de regel die de opsomming aankondigt ("U heeft nodig:") is niet
+  //     zelfstandig te lezen; neem die aankondiging erbij.
+  while(a>0&&units[a].lijst){
+    const vorige=units[a-1];
+    if(isBlokGrens(vorige,H,A))break;
+    a--;
+    if(!vorige.lijst)break;
+  }
+
+  // 3. Lengte begrenzen door HELE zinnen achteraan weg te laten — nooit halverwege afkappen.
+  while(b>a&&telWoorden(text.slice(units[a].start,units[b].end))>MAX_QUOTE_WORDS)b--;
+
+  // 4. Een opsomming hoort er compleet bij: eindigt het citaat op een dubbele punt, loop dan
+  //    door tot de lijst klaar is. Volledigheid weegt hier zwaarder dan de woordgrens.
+  if(/:$/.test(units[b].text.trim())){
+    while(b+1<units.length&&units[b+1].lijst){
+      const nx=units[b+1];
+      if(isBlokGrens(nx,H,A))break;
+      if(telWoorden(text.slice(units[a].start,nx.end))>MAX_QUOTE_WORDS*1.8)break;
+      b++;
+    }
+  }
+
+  // 5. Nooit eindigen midden in een zin. Een onafgemaakte laatste regel mag alleen blijven als
+  //    hij bij een opsomming hoort (er staat een dubbele punt boven).
+  const inLijst=k=>units[k].lijst;
+  while(b>a&&!units[b].af&&!inLijst(b))b--;
+  // 6. Sluit niet af met een aankondiging zonder inhoud ("U heeft nodig:").
+  while(b>a&&/:$/.test(units[b].text.trim()))b--;
+  if(!units[b].af&&!inLijst(b))return null;             // wat overblijft is geen hele zin
+
+  const start=units[a].start,end=units[b].end;
+  const uit=text.slice(start,end);
+  // 7. Controle: wat we tonen moet letterlijk in de bron staan. Per constructie waar, maar we
+  //    controleren het expliciet zodat een toekomstige wijziging hier stukloopt in plaats van
+  //    stilletjes een onjuist citaat te tonen.
+  if(!text.includes(uit))return null;
+  return {text:uit,start,end};
+}
+
+// Te zwak om als citaat te tonen: vrijwel leeg, of alleen een kort kopje/label.
 function looksLikeHeading(line){
   const t=(line||"").trim();const w=t.split(/\s+/);
   return t.length>0 && w.length<=6 && !/[.!?]$/.test(t);
 }
-// Te zwak om als citaat te tonen: vrijwel leeg, of een kort kopje/label zonder echte zin.
 function isWeakQuote(q){
   const t=(q||"").trim();
-  if(t.length<12)return true;        // vrijwel niets
-  if(t.includes("\n"))return false;  // meerregelig = inhoud
-  return looksLikeHeading(t);        // korte regel zonder zin-einde = kopje/label
+  if(t.length<12)return true;
+  if(t.includes("\n"))return false;
+  return looksLikeHeading(t);
 }
-// Begint het citaat met een los kopje? Voeg dan de eerstvolgende inhoudsregel toe.
 // Sterke overlap tussen twee citaten (de één bevat (vrijwel) de ander).
 function quotesOverlap(a,b){
   const x=a.toLowerCase().trim(),y=b.toLowerCase().trim();
@@ -875,6 +1019,23 @@ function quotesOverlap(a,b){
   const sh=x.length<y.length?x:y,lo=x.length<y.length?y:x;
   return sh.length>=40 && lo.includes(sh.slice(0,Math.floor(sh.length*0.8)));
 }
+// Overbruggingszin toetsen: de bron is leidend, de AI verbindt alleen. Een brug die eigen
+// FEITEN aandraagt (bedragen, termijnen, jaartallen) die niet in het citaat staan, vervalt.
+const BRUG_MAX_WOORDEN=20;
+function bridgeIsSafe(bridge,quote){
+  const b=(bridge||"").trim();
+  if(!b)return true;                                   // leeg is prima, vaak zelfs beter
+  if(telWoorden(b)>BRUG_MAX_WOORDEN)return false;
+  const bron=(quote||"").toLowerCase();
+  for(const m of b.matchAll(/\d[\d.,]*/g))if(!bron.includes(m[0].toLowerCase()))return false;
+  if(/€|euro|procent|%/i.test(b)&&!/€|euro|procent|%/i.test(bron))return false;
+  return true;
+}
+// Splitst een citaat in alinea's voor weergave: inline links worden weer aan hun zin geplakt.
+function quoteParagraphs(quote,anchors,heads){
+  return buildUnits(quote||"",anchors,heads).map(u=>u.text.replace(/\s*\n\s*/g," ").trim()).filter(Boolean);
+}
+// ===== <</CITAAT-LOGICA>> ====================================================================
 
 const conv=document.getElementById("conv"),provSel=document.getElementById("provider"),modelSel=document.getElementById("model"),keyInput=document.getElementById("apikey"),keyLink=document.getElementById("keylink"),keyStatus=document.getElementById("keystatus"),modeBadge=document.getElementById("mode-badge"),sendBtn=document.getElementById("send");
 
@@ -904,7 +1065,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 64";
+const APP_VERSION="build 66";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1566,6 +1727,25 @@ const LISTEN=(function initListen(){
 
 function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
 
+// De twee soorten tekst in een antwoord, expliciet uit elkaar gehouden:
+//   type "bridge" = door de AI geschreven verbindende tekst (herformulering + overbrugging)
+//   type "source" = LETTERLIJKE tekst van de website, onveranderlijk
+// Zowel de weergave als het kopieren/delen loopt hierover, zodat er maar één plek is waar
+// vastligt wat AI-tekst is en wat bron. Wie hier een blok toevoegt, moet zich uitspreken.
+function answerBlocks(r){
+  const blokken=[];
+  (r.citations||[]).forEach((c,i)=>{
+    const tekst=[];
+    if(i===0&&r.intro)tekst.push(r.intro);
+    if(c.bridge)tekst.push(c.bridge);
+    if(tekst.length)blokken.push({type:"bridge",text:tekst.join("\n"),alineas:tekst});
+    blokken.push({type:"source",text:c.text,sourceUrl:c.src?c.src.url:"",sourceTitle:c.src?c.src.title:"",
+                  verified:!!c.verified,srcIdx:c.srcIdx,ci:i});
+  });
+  if(!blokken.length&&r.intro)blokken.push({type:"bridge",text:r.intro,alineas:[r.intro]});
+  return blokken;
+}
+
 // LOPENDE TEKST van een pagina, zonder navigatie.
 // De crawler neemt ook de links uit de hoofdinhoud mee; op hubpagina's bestaat de "tekst"
 // daardoor vrijwel alleen uit menu-items ("Toestemmingsformulier reizen met kinderen
@@ -1602,14 +1782,19 @@ async function askAI(q,cands,key){
   for(const c of rawCites){
     const local=c.source_index;const gi=Number.isInteger(local)?cands[local]:null;if(gi===null)continue;
     // Knip het exacte stuk zelf uit de pagina o.b.v. de start/end-verwijzing -> altijd letterlijk.
-    // Het model geeft het citaat woordelijk terug; wij zoeken het terug op de pagina en gebruiken
-    // de tekst van de PAGINA. Lukt dat niet, dan valt het terug op de oude start/eind-ankers.
-    let quote=findVerbatim(CORPUS[gi].text,c.quote)||extractQuote(CORPUS[gi].text,c.start,c.end);
-    if(!quote){notFound++;continue;}
-    quote=trimQuote(gi,quote);                    // kopjes, navigatie en overlengte eraf
-    if(isWeakQuote(quote)){notFound++;continue;}  // te kort of alleen een kopje -> overslaan
+    // Het model wijst de passage aan (letterlijk, of met begin/eind-woorden); de app bepaalt de
+    // definitieve grenzen op hele zinnen en knipt het stuk uit de PAGINA. De getoonde tekst is
+    // daarmee altijd letterlijk, aaneengesloten en compleet.
+    const pag=CORPUS[gi],ptxt=pag.text||"";
+    const heads=headingSet(gi),anchors=anchorSet(gi);
+    const span=locateSpan(ptxt,c.quote)||spanFromAnchors(ptxt,c.start,c.end);
+    const cit=buildCitation(ptxt,span,heads,anchors);
+    if(!cit){notFound++;continue;}
+    const quote=cit.text;
+    if(isWeakQuote(quote)){notFound++;continue;}
     if(citations.some(x=>quotesOverlap(x.text,quote)))continue; // dubbel/overlappend -> overslaan
-    const bridge=(c.bridge||"").toString().trim().replace(/\s+/g," ").slice(0,180);
+    let bridge=(c.bridge||"").toString().trim().replace(/\s+/g," ").slice(0,180);
+    if(!bridgeIsSafe(bridge,quote))bridge="";     // brug voegt eigen feiten toe -> weglaten
     citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,bridge});usedSet.add(gi);
     if(citations.length>=MAX_CITES)break;
   }
@@ -1662,11 +1847,10 @@ function fallbackCopy(t,cb){const ta=document.createElement("textarea");ta.value
 // Het hele antwoord als platte tekst (inleiding + citaten met bron) — handig om door te geven aan de burger.
 function answerPlainText(r){
   const parts=[];
-  if(r.intro)parts.push(r.intro);
-  (r.citations||[]).forEach(c=>{
-    if(c.bridge)parts.push(c.bridge);
-    parts.push("“"+c.text+"”"+(c.src?` (${c.src.title} — ${c.src.url})`:""));
-  });
+  for(const b of answerBlocks(r)){
+    if(b.type==="bridge")parts.push(b.text);
+    else parts.push("“"+b.text+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${b.sourceUrl})`:""));
+  }
   return parts.join("\n\n");
 }
 // Datum waarop de bron is geraadpleegd (vandaag), in Nederlandse notatie.
@@ -1705,8 +1889,10 @@ function exportFeedback(){
 }
 // Render de passage als rustige alinea's (kern-focus, geen ingesloten kop-opmaak).
 function citeBodyHTML(c){
-  const lines=(c.text||"").split("\n").map(s=>s.trim()).filter(Boolean);
-  return lines.map(ln=>`<p class="cite-p">${escapeHtml(ln)}</p>`).join("")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
+  // Eén alinea per ZIN-eenheid: een inline link staat in het corpus op een eigen regel, maar
+  // hoort in de weergave gewoon midden in zijn zin.
+  const alineas=quoteParagraphs(c.text,anchorSet(c.srcIdx));
+  return alineas.map(ln=>`<p class="cite-p">${escapeHtml(ln)}</p>`).join("")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
 }
 const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
 function renderResult(turn,r){
@@ -1725,29 +1911,25 @@ function renderResult(turn,r){
     // Demo-modus levert geen AI-tekst; toon dan de vraag als context, anders begint het
     // antwoord zonder aanloop.
     if(!r.intro&&!r.citations.some(c=>c.bridge))h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
-    const aiRij=alineas=>{
-      const lab=eersteAI?"AI":"";eersteAI=false;
-      return `<div class="ans-row"><span class="ans-lab">${lab}</span><div class="ans-ai">${alineas}</div></div>`;
-    };
-    r.citations.forEach((c,i)=>{
-      let tekst="";
-      if(i===0&&r.intro)tekst+=`<p class="intro">${escapeHtml(r.intro)}</p>`;
-      if(c.bridge)tekst+=`<p class="${i===0&&r.intro?"brug":"intro"}">${escapeHtml(c.bridge)}</p>`;
-      if(tekst)h+=aiRij(tekst);
-      const n=num[c.src.url]||(i+1);
+    for(const blok of answerBlocks(r)){
+      if(blok.type==="bridge"){
+        const lab=eersteAI?"AI":"";eersteAI=false;
+        const alineas=blok.alineas.map((t,n)=>`<p class="${n===0?"intro":"brug"}">${escapeHtml(t)}</p>`).join("");
+        h+=`<div class="ans-row"><span class="ans-lab">${lab}</span><div class="ans-ai">${alineas}</div></div>`;
+        continue;
+      }
+      const i=blok.ci,n=num[blok.sourceUrl]||(i+1);
       const lab=eersteCit?"NWW":"";eersteCit=false;
-      h+=`<div class="passage ${c.verified?'verified':'unverified'}" data-ci="${i}">`
+      h+=`<div class="passage ${blok.verified?'verified':'unverified'}" data-ci="${i}">`
         +`<span class="ans-lab">${lab}</span><div class="cite-col">`
         +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
-        +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(c)}</div>`
+        +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(r.citations[i])}</div>`
         +`<div class="src-card" data-ci="${i}" role="button" tabindex="0" title="Bekijk dit stuk op de bronpagina">`
           +`<span class="src-badge">${n}</span>`
-          +`<span class="src-info">${ICON_DOC}<span class="src-title">${escapeHtml(c.src?c.src.title:"Bron")}</span></span>`
+          +`<span class="src-info">${ICON_DOC}<span class="src-title">${escapeHtml(blok.sourceTitle||"Bron")}</span></span>`
           +`<span class="src-go">Lees verder op de pagina →</span>`
         +`</div></div></div>`;
-    });
-    // Geen citaat maar wel een intro (kan niet voorkomen, maar dan valt er niets weg).
-    if(!r.citations.length&&r.intro)h+=aiRij(`<p class="intro">${escapeHtml(r.intro)}</p>`);
+    }
   }else{
     h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
     h+=`<div class="no-answer">Geen antwoord gevonden op de website van NederlandWereldwijd.</div>`;

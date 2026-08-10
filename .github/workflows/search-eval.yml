@@ -23,6 +23,7 @@ on:
       - scripts/eval.mjs
       - scripts/eval_set.json
       - scripts/eval_set_auto.json
+      - scripts/quote_test.mjs
 
 jobs:
   eval:
@@ -32,6 +33,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Citaten mogen nooit midden in een zin afbreken
+        run: node scripts/quote_test.mjs
       - name: Gate op de handgemaakte vragen (126)
         run: node scripts/eval.mjs --no-sem --gate
       - name: Gate op de gegenereerde vragen (1000)

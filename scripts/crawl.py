@@ -78,7 +78,24 @@ def extract(html: str, url: str) -> tuple[str, str, str, list, list]:
         out.append(lines[i])
         i += 1
     headings = [[lvl, t] for lvl, t in headings if t not in DROP_HEADINGS]
-    return title, desc, "\n".join(out)[:MAX_TEXT], headings, links
+    return title, desc, cap_text("\n".join(out)), headings, links
+
+
+def cap_text(text: str) -> str:
+    """Kap lange pagina's af op een ZINSGRENS, nooit midden in een zin.
+
+    De limiet is een geheugenrem, geen inhoudelijke keuze. Kapten we hard op MAX_TEXT af, dan
+    eindigt de opgeslagen paginatekst midden in een woord, en kan een citaat dat daar eindigt
+    nooit meer compleet zijn.
+    """
+    if len(text) <= MAX_TEXT:
+        return text
+    knip = text[:MAX_TEXT]
+    # laatste zinseinde, anders de laatste regelovergang
+    eind = max(knip.rfind(". "), knip.rfind(".\n"), knip.rfind("!\n"), knip.rfind("?\n"))
+    if eind < MAX_TEXT // 2:
+        eind = knip.rfind("\n")
+    return knip[: eind + 1].rstrip() if eind > 0 else knip
 
 
 async def crawl():
