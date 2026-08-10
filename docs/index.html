@@ -956,11 +956,13 @@ const telWoorden=t=>((t||"").trim().match(/\S+/g)||[]).length;
 
 // Bouwt uit een ruwe span het definitieve citaat: hele zinnen, binnen één blok, nooit midden in
 // een zin, zonder beletseltekens. Geeft {text,start,end} of null als er niets bruikbaars is.
-function buildCitation(text,span,heads,anchors){
+function buildCitation(text,span,heads,anchors,opts){
   if(!span)return null;
   const H=heads instanceof Set?heads:new Set(heads||[]);
   const A=anchors instanceof Set?anchors:new Set(anchors||[]);
-  const units=buildUnits(text,A,H);
+  const o=opts||{};
+  const units=o.units||buildUnits(text,A,H);
+  const MAXW=o.maxWoorden||MAX_QUOTE_WORDS;
   if(!units.length)return null;
 
   // 1. Welke zinnen raakt de span? De span wordt opgerekt tot HELE zinnen.
@@ -988,7 +990,7 @@ function buildCitation(text,span,heads,anchors){
   }
 
   // 3. Lengte begrenzen door HELE zinnen achteraan weg te laten — nooit halverwege afkappen.
-  while(b>a&&telWoorden(text.slice(units[a].start,units[b].end))>MAX_QUOTE_WORDS)b--;
+  while(b>a&&telWoorden(text.slice(units[a].start,units[b].end))>MAXW)b--;
 
   // 4. Een opsomming hoort er compleet bij: eindigt het citaat op een dubbele punt, loop dan
   //    door tot de lijst klaar is. Volledigheid weegt hier zwaarder dan de woordgrens.
@@ -996,7 +998,7 @@ function buildCitation(text,span,heads,anchors){
     while(b+1<units.length&&units[b+1].lijst){
       const nx=units[b+1];
       if(isBlokGrens(nx,H,A))break;
-      if(telWoorden(text.slice(units[a].start,nx.end))>MAX_QUOTE_WORDS*1.8)break;
+      if(telWoorden(text.slice(units[a].start,nx.end))>MAXW*1.8)break;
       b++;
     }
   }
@@ -1035,6 +1037,20 @@ function maakVerduidelijking(vraag,prefill){
   if(!kp)return null;
   if(kq.startsWith(kp)||kp.startsWith(kq))return null;    // prefill herhaalt de vraag
   return {question:q,prefill:p+" "};                      // spatie: de voorlichter typt verder
+}
+// Zin-eenheden per corpuspagina, gecachet. De luistermodus bouwt bij elk gesproken woord een
+// passage op; zonder cache zou dezelfde pagina telkens opnieuw worden opgedeeld.
+const _UNITS=[];
+function unitsOf(idx){
+  if(!_UNITS[idx])_UNITS[idx]=buildUnits((CORPUS[idx]||{}).text||"",anchorSet(idx),headingSet(idx));
+  return _UNITS[idx];
+}
+// Citaat voor een corpuspagina op basis van een span, met de gedeelde grenzen. Zowel het
+// getypte pad (na de AI-aanwijzing) als de luistermodus (na een eigen keuze) loopt hierover,
+// zodat een gesproken vraag dezelfde hele zinnen oplevert als een getypte.
+function citationFor(idx,span,maxWoorden){
+  const txt=(CORPUS[idx]||{}).text||"";
+  return buildCitation(txt,span,headingSet(idx),anchorSet(idx),{units:unitsOf(idx),maxWoorden});
 }
 // Te zwak om als citaat te tonen: vrijwel leeg, of alleen een kort kopje/label.
 function looksLikeHeading(line){
@@ -1115,7 +1131,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 71";
+const APP_VERSION="build 72";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1375,13 +1391,24 @@ const LISTEN=(function initListen(){
   function setActive(on){ret.active=on;micBtn.classList.toggle("rec",on);micBtn.title=on?"Stop luistermodus":"Start luistermodus (spraak → automatisch passende antwoorden)";micBtn.setAttribute("aria-label",on?"Luistermodus stoppen":"Luistermodus starten");}
   // Beste alinea van een pagina t.o.v. de gesproken woorden (voor de getoonde quote).
   // full=true (hoofdantwoord): de VOLLEDIGE alinea; anders een compacte weergave.
+  // Passage voor de luistermodus. Hier kiest geen AI (dat zou te traag zijn); we zoeken zelf de
+  // zin met de meeste woorden uit de vraag en laten daarna DEZELFDE citaatlogica als het getypte
+  // pad de grenzen bepalen. Zo is een gesproken antwoord ook altijd een hele, letterlijke zin —
+  // eerder werd hier op teken afgekapt, met een beletselteken tot gevolg.
   function bestSnippet(idx,qtok,full){
-    const max=full?900:320;
-    const lines=proseLines(idx);
-    if(!lines.length)return (CORPUS[idx].desc||CORPUS[idx].text||"").slice(0,max);
-    let best=lines[0],bestSc=-1;
-    for(const ln of lines){const t=new Set(tokenize(ln));let sc=0;for(const q of qtok)if(t.has(q))sc++;if(sc>bestSc){bestSc=sc;best=ln;}}
-    return best.length>max?best.slice(0,max)+"…":best;
+    const txt=(CORPUS[idx]||{}).text||"";
+    const units=unitsOf(idx);
+    let best=null,bestSc=-1;
+    for(const u of units){
+      if(!u.af&&!u.lijst)continue;                       // koppen en menu-items overslaan
+      const t=new Set(tokenize(u.text));
+      let sc=0;for(const q of qtok)if(t.has(q))sc++;
+      if(sc>bestSc){bestSc=sc;best=u;}
+    }
+    if(!best)return (CORPUS[idx].desc||"").trim();
+    const cit=citationFor(idx,{start:best.start,end:best.end},full?110:45);
+    if(!cit)return (CORPUS[idx].desc||"").trim();
+    return cit.text;
   }
   function recentFinals(){const cut=Date.now()-15000;return finals.filter(f=>f.t>=cut).map(f=>f.text);}   // laatste ~15 s
   function renderTranscript(){
@@ -1449,7 +1476,9 @@ const LISTEN=(function initListen(){
     const K=12;
     let sem=[];
     if(SEM&&SEM.ready){try{sem=await semanticRank(q,K);}catch(e){}}
-    const kw=rank(q,K);
+    // Zoekgebied meenemen zoals het getypte pad dat doet: staat er een land- of onderwerpfilter
+    // aan, dan telt die term ook mee in het trefwoordzoeken (applyScope herordent alleen).
+    const kw=rank([q,...scopeTerms()].join(" "),K);
     if(!sem.length&&!kw.length)return [];
     const qtok=[...new Set(tokenize(q))],score=new Map();
     const add=(l,w)=>l.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(RRF_K+r)));
@@ -1676,6 +1705,7 @@ const LISTEN=(function initListen(){
     if(ret.active&&(MODE==="standaard"||MODE==="een"))scheduleUpdate(true);
   }
   ret.setMode=setMode;
+  ret.__snip=bestSnippet;   // alleen voor tests
   // Throttle i.p.v. debounce: de eerste woorden leveren METEEN resultaat, daarna werken de
   // quotes elke ~600 ms bij terwijl er doorgepraat wordt (een debounce wachtte op stilte).
   let lastRun=0;
@@ -1838,7 +1868,7 @@ async function askAI(q,cands,key){
     const pag=CORPUS[gi],ptxt=pag.text||"";
     const heads=headingSet(gi),anchors=anchorSet(gi);
     const span=locateSpan(ptxt,c.quote)||spanFromAnchors(ptxt,c.start,c.end);
-    const cit=buildCitation(ptxt,span,heads,anchors);
+    const cit=citationFor(gi,span);
     if(!cit){notFound++;continue;}
     const quote=cit.text;
     if(isWeakQuote(quote)){notFound++;continue;}
