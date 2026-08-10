@@ -388,7 +388,11 @@ Stel een antwoord samen dat bestaat uit:
    - RELEVANTIE & GEEN AANNAMES: kies citaten die de vraag DIRECT en ALGEMEEN beantwoorden. Neem NOOIT een situatie aan die de burger niet zelf heeft genoemd. Bij een algemene vraag als "Hoe vraag ik een ID-kaart of paspoort aan?" mag je er dus NIET van uitgaan dat het een EERSTE aanvraag is, een aanvraag VOOR EEN KIND, of een vervanging na verlies/diefstal. Citeer dan een passage die voor IEDEREEN geldt (de algemene aanvraag- of overzichtspagina). Het EERSTE citaat (kernantwoord) mag NOOIT openen met een situatie-aanname zoals "Heeft u of uw kind…", "Voor het eerst…" of "Bent u uw paspoort verloren…". Staan er zowel een algemene als een situatie-specifieke pagina ("Voor het eerst…", "voor uw kind", "verloren of gestolen", of een specifiek land) tussen de pagina's, kies dan ALTIJD de algemene — tenzij de vraag duidelijk over die specifieke situatie gaat. UITZONDERING: noemt de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille"), citeer dan van de pagina die over JUIST dat product gaat en NIET van de algemene rubriekspagina — ook niet als de vraag maar uit één woord bestaat.
    - BEKNOPT: houd elk citaat KORT en gefocust — kies één samenhangende alinea (liefst 2 tot 5 zinnen) die precies het betreffende punt beantwoordt. Citeer NOOIT een hele paginasectie met meerdere tussenkopjes, opsommingen van links, "Bekijk…"- of "Lees…"-knopteksten, of losse "Let op:"-blokken. Stopt de relevante alinea waar een nieuw kopje of navigatietekst begint, zet "end" dan vóór dat kopje.
    - VOLGORDE: zet de citaten in de volgorde waarin je ze zou uitleggen — eerst het kernantwoord, dan waar of hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. De samenhang breng je aan met de "bridge"-zin vóór elk citaat, niet met tussenkopjes.
-2. "clarifications": als het juiste antwoord AFHANGT van de situatie van de burger, neem dan geen aanname maar zet hier de vraag/vragen die de voorlichter moet stellen. Veel antwoorden hangen af van: het LAND waar de aanvrager woont, of het een EERSTE aanvraag of een VERVANGING/VERLENGING is, en of het voor een VOLWASSENE of voor een KIND is. Geef per verduidelijking een "question" (wat de voorlichter uitvraagt) en een "prefill" (begin van een vervolgvraag dat de voorlichter aanvult, bv. "ID-kaart aanvragen vanuit "). Geef bij een situatie-afhankelijke vraag ALTIJD minstens één verduidelijking, zodat de voorlichter de juiste situatie kan uitvragen in plaats van dat jij iets aanneemt. Laat leeg als er echt niets te verduidelijken valt.
+2. "clarifications": hangt het juiste antwoord af van de situatie van de burger, neem dan geen aanname maar zet hier wat de voorlichter moet uitvragen. Geef per verduidelijking een "question" en een "prefill".
+   - ONDERSCHEIDEND: stel alleen vragen waarvan het antwoord het antwoord ECHT verandert. Vraag NOOIT iets dat voor vrijwel elke beller geldt: NederlandWereldwijd gaat over Nederlanders in of naar het buitenland, dus "Woont u in het buitenland?" is geen zinnige vraag. Vraag in plaats daarvan naar WELK land, WELKE situatie of VOOR WIE.
+   - OPEN, NIET JA/NEE: schrijf "In welk land woont u?" in plaats van "Woont u in het buitenland?". Gaat het echt om twee mogelijkheden, formuleer het dan als keuze: "Is dit een eerste aanvraag of een verlenging?".
+   - "prefill" is het begin van het ANTWOORD, in de ik-vorm, zodat de voorlichter het ter plekke aanvult. Het is dus NIET de vraag zelf. Eindig met een spatie. Voorbeelden: vraag "In welk land woont u?" -> prefill "Ik woon in "; vraag "Is dit een eerste aanvraag of een verlenging?" -> prefill "Het is een "; vraag "Voor wie is de aanvraag: voor uzelf of voor een kind?" -> prefill "De aanvraag is voor ". Een prefill die de vraag herhaalt is fout en wordt weggegooid.
+   - Meestal is één verduidelijking genoeg, hoogstens drie. Valt er niets zinnigs uit te vragen, laat de lijst dan leeg.
 3. "bridge" (per citaat, MAG LEEG ZIJN): korte verbindende tekst. Dit is de ENIGE plek waar je eigen woorden staan, en hoe minder je er gebruikt, hoe beter.
    - WAT EEN BRUG WEL MAG: de volgorde verduidelijken, aangeven dat er verschillende situaties zijn, aangeven dat de volgende passage over een andere situatie gaat, of de lezer naar het volgende onderdeel leiden.
    - WAT EEN BRUG NOOIT MAG: nieuwe feiten noemen; conclusies trekken die niet letterlijk uit de bron volgen; voorwaarden, termijnen, bedragen of uitzonderingen introduceren; juridische of procedurele betekenis toevoegen; stelliger zijn dan de bron; of informatie uit twee passages samenvoegen tot een nieuwe conclusie. Bedragen, aantallen en termijnen in een brug worden door de app gecontroleerd tegen het citaat en anders verwijderd.
@@ -401,7 +405,7 @@ Stel een antwoord samen dat bestaat uit:
 5. "intro": EÉN korte zin (max 18 woorden; gebruik dezelfde vakterm als de vraag — herinterpreteer die niet) in de aanspreekvorm "u" die de INFORMATIEBEHOEFTE van de burger herformuleert, grammaticaal naadloos overloopt in het eerste citaat, en de voorlichter helpt de vraag goed te kaderen. VARIEER de opening — gebruik bv. "Als ik het goed begrijp, wilt u weten…", "U vraagt waarschijnlijk naar…", "U zoekt informatie over…", "Begrijp ik goed dat u wilt weten…" of een vergelijkbare natuurlijke variant. Schrijf de zin PAS NADAT je het eerste citaat hebt gekozen, zodat hij precies daarop aansluit. Strikte regels: noem GEEN feiten, bedragen, termijnen of conclusies — herformuleer ALLEEN de VRAAG. Geef GEEN aanname over de situatie (bv. niet "voor uw kind" tenzij de burger dat zelf zei). Eindig NIET op een dubbele punt als het citaat met een vraag begint. Laat "intro" LEEG als er geen citaat is.
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
-{"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"bridge":"<korte overbruggende zin naar dit citaat>","quote":"<de passage letterlijk>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat uit te vragen>","prefill":"<begin vervolgvraag>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+{"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"bridge":"<korte overbruggende zin naar dit citaat>","quote":"<de passage letterlijk>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat de voorlichter uitvraagt>","prefill":"<begin van het antwoord in de ik-vorm, eindigend op een spatie>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
@@ -1001,6 +1005,24 @@ function buildCitation(text,span,heads,anchors){
   return {text:uit,start,end};
 }
 
+// Een uitvraagvraag is alleen bruikbaar als de PREFILL het antwoord begint dat de voorlichter
+// ter plekke aanvult ("Ik woon in "). Herhaalt de prefill de vraag, dan levert klikken alleen
+// maar "Woont u in " op en kun je er niets mee; die vraag valt dan af.
+// Ook weg: vragen die in dit domein voor vrijwel iedereen gelden. NederlandWereldwijd gáát over
+// Nederlanders in of naar het buitenland, dus daarnaar vragen splitst niets.
+const LOZE_VRAAG=/^(woont|verblijft|bent) u (in|buiten|momenteel in) het buitenland|^woont u niet in nederland/i;
+function maakVerduidelijking(vraag,prefill){
+  const q=(vraag||"").toString().trim().replace(/\s+/g," ");
+  let p=(prefill||"").toString().trim().replace(/\s+/g," ");
+  if(!q||LOZE_VRAAG.test(q))return null;
+  if(!p)return null;
+  p=p.replace(/\?+$/,"").trim();
+  const kaal=t=>t.toLowerCase().replace(/[^a-zà-ÿ0-9 ]/g,"").trim();
+  const kq=kaal(q),kp=kaal(p);
+  if(!kp)return null;
+  if(kq.startsWith(kp)||kp.startsWith(kq))return null;    // prefill herhaalt de vraag
+  return {question:q,prefill:p+" "};                      // spatie: de voorlichter typt verder
+}
 // Te zwak om als citaat te tonen: vrijwel leeg, of alleen een kort kopje/label.
 function looksLikeHeading(line){
   const t=(line||"").trim();const w=t.split(/\s+/);
@@ -1080,7 +1102,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 68";
+const APP_VERSION="build 69";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1816,7 +1838,8 @@ async function askAI(q,cands,key){
   const used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
   let related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
   let note=r.note||"";
-  let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[]).map(c=>({question:(c.question||"").trim(),prefill:(c.prefill||"").trim()})).filter(c=>c.question);
+  let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[])
+    .map(c=>maakVerduidelijking(c.question,c.prefill)).filter(Boolean).slice(0,3);
   let followups=(Array.isArray(r.followups)?r.followups:[]).map(f=>(f||"").trim()).filter(Boolean);
   if(r.__partial&&citations.length)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
   if(!citations.length){

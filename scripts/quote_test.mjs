@@ -17,7 +17,7 @@ const fn = (naam) => { const i = html.indexOf("function " + naam + "("); return 
 const findFromSrc = fn("escRe") + "\n" + fn("findFrom");
 const Q = new Function(
   findFromSrc + "\n" + html.slice(A, B) +
-  "\nreturn {buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch};"
+  "\nreturn {maakVerduidelijking,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch};"
 )();
 
 let gefaald = 0, gedaan = 0;
@@ -170,6 +170,26 @@ test("15. kaal kopje wordt geweigerd", () => {
   const bron = "Buitenland\nWoont u in het buitenland? Dan geldt een andere procedure.";
   const cit = citeer(bron, "Buitenland", { heads: ["Buitenland"] });
   if (cit) waar(!cit.text.trim().startsWith("Buitenland"), "kaal kopje werd als citaat getoond");
+});
+
+// --- uitvraagvragen ---
+console.log("\nUITVRAAGVRAGEN\n");
+test("prefill begint het antwoord in plaats van de vraag te herhalen", () => {
+  const v = Q.maakVerduidelijking("In welk land woont u?", "Ik woon in");
+  waar(v, "geldige verduidelijking werd geweigerd");
+  eq(v.prefill, "Ik woon in ", "prefill hoort op een spatie te eindigen");
+});
+test("prefill die de vraag herhaalt valt af", () => {
+  eq(Q.maakVerduidelijking("Woont u in Duitsland?", "Woont u in"), null, "echo van de vraag werd geaccepteerd");
+  eq(Q.maakVerduidelijking("In welk land woont u?", "In welk land woont u?"), null, "identieke prefill werd geaccepteerd");
+});
+test("vraag die voor elke beller geldt valt af", () => {
+  eq(Q.maakVerduidelijking("Woont u in het buitenland?", "Ik woon in "), null, "loze vraag werd geaccepteerd");
+  waar(Q.maakVerduidelijking("In welk land woont u?", "Ik woon in "), "goede landvraag werd geweigerd");
+});
+test("verduidelijking zonder prefill valt af", () => {
+  eq(Q.maakVerduidelijking("Is dit een eerste aanvraag of een verlenging?", ""), null);
+  waar(Q.maakVerduidelijking("Is dit een eerste aanvraag of een verlenging?", "Het is een"), "geldige keuzevraag geweigerd");
 });
 
 // --- weergave ---
