@@ -179,6 +179,21 @@ test("inline link wordt in de alinea teruggeplaatst", () => {
   eq(alineas.length, 1, "zin werd in meerdere alinea's gesplitst");
   eq(alineas[0], "Om in te loggen op RDW.nl heeft u DigiD nodig.");
 });
+test("zinnen uit dezelfde bronalinea vormen één lopende alinea", () => {
+  const alineas = Q.quoteParagraphs("Eerste zin van de alinea. Tweede zin van dezelfde alinea. Derde zin.", new Set());
+  eq(alineas.length, 1, "één bronalinea werd in losse regels opgeknipt");
+  eq(alineas[0], "Eerste zin van de alinea. Tweede zin van dezelfde alinea. Derde zin.");
+});
+test("geen spatie voor een leesteken na een inline link", () => {
+  const alineas = Q.quoteParagraphs("U heeft het\npaspoortaanvraagformulier\nnodig.", new Set(["paspoortaanvraagformulier"]));
+  eq(alineas[0], "U heeft het paspoortaanvraagformulier nodig.");
+  const b = Q.quoteParagraphs("Zie het\nformulier\n. Daarna klaar.", new Set(["formulier"]));
+  waar(!/\s\./.test(b.join(" ")), "spatie voor de punt: " + JSON.stringify(b));
+});
+test("lijstitems blijven aparte regels", () => {
+  const alineas = Q.quoteParagraphs("U heeft nodig:\neen paspoort\neen pasfoto", new Set());
+  eq(alineas.length, 3, "opsomming werd samengevoegd tot één regel");
+});
 test("losse alinea's blijven gescheiden", () => {
   const alineas = Q.quoteParagraphs("Eerste alinea eindigt hier.\nTweede alinea begint hier.", new Set());
   eq(alineas.length, 2);

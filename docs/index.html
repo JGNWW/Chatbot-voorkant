@@ -888,24 +888,25 @@ function buildUnits(text,anchors,heads){
 
   // Stap 2: alinea's opdelen in zinnen, met behoud van offsets.
   const units=[];
-  const maak=(s,e,isLijst)=>{
+  const maak=(s,e,isLijst,al)=>{
     while(s<e&&/\s/.test(T[s]))s++;
     while(e>s&&/\s/.test(T[e-1]))e--;
     if(e<=s)return;
     const txt=T.slice(s,e);
-    units.push({start:s,end:e,text:txt,af:eindigtZin(txt),lijst:!!isLijst});
+    units.push({start:s,end:e,text:txt,af:eindigtZin(txt),lijst:!!isLijst,al});
   };
-  for(const al of alineas){
+  for(let ai=0;ai<alineas.length;ai++){
+    const al=alineas[ai];
     const seg=T.slice(al.start,al.end);
     let last=0;const re=/[.!?][)"'”’]?/g;let m;
     while((m=re.exec(seg))){
       const na=seg.slice(m.index+m[0].length);
       // Alleen een zinsgrens als er daarna witruimte en een hoofdletter/cijfer volgt.
       if(na&&!/^\s+["'“(]?[A-ZÀ-Þ0-9]/.test(na))continue;
-      maak(al.start+last,al.start+m.index+m[0].length,al.lijst);
+      maak(al.start+last,al.start+m.index+m[0].length,al.lijst,ai);
       last=m.index+m[0].length;
     }
-    if(last<seg.length)maak(al.start+last,al.end,al.lijst);
+    if(last<seg.length)maak(al.start+last,al.end,al.lijst,ai);
   }
   return units;
 }
@@ -1031,9 +1032,24 @@ function bridgeIsSafe(bridge,quote){
   if(/€|euro|procent|%/i.test(b)&&!/€|euro|procent|%/i.test(bron))return false;
   return true;
 }
-// Splitst een citaat in alinea's voor weergave: inline links worden weer aan hun zin geplakt.
+// Splitst een citaat in alinea's voor weergave. De opdeling in ZINNEN is er voor het bepalen van
+// de citaatgrenzen; op het scherm hoort de tekst er weer uit te zien als in de bron. Zinnen uit
+// dezelfde bronalinea worden dus weer aaneengeschreven, en een inline link staat gewoon midden
+// in zijn zin. Alleen lijstitems blijven aparte regels, want dat zijn ze in de bron ook.
 function quoteParagraphs(quote,anchors,heads){
-  return buildUnits(quote||"",anchors,heads).map(u=>u.text.replace(/\s*\n\s*/g," ").trim()).filter(Boolean);
+  const units=buildUnits(quote||"",anchors,heads);
+  const uit=[];let vorige=null;
+  // Een regelovergang wordt een spatie, behalve vlak voor een leesteken: de crawler zet een
+  // inline link op een eigen regel, en "formulier\n." moet "formulier." worden, niet "formulier .".
+  const vloeiend=t=>t.replace(/\s*\n\s*/g," ").replace(/\s+([.,;:!?)\]])/g,"$1").replace(/([(\[])\s+/g,"$1").trim();
+  for(const u of units){
+    const t=vloeiend(u.text);
+    if(!t)continue;
+    if(vorige!==null&&u.al===vorige)uit[uit.length-1]+=" "+t;
+    else uit.push(t);
+    vorige=u.al;
+  }
+  return uit;
 }
 // ===== <</CITAAT-LOGICA>> ====================================================================
 
@@ -1065,7 +1081,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 66";
+const APP_VERSION="build 67";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
