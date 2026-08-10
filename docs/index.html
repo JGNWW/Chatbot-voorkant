@@ -260,6 +260,19 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 .fb-btn:hover{background:#f0f5fa;}
 .fb-btn.sel-up{background:#e9f6e3;border-color:var(--groen);}
 .fb-btn.sel-down{background:#fdecec;border-color:var(--rood);}
+/* Venster onder het antwoord bij een duim omlaag. Een oordeel zonder reden zegt weinig; hier
+   staat waaróm het niet klopte. Bij een duim omhoog verschijnt niets: bevestigen moet gratis
+   blijven, anders wordt het net zo duur als afkeuren. */
+.fb-panel{margin-top:12px;border:1px solid var(--rand);border-radius:12px;background:#fdfdfe;padding:14px 16px;}
+.fbp-titel{font-size:.88rem;font-weight:700;color:var(--rijk-blauw);margin:0 0 8px;}
+.fbp-tekst{width:100%;border:1px solid var(--rand-sterk);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:.88rem;resize:vertical;min-height:66px;color:var(--ink);background:#fff;}
+.fbp-tekst:focus{outline:none;border-color:var(--rijk-licht);}
+.fbp-knoppen{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.fbp-ok{background:var(--rijk-licht);color:#fff;border:none;border-radius:18px;padding:8px 16px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.fbp-ok:hover{background:var(--rijk-donker);}
+.fbp-annuleer{background:none;border:none;color:var(--ink-licht);font-size:.82rem;cursor:pointer;font-family:inherit;text-decoration:underline;}
+.fb-panel.klaar{background:#f7fbf5;border-color:#c5e3b6;}
+.fbp-bedankt{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--groen);font-weight:600;}
 /* Toegankelijkheid: zichtbare focus voor toetsenbordnavigatie */
 :focus-visible{outline:2px solid var(--rijk-licht);outline-offset:2px;}
 /* Citaat klikbaar -> bronpagina-paneel */
@@ -1102,7 +1115,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 70";
+const APP_VERSION="build 71";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1897,10 +1910,46 @@ function consultDate(){return new Date().toLocaleDateString("nl-NL",{day:"numeri
 // Kort, deelbaar bericht voor WhatsApp/e-mail: per citaat het antwoord + bron + DIRECTE
 // gemarkeerde link (springt op de bronpagina naar het citaat en arceert het geel).
 // Feedback lokaal opslaan, zodat we later kunnen zien waar de assistent fout zat.
+function bewaarFeedback(r,verdict,toelichting){
+  try{
+    const k="vk_feedback",arr=JSON.parse(localStorage.getItem(k)||"[]");
+    const rec={q:r.restated_question||"",verdict,hadAnswer:!!(r.citations&&r.citations.length),
+               toelichting:(toelichting||"").slice(0,500),ts:Date.now()};
+    // Klikt iemand nogmaals of vult hij achteraf een toelichting in, dan werken we hetzelfde
+    // record bij in plaats van er een tweede naast te zetten.
+    if(r.__fbIdx!=null&&arr[r.__fbIdx])arr[r.__fbIdx]=rec;
+    else {arr.push(rec);r.__fbIdx=arr.length-1;}
+    const kort=arr.slice(-200);
+    r.__fbIdx-=(arr.length-kort.length);
+    if(r.__fbIdx<0)r.__fbIdx=null;
+    localStorage.setItem(k,JSON.stringify(kort));
+  }catch(e){}
+}
 function logFeedback(r,verdict,btn){
   const wrap=btn.parentNode;wrap.querySelectorAll(".fb-btn").forEach(b=>b.classList.remove("sel-up","sel-down"));
   btn.classList.add(verdict>0?"sel-up":"sel-down");
-  try{const k="vk_feedback",arr=JSON.parse(localStorage.getItem(k)||"[]");arr.push({q:r.restated_question||"",verdict,hadAnswer:!!(r.citations&&r.citations.length),ts:Date.now()});localStorage.setItem(k,JSON.stringify(arr.slice(-200)));}catch(e){}
+  bewaarFeedback(r,verdict,verdict>0?"":(r.__fbTekst||""));
+  const acties=btn.closest(".answer-actions");
+  const oud=acties&&acties.parentNode.querySelector(".fb-panel");
+  if(oud)oud.remove();
+  if(verdict>0||!acties)return;                       // duim omhoog: geen venster
+  const paneel=document.createElement("div");
+  paneel.className="fb-panel";
+  paneel.innerHTML='<p class="fbp-titel">Wat klopt er niet?</p>'
+    +'<textarea class="fbp-tekst" placeholder="Bijvoorbeeld: dit geldt alleen voor een eerste aanvraag, niet voor een verlenging."></textarea>'
+    +'<div class="fbp-knoppen"><button type="button" class="fbp-ok">Versturen</button>'
+    +'<button type="button" class="fbp-annuleer">Annuleren</button></div>';
+  acties.parentNode.insertBefore(paneel,acties.nextSibling);
+  const veld=paneel.querySelector(".fbp-tekst");
+  veld.value=r.__fbTekst||"";                         // eerder ingevuld? laat het staan
+  veld.focus();
+  paneel.querySelector(".fbp-annuleer").onclick=()=>paneel.remove();
+  paneel.querySelector(".fbp-ok").onclick=()=>{
+    r.__fbTekst=veld.value.trim();
+    bewaarFeedback(r,verdict,r.__fbTekst);
+    paneel.classList.add("klaar");
+    paneel.innerHTML='<span class="fbp-bedankt">'+ICON_OK+'Bedankt — genoteerd bij deze vraag.</span>';
+  };
 }
 // Vragen zonder (goed) antwoord lokaal bijhouden: voeding voor de eval-set en het zoeklexicon.
 function logMiss(q,reason){
@@ -1909,9 +1958,9 @@ function logMiss(q,reason){
 // Exporteer feedback + gemiste vragen als CSV (voor analyse en het verbeteren van de eval-set).
 function exportFeedback(){
   const esc=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
-  let rows=[["type","vraag","oordeel","reden","tijd"].join(";")];
-  try{for(const f of JSON.parse(localStorage.getItem("vk_feedback")||"[]"))rows.push(["feedback",esc(f.q),f.verdict>0?"goed":"niet goed",f.hadAnswer?"antwoord getoond":"geen antwoord",new Date(f.ts).toISOString()].join(";"));}catch(e){}
-  try{for(const m of JSON.parse(localStorage.getItem("vk_misses")||"[]"))rows.push(["gemist",esc(m.q),"",esc(m.reason),new Date(m.ts).toISOString()].join(";"));}catch(e){}
+  let rows=[["type","vraag","oordeel","reden","toelichting","tijd"].join(";")];
+  try{for(const f of JSON.parse(localStorage.getItem("vk_feedback")||"[]"))rows.push(["feedback",esc(f.q),f.verdict>0?"goed":"niet goed",f.hadAnswer?"antwoord getoond":"geen antwoord",esc(f.toelichting||""),new Date(f.ts).toISOString()].join(";"));}catch(e){}
+  try{for(const m of JSON.parse(localStorage.getItem("vk_misses")||"[]"))rows.push(["gemist",esc(m.q),"",esc(m.reason),"",new Date(m.ts).toISOString()].join(";"));}catch(e){}
   const blob=new Blob(["﻿"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="leo-feedback.csv";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 }
