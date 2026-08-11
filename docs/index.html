@@ -60,6 +60,7 @@ html,body{height:100%;overflow:hidden;}
 .keybar a{color:var(--rijk-licht);font-size:.78rem;white-space:nowrap;font-weight:600;}
 .keybar .status{font-size:.78rem;width:100%;color:var(--ink-licht);}
 .keybar .status.build{width:auto;opacity:.55;font-size:.72rem;}
+.spraak-optie{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink-licht);cursor:pointer;}
 .fb-export{background:none;border:none;padding:0;font-family:inherit;font-size:.72rem;color:var(--ink-licht);cursor:pointer;text-decoration:underline;}
 .fb-export:hover{color:var(--rijk-licht);}
 .conversation{flex:1;padding:32px 28px;overflow-y:auto;}
@@ -163,60 +164,37 @@ a{color:var(--rijk-licht);}
 .mic-btn:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
 .mic-btn.rec{background:#fde7e7;color:#c62828;animation:micpulse 1.4s infinite;}
 @keyframes micpulse{0%{box-shadow:0 0 0 0 rgba(198,40,40,.55);}70%{box-shadow:0 0 0 10px rgba(198,40,40,0);}100%{box-shadow:0 0 0 0 rgba(198,40,40,0);}}
-.mic-status{max-width:860px;margin:0 auto 8px;padding:8px 14px;border-radius:10px;font-size:.85rem;background:var(--blauw-bg);color:var(--rijk-blauw);border:1px solid var(--blauw-licht);}
-.mic-status.mic-rec{background:#fff5f5;color:#c62828;border-color:#f6c8c8;}
-.mic-status.mic-warn{background:#fff8e6;color:#7a5a00;border-color:#f0dfa0;}
-.mic-status.mic-error{background:#fde7e7;color:#a01818;border-color:#f0b8b8;}
-.mic-status[hidden]{display:none;}
-/* Ambient luistermodus */
-.listen{max-width:860px;margin:0 auto;}
-.listen-head{position:sticky;top:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;padding:12px 2px;border-bottom:1px solid var(--rand);margin-bottom:14px;z-index:2;}
-.listen-badge{display:inline-flex;align-items:center;gap:6px;background:#fde7e7;color:#c62828;font-weight:700;font-size:.82rem;padding:4px 10px;border-radius:14px;animation:micpulse 1.6s infinite;}
-.listen-msg{flex:1;min-width:160px;color:var(--ink-licht);font-size:.86rem;line-height:1.4;}
-.listen-stop{flex:0 0 auto;background:#fff;border:1px solid var(--rand);border-radius:16px;padding:6px 14px;font-family:inherit;font-size:.82rem;color:var(--rijk-blauw);cursor:pointer;}
-.listen-stop:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
-.listen-transcript{min-height:26px;margin:0 0 16px;font-size:1rem;line-height:1.5;color:var(--ink);}
-.listen-transcript .lt-final{color:var(--ink);}
-.listen-transcript .lt-partial{color:var(--ink-licht);}
-.listen-hint{color:var(--ink-licht);font-style:italic;padding:6px 0;}
-.listen-quotes{display:flex;flex-direction:column;gap:12px;}
-/* Hoofdantwoord: gekleurd accentvlak met badge, volledige alinea */
-.listen-hero{text-align:left;background:var(--blauw-bg);border:1px solid var(--blauw-licht);border-left:5px solid var(--rijk-licht);border-radius:12px;padding:18px 20px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;gap:12px;transition:background .12s,border-color .12s;}
-.listen-hero:hover{background:#e0eefa;border-color:var(--rijk-licht);}
-.listen-hero .lh-label{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:var(--rijk-licht);color:#fff;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:4px 11px;border-radius:12px;}
-.listen-hero .lh-quote{font-size:1.1rem;line-height:1.62;color:var(--ink);}
-.listen-hero .lh-src{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:.86rem;font-weight:600;color:var(--rijk-blauw);}
-.listen-hero .lh-go{font-weight:400;color:var(--ink-licht);font-size:.8rem;}
-.listen-alts-label{font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-licht);margin:6px 0 -2px;}
-.listen-hero .lh-ai{background:#fff;color:var(--rijk-licht);border:1px solid var(--blauw-licht);border-radius:10px;padding:1px 7px;font-size:.66rem;margin-left:6px;}
-/* Instellingen van de luistermodus */
-.listen-ai{margin:0 0 14px;border:1px solid var(--rand);border-radius:10px;background:var(--grijs);}
-.listen-ai>summary{cursor:pointer;padding:9px 14px;font-size:.85rem;font-weight:600;color:var(--rijk-blauw);list-style:none;}
-.listen-ai>summary::-webkit-details-marker{display:none;}
-.listen-ai>summary em{font-weight:400;color:var(--ink-licht);font-style:normal;font-size:.8rem;}
-.lai-body{padding:2px 14px 12px;}
-.lai-opt{display:flex;align-items:flex-start;gap:9px;padding:6px 0;font-size:.88rem;cursor:pointer;}
-.lai-opt input{margin-top:4px;flex:0 0 auto;}
-.lai-opt input:disabled+span{opacity:.5;}
-.lai-hint{color:var(--ink-licht);font-size:.82rem;}
-/* Statusbalk van de gekozen modus */
-.listen-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--grijs);border:1px solid var(--rand);border-radius:10px;padding:9px 14px;margin:0 0 14px;font-size:.86rem;}
-.listen-bar:empty{display:none;}
-.listen-bar .lb-info{flex:1;min-width:170px;color:var(--ink-licht);}
-.listen-bar .pill{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--rand);border-radius:12px;padding:3px 10px;font-size:.78rem;color:var(--ink-licht);}
-.listen-bar .pill.groen{color:var(--groen);border-color:#bfe3cb;background:#eaf7ee;}
-.listen-bar .lb-btn{background:#fff;border:1px solid var(--rand);border-radius:18px;padding:7px 15px;font-family:inherit;font-size:.85rem;color:var(--rijk-blauw);cursor:pointer;}
-.listen-bar .lb-btn:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
-.listen-bar .lb-btn.primary{background:var(--rijk-licht);color:#fff;border-color:var(--rijk-licht);font-weight:600;}
-.listen-bar .lb-btn.primary:hover{background:var(--rijk-donker);}
-.listen-bar .lb-bar{flex:0 0 130px;height:6px;background:var(--rand);border-radius:3px;overflow:hidden;}
-.listen-bar .lb-bar i{display:block;height:100%;background:var(--rijk-licht);transition:width .9s linear;}
-.listen-bar .lb-vraag{flex-basis:100%;color:var(--rijk-blauw);font-size:.84rem;font-style:italic;}
-.lai-ai{border-top:1px solid var(--rand);margin-top:8px;padding-top:10px;}
-.listen-card{text-align:left;background:#fff;border:1px solid var(--rand);border-left:3px solid var(--rijk-licht);border-radius:10px;padding:12px 14px;cursor:pointer;font-family:inherit;transition:background .12s,border-color .12s;display:flex;flex-direction:column;gap:8px;}
-.listen-card:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
-.listen-card .lc-quote{font-size:.98rem;line-height:1.55;color:var(--ink);}
-.listen-card .lc-src{display:inline-flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;color:var(--rijk-blauw);}
+/* SPRAAK IN DE INVOERBALK.
+   Tijdens het luisteren verandert de invoerbalk van rol: geen invoerveld meer, maar de stand
+   van de opname. Staat "gesprekstekst tonen" aan, dan loopt de verstane tekst op diezelfde
+   regel mee — één regel, met de nieuwste woorden rechts en de oudere links vervagend. */
+.spraak-el{display:none;}
+body.spraak-aan .spraak-el,body.spraak-laadt .spraak-el{display:inline-flex;}
+/* [hidden] moet het winnen van de display hierboven, anders vallen status en tekst over elkaar. */
+.spraak-el[hidden]{display:none !important;}
+body.spraak-aan #input,body.spraak-laadt #input{display:none;}
+body.spraak-aan #send,body.spraak-laadt #send,body.spraak-aan #reset,body.spraak-laadt #reset{display:none;}
+body.spraak-aan .composer-pill{border-color:#e8a0a0;box-shadow:0 0 0 3px rgba(213,43,30,.06);padding-left:12px;}
+body.spraak-laadt .composer-pill{border-color:var(--blauw-licht);background:#fbfdff;padding-left:12px;}
+body.spraak-laadt #mic{background:var(--blauw-bg);color:var(--rijk-licht);}
+.spraak-status{font-size:.92rem;font-weight:600;color:var(--rijk-blauw);white-space:nowrap;}
+body.spraak-laadt .spraak-status{color:var(--rijk-licht);}
+/* Meelopende tekst: rtl op de houder houdt het eind van de zin in beeld, de inhoud blijft ltr. */
+.spraak-live{flex:1;min-width:0;font-size:.88rem;color:var(--ink-licht);white-space:nowrap;overflow:hidden;direction:rtl;text-align:left;
+  -webkit-mask-image:linear-gradient(to right,transparent 0,#000 42px);mask-image:linear-gradient(to right,transparent 0,#000 42px);}
+.spraak-live>span{direction:ltr;unicode-bidi:isolate;}
+.spraak-live .nieuw{color:var(--ink);}
+.spraak-vul{flex:1;}
+.spraak-tijd{font-size:.78rem;color:var(--ink-licht);font-variant-numeric:tabular-nums;}
+.spraak-meter{flex:0 0 110px;height:5px;border-radius:3px;background:var(--blauw-bg);overflow:hidden;}
+.spraak-meter i{display:block;height:100%;background:var(--rijk-licht);transition:width .3s;}
+.spraak-btn{height:38px;padding:0 16px;border-radius:19px;background:var(--rijk-licht);color:#fff;border:none;font-family:inherit;font-size:.87rem;font-weight:600;cursor:pointer;flex:0 0 auto;align-items:center;}
+.spraak-btn:hover{background:var(--rijk-donker);}
+.spraak-btn.stil{background:#fff;color:var(--ink);border:1.5px solid var(--rand-sterk);}
+.spraak-btn.stil:hover{background:var(--blauw-bg);}
+/* Het gesproken origineel onder de vraagbubbel, zodat te zien is wat de AI ervan maakte. */
+.vraagblok{display:flex;flex-direction:column;align-items:flex-end;max-width:78%;min-width:0;}
+.gesproken{display:block;text-align:right;font-size:.74rem;color:var(--ink-licht);margin:3px 4px 0;line-height:1.4;}
 .send-btn:hover:not(:disabled){background:var(--rijk-donker);}
 .send-btn:active:not(:disabled){transform:scale(.93);}
 .send-btn:disabled{background:var(--rand-sterk);cursor:default;}
@@ -356,6 +334,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <span class="status" id="keystatus"></span>
       <span class="status" id="semstatus">zoeken laden…</span>
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
+      <label class="spraak-optie" title="Alleen nodig om te controleren of u goed verstaan wordt"><input type="checkbox" id="spraak-tekst"> gesprekstekst tonen tijdens spraak</label>
       <button type="button" class="fb-export" id="fb-export" title="Download de lokaal opgeslagen feedback en gemiste vragen als CSV">feedback exporteren ↓</button>
     </div>
     <main class="conversation" id="conv">
@@ -368,6 +347,13 @@ body.viewer-active .viewer{width:min(560px,94vw);}
         <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus aria-expanded="false" aria-controls="suggest" />
         <button type="button" id="mic" class="mic-btn" title="Start luistermodus (spraak → automatisch passende antwoorden)" aria-label="Luistermodus starten" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="btn-label">Verstuur</span></button>
+        <span class="spraak-el spraak-status" id="spraak-status" hidden>Luistert mee…</span>
+        <span class="spraak-el spraak-live" id="spraak-live" hidden></span>
+        <span class="spraak-el spraak-meter" id="spraak-meter" hidden><i style="width:0"></i></span>
+        <span class="spraak-el spraak-vul" id="spraak-vul" hidden></span>
+        <span class="spraak-el spraak-tijd" id="spraak-tijd" hidden></span>
+        <button type="button" id="spraak-antwoord" class="spraak-el spraak-btn" hidden>Geef antwoord</button>
+        <button type="button" id="spraak-stop" class="spraak-el spraak-btn stil" hidden>Stop</button>
         <button type="button" id="reset" class="pill-btn" title="Begin een nieuw gesprek zonder de context van de vorige vragen" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></svg><span class="btn-label">Nieuw gesprek</span></button>
       </div>
     </form>
@@ -440,12 +426,17 @@ Volledige JSON-vorm: {"standalone_question":"...","search_terms":["..."],"alt_qu
 // Luistermodus, optionele AI: leidt uit het gespreksfragment de daadwerkelijke vraag af en
 // kiest daar de best passende pagina bij. Geeft alleen een samenvatting + paginanummers terug
 // (nooit antwoordtekst), zodat het getoonde citaat letterlijk uit de bron blijft komen.
-const LISTEN_Q_SYSTEM=`Je luistert mee met een telefoongesprek tussen een voorlichter van NederlandWereldwijd en een klant. Je krijgt een RUWE spraaktranscriptie (verhaspeld, met stopwoorden en halve zinnen) en een genummerde lijst kandidaat-pagina's.
+// Van een gesproken gespreksfragment naar één zelfstandige vraag. Klein en snel: dit staat
+// tussen de klik op "Geef antwoord" en het gewone zoekpad, dus het mag geen seconden kosten.
+const SPRAAK_SYSTEM=`Je krijgt een RUWE spraaktranscriptie van een telefoongesprek tussen een voorlichter van NederlandWereldwijd en een burger. De tekst is verhaspeld en bevat stopwoorden, halve zinnen en beide sprekers door elkaar.
 
-1. "vraag": vat in ÉÉN korte zin samen wat de klant feitelijk wil weten. Corrigeer duidelijke verhaspelingen en afkortingen (IND, VFS, BSN, RNI, MVV, DigiD). Neem VAKTERMEN letterlijk over en vervang ze nooit door een andere term ("inreisvisum" is iets anders dan "Schengenvisum"). Verzin niets wat er niet in zit; is het onduidelijk, geef dan de best mogelijke interpretatie.
-2. "pages": kies uit de kandidaten de nummers die die vraag het best beantwoorden, beste eerst (maximaal 3). Let op de BEDOELING, niet op losse woorden. Kies GEEN situatie-specifieke pagina ("voor uw kind", "voor het eerst", "verloren/gestolen") tenzij de klant daar zelf om vraagt. Past er niets, geef dan een lege lijst.
+Maak er ÉÉN korte, zelfstandige vraag van, zoals de voorlichter die zou intypen. Regels:
+- Geef alleen de INFORMATIEVRAAG, geen beleefdheden, aanhef of context ("ja precies en mevrouw vraagt zich af wat het kost" -> "Wat kost een paspoort?").
+- Neem VAKTERMEN letterlijk over en vervang ze nooit door een andere term ("inreisvisum" is iets anders dan "Schengenvisum"). Herstel duidelijke verhaspelingen en afkortingen (IND, VFS, BSN, RNI, MVV, DigiD).
+- Verzin NIETS wat er niet in zit. Staat er geen onderwerp in, herhaal dan zo letterlijk mogelijk wat er gezegd is.
+- Gaat het over meerdere dingen, zet die dan in één vraag samen ("Wat kost een paspoort en hoe lang duurt het?").
 
-Antwoord UITSLUITEND met JSON: {"vraag":"...","pages":[...]}`;
+Antwoord UITSLUITEND met JSON: {"vraag":"..."}`;
 const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). NOEMT de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille", "attestatie de vita", "laissez-passer"), kies dan ALTIJD de pagina die over JUIST dat product gaat — ook als de vraag uit één woord bestaat. Een losse vakterm is een SPECIFIEKE vraag, geen brede vraag; kies dan dus NIET de algemene overzichtspagina van de rubriek. Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
@@ -1131,7 +1122,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 72";
+const APP_VERSION="build 73";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1250,10 +1241,9 @@ async function rerankCandidates(q,cands){
   }catch(e){return null;}
 }
 
-async function runQuestion(rawQ){
+async function runQuestion(rawQ,gesproken){
   if(!corpusKlaar||!rawQ)return;
-  if(typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.active)LISTEN.stop(false);  // getypte vraag -> luistermodus uit
-  const turn=addTurn(rawQ);               // toon de vraag zoals gesteld
+  const turn=addTurn(rawQ,gesproken);     // toon de vraag zoals gesteld
   gesprekLoopt=true;refreshComposer();    // vanaf nu: vervolgvragen bouwen voort op dit gesprek
   const key=keyInput.value.trim();const ai=key.length>10;
   let q,cands;
@@ -1332,31 +1322,46 @@ inputEl.addEventListener("focus",()=>{if(inputEl.value.trim().length>=3)showSugg
 // met de klant praat, transcribeert Vosk continu; op basis van de laatste woorden verschijnen
 // automatisch de best passende quotes. Wisselt het gesprek van onderwerp, dan wisselen de
 // quotes mee. Model + library worden self-hosted (werkt achter een firewall, geen CDN nodig).
-const LISTEN=(function initListen(){
+// ===== SPRAAK IN DE INVOERBALK ===============================================================
+// Eén werkwijze: de tool luistert mee en doet niets, tot je op "Geef antwoord" klikt. Omdat je
+// zelf klikt, mag het een seconde duren — en dus kan de gesproken vraag door DEZELFDE pijplijn
+// als een getypte vraag: AI maakt er één nette vraag van, daarna de gewone zoek- en
+// antwoordstappen. De vorige losse luistermodus zocht alleen lokaal om snel te kunnen zijn; dat
+// verschil in antwoordkwaliteit is hiermee weg.
+const LISTEN=(function initSpraak(){
   const micBtn=document.getElementById("mic");
   const ret={active:false,stop:()=>{}};
   if(!micBtn)return ret;
   if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.WebAssembly)){micBtn.hidden=true;return ret;}
   micBtn.hidden=false;
-  let model=null,modelPromise=null,recognizer=null,stream=null,audioCtx=null,srcNode=null,proc=null;
-  let finals=[],partial="",updTimer=null,lastQuery="",panel=null,transcriptEl=null,quotesEl=null,headEl=null,barEl=null;
-  // Laadvoortgang, zodat de gebruiker nooit naar een stilstaand scherm kijkt.
-  const warm={phase:"idle",pct:0};   // idle -> downloaden -> uitpakken -> klaar
-  const onWarm=[];
-  // Leesbare omschrijving van de laadfase (ook gebruikt in het paneel).
-  function warmText(w){
-    if(w.phase==="downloaden")return "Spraakmodel downloaden… "+w.pct+"%";
-    if(w.phase==="uitpakken")return "Spraakmodel gereedmaken… ("+(w.pct||0)+"s — dit gebeurt eenmalig)";
-    return "";
-  }
-  function setWarm(phase,pct){warm.phase=phase;warm.pct=(pct!=null)?pct:(phase==="uitpakken"?0:warm.pct);
-    micBtn.title=(phase==="downloaden"||phase==="uitpakken")?("Luistermodus — "+warmText(warm)):"Start luistermodus (spraak → automatisch passende antwoorden)";
-    onWarm.forEach(f=>{try{f(warm);}catch(e){}});}
+  const statusEl=document.getElementById("spraak-status"),liveEl=document.getElementById("spraak-live"),
+        meterEl=document.getElementById("spraak-meter"),vulEl=document.getElementById("spraak-vul"),
+        tijdEl=document.getElementById("spraak-tijd"),antwoordBtn=document.getElementById("spraak-antwoord"),
+        stopBtn=document.getElementById("spraak-stop"),tekstCheck=document.getElementById("spraak-tekst");
 
+  let model=null,modelPromise=null,recognizer=null,stream=null,audioCtx=null,srcNode=null,proc=null;
+  let finals=[],partial="",ctxStart=0,tikker=null,bezig=false;
+
+  // Gesprekstekst tonen: alleen nodig om te controleren of je goed verstaan wordt, dus standaard
+  // uit. De keuze blijft bewaard.
+  let TOON=false;
+  try{TOON=localStorage.getItem("vk_spraak_tekst")==="1";}catch(e){}
+  if(tekstCheck){
+    tekstCheck.checked=TOON;
+    tekstCheck.onchange=()=>{TOON=tekstCheck.checked;try{localStorage.setItem("vk_spraak_tekst",TOON?"1":"0");}catch(e){}toonBalk();};
+  }
+
+  // ---- laadvoortgang van het spraakmodel (40 MB, eenmalig) ----
+  const warm={phase:"idle",pct:0};
+  const onWarm=[];
+  function setWarm(phase,pct){
+    warm.phase=phase;warm.pct=(pct!=null)?pct:(phase==="uitpakken"?0:warm.pct);
+    onWarm.forEach(f=>{try{f(warm);}catch(e){}});
+    if(document.body.classList.contains("spraak-laadt"))toonBalk();
+  }
   function ensureLib(){return new Promise((res,rej)=>{if(window.Vosk)return res();const s=document.createElement("script");s.src="vendor/vosk.js";s.onload=()=>res();s.onerror=()=>rej(new Error("kon vendor/vosk.js niet laden"));document.head.appendChild(s);});}
-  // Haalt het modelbestand ÉÉN keer op (met voortgang) en geeft het als blob-URL door aan
-  // Vosk. Zonder dit haalt de Vosk-worker het bestand nóg een keer op — dat maakte de fase
-  // "gereedmaken" onnodig lang.
+  // Haalt het modelbestand ÉÉN keer op (met voortgang) en geeft het als blob-URL door aan Vosk.
+  // Zonder dit haalt de Vosk-worker het bestand nóg een keer op.
   async function fetchModelBlobUrl(){
     const r=await fetch("data/vosk-model-nl.tar.gz");
     if(!r.ok)throw new Error("model niet gevonden ("+r.status+")");
@@ -1374,7 +1379,6 @@ const LISTEN=(function initListen(){
       setWarm("downloaden",0);
       const url=await fetchModelBlobUrl();
       setWarm("uitpakken");
-      // Tikker, zodat zichtbaar is dat er nog gewerkt wordt (er is geen voortgang beschikbaar).
       const t0=Date.now();const tick=setInterval(()=>{if(warm.phase==="uitpakken")setWarm("uitpakken",Math.round((Date.now()-t0)/1000));},1000);
       try{model=await window.Vosk.createModel(url);}
       finally{clearInterval(tick);URL.revokeObjectURL(url);}
@@ -1383,52 +1387,21 @@ const LISTEN=(function initListen(){
     })();
     return modelPromise;
   }
-  // Vooraf laden zodra de pagina rustig is: dan is de luistermodus meteen bruikbaar.
+  // Vooraf laden zodra de pagina rustig is: dan is de eerste klik meteen bruikbaar.
   ret.warm=warm;ret.onWarm=f=>onWarm.push(f);
   const kickoff=()=>{loadModel().catch(()=>{});};
   if("requestIdleCallback" in window)requestIdleCallback(kickoff,{timeout:8000});else setTimeout(kickoff,4000);
 
-  function setActive(on){ret.active=on;micBtn.classList.toggle("rec",on);micBtn.title=on?"Stop luistermodus":"Start luistermodus (spraak → automatisch passende antwoorden)";micBtn.setAttribute("aria-label",on?"Luistermodus stoppen":"Luistermodus starten");}
-  // Beste alinea van een pagina t.o.v. de gesproken woorden (voor de getoonde quote).
-  // full=true (hoofdantwoord): de VOLLEDIGE alinea; anders een compacte weergave.
-  // Passage voor de luistermodus. Hier kiest geen AI (dat zou te traag zijn); we zoeken zelf de
-  // zin met de meeste woorden uit de vraag en laten daarna DEZELFDE citaatlogica als het getypte
-  // pad de grenzen bepalen. Zo is een gesproken antwoord ook altijd een hele, letterlijke zin —
-  // eerder werd hier op teken afgekapt, met een beletselteken tot gevolg.
-  function bestSnippet(idx,qtok,full){
-    const txt=(CORPUS[idx]||{}).text||"";
-    const units=unitsOf(idx);
-    let best=null,bestSc=-1;
-    for(const u of units){
-      if(!u.af&&!u.lijst)continue;                       // koppen en menu-items overslaan
-      const t=new Set(tokenize(u.text));
-      let sc=0;for(const q of qtok)if(t.has(q))sc++;
-      if(sc>bestSc){bestSc=sc;best=u;}
-    }
-    if(!best)return (CORPUS[idx].desc||"").trim();
-    const cit=citationFor(idx,{start:best.start,end:best.end},full?110:45);
-    if(!cit)return (CORPUS[idx].desc||"").trim();
-    return cit.text;
-  }
-  function recentFinals(){const cut=Date.now()-15000;return finals.filter(f=>f.t>=cut).map(f=>f.text);}   // laatste ~15 s
-  function renderTranscript(){
-    if(!transcriptEl)return;
-    transcriptEl.hidden=!SHOWTXT;
-    if(!SHOWTXT){transcriptEl.innerHTML="";return;}
-    transcriptEl.innerHTML=`<span class="lt-final">${escapeHtml(recentFinals().slice(-3).join(" "))}</span> <span class="lt-partial">${escapeHtml(partial)}</span>`;
-  }
-  // ---- Afkortingen herstellen ----
+  // ---- afkortingen herstellen ----
   // Vosk schrijft gespelde afkortingen uit elkaar ("i en de" / "vee ef es"). We voegen zulke
   // letterreeksen weer samen, maar ALLEEN als het resultaat een bekende afkorting is — anders
   // zouden gewone woorden als "en", "er" en "de" gewone zinnen kapotmaken.
-  // Lijst afgeleid uit het corpus (hoofdletterwoorden van 2-6 letters op >=3 pagina's).
   const ABBR=new Set("ind vfs brp svb aow rni abp eer hcch duo mvv bsn rdw uwv cak wia cbr wao waz vog anw ww vbn kns sar cdc dbb eva".split(" "));
   const LETTER={a:"a",aa:"a",be:"b",bee:"b",ce:"c",cee:"c",see:"c",de:"d",dee:"d",e:"e",ee:"e",ef:"f",eff:"f",ge:"g",gee:"g",ha:"h",haa:"h",i:"i",ie:"i",j:"j",je:"j",jee:"j",ka:"k",kaa:"k",el:"l",l:"l",em:"m",m:"m",en:"n",n:"n",o:"o",oo:"o",pe:"p",pee:"p",ku:"q",kuu:"q",er:"r",r:"r",es:"s",s:"s",te:"t",tee:"t",u:"u",uu:"u",ve:"v",vee:"v",we:"w",wee:"w",iks:"x",ei:"y",ij:"y",zet:"z",z:"z",b:"b",c:"c",d:"d",f:"f",g:"g",h:"h",k:"k",p:"p",q:"q",t:"t",v:"v",w:"w",x:"x",y:"y"};
   function expandAbbrev(text){
     const w=(text||"").split(/\s+/).filter(Boolean);
     const out=[];let i=0;
     while(i<w.length){
-      // hoe lang is de reeks woorden die als losse letters te lezen zijn?
       let run=0;while(i+run<w.length&&LETTER[w[i+run].toLowerCase().replace(/[^a-zà-ÿ]/g,"")])run++;
       let matched=false;
       if(run>=2){
@@ -1441,367 +1414,136 @@ const LISTEN=(function initListen(){
     }
     return out.join(" ");
   }
-  // Zoekopdracht: de LOPENDE zin is leidend — dat is waar het gesprek nú over gaat. Alleen
-  // als die nog te weinig inhoud heeft, vullen we aan met de vorige zin(nen). Zo wisselt het
-  // onderwerp meteen mee ("…paspoort…" -> "…reisadvies Spanje…") zonder dat oude woorden
-  // blijven meewegen.
-  function currentQuery(){
-    const live=partial.trim();
-    let q,cap=14;
-    if(MODE==="een"||MODE==="verzoek"){
-      // Alles sinds de start / sinds de vorige klik telt mee.
-      q=(finalsSince(ctxStart).join(" ")+" "+live).trim();cap=60;
-    }else if(MODE==="rustig"){
-      // Alleen het venster van de laatste 10 seconden.
-      q=(finalsSince(Math.max(ctxStart,Date.now()-WINDOW_MS)).join(" ")+" "+live).trim();cap=30;
-    }else{
-      // Standaard: de lopende zin is leidend, aangevuld als die te kort is.
-      const recent=recentFinals();q=live;
-      if(tokenize(q).length<2&&recent.length)q=(recent[recent.length-1]+" "+live).trim();
-      if(tokenize(q).length<2&&recent.length>1)q=(recent.slice(-2).join(" ")+" "+live).trim();
-    }
-    return expandAbbrev((q.match(/\S+/g)||[]).slice(-cap).join(" "));
-  }
-  // Ranking speciaal voor de luistermodus. Bovenop de gewone hybride fusie (semantisch +
-  // trefwoord) twee correcties die het getypte pad al had, maar de live-laag miste:
-  //  1) ONDERWERP-BOOST: staat een woord uit de vraag in het URL-pad ("paspoort", "digid"),
-  //     dan telt die pagina zwaarder — voorkomt dat een visumpagina bovenaan komt bij een
-  //     paspoortvraag.
-  //  2) DEMOTIE van situatie-specifieke pagina's ("voor uw kind", "voor het eerst",
-  //     "kwijt/gestolen") zolang de vraag daar niet om vraagt.
-  // Gemeten op typische spraakvragen: juiste pagina bovenaan 7/9 -> 8/9, in de top 3 8/9 -> 9/9.
-  const URLTOK=[];
-  function urlTokens(i){if(!URLTOK[i])URLTOK[i]=new Set(tokenize((CORPUS[i].url||"").split("/").slice(3).join(" ")));return URLTOK[i];}
-  async function liveRank(q,limit){
-    const K=12;
-    let sem=[];
-    if(SEM&&SEM.ready){try{sem=await semanticRank(q,K);}catch(e){}}
-    // Zoekgebied meenemen zoals het getypte pad dat doet: staat er een land- of onderwerpfilter
-    // aan, dan telt die term ook mee in het trefwoordzoeken (applyScope herordent alleen).
-    const kw=rank([q,...scopeTerms()].join(" "),K);
-    if(!sem.length&&!kw.length)return [];
-    const qtok=[...new Set(tokenize(q))],score=new Map();
-    const add=(l,w)=>l.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(RRF_K+r)));
-    add(sem,W_SEM);add(kw,W_KW);
-    const wantsSpecific=SPECIFIC_RX.test(q);
-    for(const idx of [...score.keys()]){
-      let v=score.get(idx),hits=0;const ut=urlTokens(idx);
-      for(const t of qtok)if(ut.has(t))hits++;
-      if(hits)v*=1+0.35*hits;
-      if(!wantsSpecific&&isSpecificPage(idx))v*=0.5;
-      score.set(idx,v);
-    }
-    const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
-    return forceProduct(q,applyScope(q,fused)).slice(0,limit);
-  }
-  // ---- Antwoordmodus (instelbaar, zodat elke werkwijze los te testen is) ----
-  // 1 standaard : verspringt continu mee (oorspronkelijke werking)
-  // 2 een       : één antwoord; alle context sinds de start telt mee, 'Nieuwe vraag' reset
-  // 3 verzoek   : scherm blijft stil; pas bij 'Geef antwoord' wordt er gezocht
-  // 4 rustig    : hoogstens elke 10 s bijwerken, en alleen als het onderwerp echt wijzigt
-  const MODES=["standaard","een","verzoek","rustig"];
-  let MODE="standaard";
-  try{const m=localStorage.getItem("vk_listen_mode");if(MODES.includes(m))MODE=m;}catch(e){}
-  const saveMode=()=>{try{localStorage.setItem("vk_listen_mode",MODE);}catch(e){}};
-  ret.mode=()=>MODE;
-  let ctxStart=0;          // vanaf wanneer context meetelt (modus 2 en 3)
-  let locked=false;        // modus 2: antwoord staat vast tot "Nieuwe vraag"
-  let shown=null;          // {list,tok,heroSnip,at} — wat er nu op het scherm staat
-  let winTimer=null,winTick=null,winAt=0;   // modus 4: venster van 10 s
-  let eenTick=null;                         // modus 2: aftellen naar het antwoord
-  const WINDOW_MS=10000, EEN_DELAY_MS=15000;
-  // Optionele AI: vat de vraag samen uit het gesprek en kiest daar het antwoord bij.
-  let AIQ=false;
-  try{AIQ=localStorage.getItem("vk_listen_aiq")==="1";}catch(e){}
-  const saveAIQ=()=>{try{localStorage.setItem("vk_listen_aiq",AIQ?"1":"0");}catch(e){}};
-  // Meelopende gesprekstekst: handig om te zien of de spraakherkenning je goed verstaat,
-  // maar ook een bewegend element naast het antwoord. Standaard aan, uit te zetten.
-  let SHOWTXT=true;
-  try{SHOWTXT=localStorage.getItem("vk_listen_txt")!=="0";}catch(e){}
-  const saveTxt=()=>{try{localStorage.setItem("vk_listen_txt",SHOWTXT?"1":"0");}catch(e){}};
-  const aiCache=new Map();let aiSeq=0,aiVraag="";
-  function resetContext(){ctxStart=Date.now();lastQuery="";}
-  function finalsSince(t){return finals.filter(f=>f.t>=t).map(f=>f.text);}
 
-  // Tekent de kaarten. heroSnip: eventueel door AI gekozen passage (anders de heuristiek).
-  // ---- Optioneel: AI vat de vraag samen en kiest de passende pagina ----
-  // Non-blocking: het lokale antwoord staat er al; de AI werkt het daarna stil bij.
-  // Vraagt de AI om de volgorde; geeft de nieuwe lijst terug (of null als er niets te doen is).
-  async function aiOrder(q,cands){
+  // ---- de balk ----
+  const zichtbaar=(el,aan)=>{if(el)el.hidden=!aan;};
+  function toonBalk(){
+    const laadt=document.body.classList.contains("spraak-laadt");
+    const aan=document.body.classList.contains("spraak-aan");
+    zichtbaar(statusEl,laadt||bezig||(aan&&!TOON));
+    zichtbaar(liveEl,aan&&TOON&&!bezig);
+    zichtbaar(meterEl,laadt&&warm.phase==="downloaden");
+    zichtbaar(vulEl,laadt||bezig||(aan&&!TOON));
+    zichtbaar(tijdEl,aan&&!bezig);
+    zichtbaar(antwoordBtn,aan&&!bezig);
+    zichtbaar(stopBtn,aan||laadt);
+    if(statusEl){
+      statusEl.textContent=bezig?"Vraag opmaken…"
+        :laadt?(warm.phase==="uitpakken"?("Spraakmodel gereedmaken… ("+(warm.pct||0)+"s, eenmalig)"):("Spraakmodel laden… "+(warm.pct||0)+"%"))
+        :"Luistert mee…";
+    }
+    if(meterEl)meterEl.firstElementChild.style.width=(warm.pct||0)+"%";
+    if(liveEl)tekenLive();
+    if(tijdEl&&aan)tijdEl.textContent=klok();
+  }
+  function klok(){
+    const s=Math.max(0,Math.round((Date.now()-ctxStart)/1000));
+    return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+  }
+  function tekenLive(){
+    if(!liveEl||liveEl.hidden)return;
+    const oud=finalsSinds().join(" ");
+    const nu=partial.trim();
+    liveEl.innerHTML='<span>'+escapeHtml(oud)+(oud&&nu?" ":"")+'<span class="nieuw">'+escapeHtml(nu)+"</span></span>";
+  }
+  const finalsSinds=()=>finals.filter(f=>f.t>=ctxStart).map(f=>f.text);
+  function resetContext(){ctxStart=Date.now();finals=finals.filter(f=>f.t>=ctxStart);partial="";}
+
+  // ---- van gesproken tekst naar een nette vraag ----
+  // Zonder AI-sleutel poetsen we lokaal de ergste ruis weg; met sleutel maakt het model er één
+  // zelfstandige vraag van. Dat is precies het verschil tussen "ja precies en mevrouw vraagt
+  // zich af wat het kost" en "Wat kost een paspoort?".
+  const VULWOORD=/^(ja|nee|eh+|uh+|nou|dus|oké|okee|precies|goed|kijk|nja|hmm+)$/i;
+  function lokaalOpschonen(t){
+    const w=(t||"").split(/\s+/).filter(Boolean);
+    while(w.length&&VULWOORD.test(w[0]))w.shift();
+    return w.join(" ").replace(/\s+/g," ").trim();
+  }
+  async function netteVraag(ruw){
     const key=keyInput.value.trim();
-    if(!AIQ||key.length<=10||!cands.length)return null;
-    let j=aiCache.get(q);
-    if(j===undefined){
-      const listing=cands.map((idx,n)=>"["+n+"] "+cleanTitle(CORPUS[idx].title)).join("\n");
-      try{
-        const text=await PROVIDERS[provSel.value].call(key,modelSel.value,LISTEN_Q_SYSTEM,
-          "Gespreksfragment:\n"+q+"\n\nKandidaat-pagina's:\n"+listing);
-        j=parseModelJSON(text);
-        aiCache.set(q,j);if(aiCache.size>60)aiCache.delete(aiCache.keys().next().value);
-      }catch(e){console.warn("AI-vraagherkenning:",e);return null;}
-    }
-    if(!j)return null;
-    const pick=(Array.isArray(j.pages)?j.pages:[]).map(n=>cands[n]).filter(i=>Number.isInteger(i));
-    const list=pick.length?[...new Set(pick)].concat(cands.filter(i=>!pick.includes(i))).slice(0,3):cands;
-    // Dezelfde harde regel als bij het typen: een genoemde vakterm blijft bovenaan staan.
-    return {list:forceProduct(q,list),vraag:(j.vraag||"").toString().trim().slice(0,140)};
-  }
-  // Live-modi (1 en 4): het lokale antwoord staat er al; de AI werkt het daarna stil bij.
-  async function aiPick(q,cands){
-    const seq=++aiSeq;
-    const r=await aiOrder(q,cands);
-    if(!r||seq!==aiSeq||!ret.active||!quotesEl)return;
-    aiVraag=r.vraag;
-    shown={list:r.list,tok:shown?shown.tok:[...new Set(tokenize(q))],at:Date.now(),stable:shown&&shown.stable};
-    renderQuotes(r.list,shown.tok);renderModeBar();
-  }
-  // Modus 2: pas na EEN_DELAY_MS luisteren het (enige) antwoord bepalen en vastzetten.
-  async function maybeAnswerEen(){
-    if(MODE!=="een"||locked||!ret.active)return renderModeBar();
-    if(Date.now()-ctxStart<EEN_DELAY_MS)return renderModeBar();
-    const q=currentQuery();
-    if(!tokenize(q).length)return renderModeBar();      // nog niets gehoord -> blijf wachten
-    const res=await search(q);
-    if(!ret.active)return;
-    if(!res)return renderModeBar();
-    locked=true;                                          // niet nogmaals proberen tijdens het wachten
-    const seq=++aiSeq;
-    const r=await aiOrder(q,res.list);                    // ook hier: één keer tekenen, geen sprong
-    if(seq!==aiSeq||!ret.active||MODE!=="een")return;
-    const list=r?r.list:res.list;
-    aiVraag=r?r.vraag:"";
-    shown={list,tok:res.tok,at:Date.now()};
-    renderQuotes(list,res.tok);renderModeBar();
-  }
-  function renderQuotes(cands,qtok,opts){
-    if(!quotesEl)return;
-    opts=opts||{};
-    const card=(idx,cls,inner)=>`<button class="${cls}" data-idx="${idx}" data-snip="${escapeHtml(inner.snip)}">${inner.html}</button>`;
-    const top=cands[0],rest=(MODE==="een")?[]:cands.slice(1);   // modus 2: bewust één antwoord
-    const topSnip=opts.heroSnip||bestSnippet(top,qtok,true);
-    const label=(MODE==="een"||MODE==="verzoek")?"✓ Antwoord":"✓ Meest waarschijnlijke antwoord";
-    let html=card(top,"listen-hero",{snip:topSnip,html:
-      `<span class="lh-label">${label}</span>`
-      +`<span class="lh-quote">“${escapeHtml(topSnip)}”</span>`
-      +`<span class="lh-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[top].title))}</span><span class="lh-go">— lees verder op de pagina →</span></span>`});
-    if(rest.length){
-      html+=`<div class="listen-alts-label">Andere mogelijke antwoorden</div>`;
-      html+=rest.map(idx=>{const snip=bestSnippet(idx,qtok);return card(idx,"listen-card",{snip,html:
-        `<span class="lc-quote">“${escapeHtml(snip)}”</span><span class="lc-src">${ICON_DOC}<span>${escapeHtml(cleanTitle(CORPUS[idx].title))}</span></span>`});}).join("");
-    }
-    quotesEl.innerHTML=html;
-    quotesEl.querySelectorAll(".listen-hero,.listen-card").forEach(btn=>btn.onclick=()=>{const i=+btn.getAttribute("data-idx");openViewer(i,btn.getAttribute("data-snip"),CORPUS[i].url,cleanTitle(CORPUS[i].title));});
-  }
-  // Zoekt en toont; retourneert de gevonden lijst (of null).
-  async function search(q){
-    const qtok=[...new Set(tokenize(q))];
-    if(qtok.length<1)return null;
-    let cands=[];
-    try{cands=await liveRank(q,3);}catch(e){try{cands=applyScope(q,rank(q,12)).slice(0,3);}catch(_){}}
-    return cands.length?{list:cands,tok:qtok}:null;
-  }
-  const hint=t=>{if(quotesEl)quotesEl.innerHTML='<div class="listen-hint">'+escapeHtml(t)+'</div>';};
-  async function updateQuotes(settled){
-    // Modus 3: het getoonde antwoord blijft ongemoeid staan tot de volgende klik.
-    if(MODE==="verzoek"){renderModeBar();return;}
-    // Modus 2: de 15-secondenteller bepaalt wanneer het (enige) antwoord komt.
-    if(MODE==="een"){renderModeBar();return;}
-    // Modus 4: tussentijds NIET verspringen — het 10-secondenvenster bepaalt wanneer.
-    // Alleen het allereerste antwoord komt meteen, anders staar je 10 s naar een leeg scherm.
-    if(MODE==="rustig"){if(!shown)return windowCheck();renderModeBar();return;}
-    const q=currentQuery();
-    if(!tokenize(q).length){hint("Luisteren… stel een vraag aan de klant; passende antwoorden verschijnen hier vanzelf.");lastQuery="";renderModeBar();return;}
-    const key=[...new Set(tokenize(q))].join(" ");
-    if(key===lastQuery){renderModeBar();return;}
-    lastQuery=key;
-    const res=await search(q);
-    if(!ret.active||!quotesEl)return;
-    if(!res){hint("Nog geen passende informatie gevonden…");renderModeBar();return;}
-    shown={list:res.list,tok:res.tok,at:Date.now()};
-    renderQuotes(res.list,res.tok);
-    renderModeBar();
-    if(settled)aiPick(q,res.list);
-  }
-  // Modus 4: elke 10 s beoordelen of het onderwerp echt veranderd is.
-  // "Ongewijzigd" wordt op twee manieren vastgesteld, zodat het antwoord rustig blijft staan:
-  //  a) de INHOUD van het nieuwe venster lijkt sterk op het vorige (woordoverlap), of
-  //  b) de nieuwe beste pagina staat al in het getoonde antwoord.
-  let lastWinTok=null;
-  async function windowCheck(){
-    if(!ret.active||MODE!=="rustig")return;
-    winAt=Date.now();
-    const q=currentQuery(),tok=new Set(tokenize(q));
-    if(!tok.size){renderModeBar();return;}                    // niets gezegd -> laten staan
-    if(shown&&lastWinTok&&lastWinTok.size){
-      let inter=0;for(const t of tok)if(lastWinTok.has(t))inter++;
-      const uni=new Set([...tok,...lastWinTok]).size;
-      if(uni&&inter/uni>=0.4){shown.stable=true;lastWinTok=tok;renderModeBar();return;}
-    }
-    const res=await search(q);
-    if(!ret.active||!res)return renderModeBar();
-    if(shown&&shown.list.includes(res.list[0])){shown.stable=true;lastWinTok=tok;renderModeBar();return;}
-    shown={list:res.list,tok:res.tok,at:Date.now(),stable:false};lastWinTok=tok;
-    renderQuotes(res.list,res.tok);renderModeBar();aiPick(q,res.list);
-  }
-  // Modus 3: nu pas zoeken, op basis van alles sinds de vorige klik.
-  // Eén klik = één antwoord: staat de AI aan, dan wachten we die eerst af en tekenen we daarna
-  // één keer. Anders zag je eerst het lokale antwoord en verspringt het scherm een seconde later.
-  async function answerNow(){
-    const q=currentQuery();
-    if(!tokenize(q).length){hint("Nog niets gehoord om op te zoeken.");renderModeBar();return;}
-    const res=await search(q);
-    if(!res){hint("Nog geen passende informatie gevonden…");renderModeBar();return;}
-    const seq=++aiSeq;
-    if(AIQ&&keyInput.value.trim().length>10){hint("Zoekt het beste antwoord…");renderModeBar();}
-    const r=await aiOrder(q,res.list);
-    if(seq!==aiSeq||!ret.active)return;                   // er is intussen opnieuw geklikt
-    const list=r?r.list:res.list;
-    aiVraag=r?r.vraag:"";
-    shown={list,tok:res.tok,at:Date.now()};
-    resetContext();
-    renderQuotes(list,res.tok);renderModeBar();
-  }
-  // ---- Statusbalk per modus ----
-  function renderModeBar(){
-    if(!barEl)return;
-    if(MODE==="standaard"){
-      barEl.innerHTML='<span class="pill">⚡ Live</span><span class="lb-info">Het antwoord volgt het gesprek automatisch.</span>';
-    }else if(MODE==="een"){
-      const n=finalsSince(ctxStart).length,secs=Math.round((Date.now()-ctxStart)/1000);
-      const wait=Math.max(0,Math.ceil((EEN_DELAY_MS-(Date.now()-ctxStart))/1000));
-      barEl.innerHTML='<span class="pill'+(locked?" groen":"")+'">'+(locked?"🔒 Antwoord vastgezet":("🎧 Luistert… antwoord over "+wait+" s"))+' · '+n+' zin'+(n===1?"":"nen")+'</span>'
-        +'<span class="lb-info">'+(locked?"Het antwoord blijft staan. Klik “Nieuwe vraag” voor een volgende vraag.":"Eerst 15 seconden luisteren; alles wat gezegd wordt telt mee in één antwoord.")+'</span>'
-        +'<button type="button" class="lb-btn'+(locked?" primary":"")+'" data-act="nieuw">↺ Nieuwe vraag</button>';
-    }else if(MODE==="verzoek"){
-      const n=finalsSince(ctxStart).length;
-      barEl.innerHTML='<span class="pill">👂 '+n+' nieuwe zin'+(n===1?"":"nen")+' sinds vorige antwoord</span>'
-        +'<span class="lb-info">Klik voor een antwoord op alles sinds uw vorige klik.</span>'
-        +'<button type="button" class="lb-btn primary" data-act="antwoord">Geef antwoord</button>';
-    }else{
-      const left=Math.max(0,WINDOW_MS-(Date.now()-winAt)),pct=100-Math.round(left/WINDOW_MS*100);
-      barEl.innerHTML='<span class="lb-bar"><i style="width:'+pct+'%"></i></span>'
-        +'<span class="lb-info">Volgende controle over '+Math.ceil(left/1000)+' s…</span>'
-        +((shown&&shown.stable)?'<span class="pill groen">✓ Onderwerp ongewijzigd — antwoord blijft staan</span>':'');
-    }
-    if(AIQ&&aiVraag)barEl.innerHTML+='<span class="lb-vraag">✨ AI begreep: “'+escapeHtml(aiVraag)+'”</span>';
-    barEl.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
-      const a=b.getAttribute("data-act");
-      if(a==="nieuw"){resetContext();shown=null;locked=false;aiVraag="";hint("Nieuwe vraag — luisteren…");renderModeBar();}
-      if(a==="antwoord")answerNow();
-    });
-  }
-  // Wisselen van modus tijdens het luisteren.
-  function setMode(m){
-    if(!MODES.includes(m))return;
-    MODE=m;saveMode();finals=[];partial="";resetContext();shown=null;locked=false;aiVraag="";renderTranscript();
-    if(winTimer){clearInterval(winTimer);winTimer=null;}
-    if(winTick){clearInterval(winTick);winTick=null;}
-    if(eenTick){clearInterval(eenTick);eenTick=null;}
-    if(quotesEl)hint(MODE==="verzoek"?"Luistert mee — klik op “Geef antwoord” wanneer u een antwoord wilt."
-      :MODE==="een"?"Luistert 15 seconden mee en geeft daarna één antwoord…":"Luisteren…");
-    if(ret.active&&MODE==="rustig"){winAt=Date.now();winTimer=setInterval(windowCheck,WINDOW_MS);winTick=setInterval(renderModeBar,1000);}
-    if(ret.active&&MODE==="een")eenTick=setInterval(maybeAnswerEen,1000);
-    renderModeBar();
-    if(ret.active&&(MODE==="standaard"||MODE==="een"))scheduleUpdate(true);
-  }
-  ret.setMode=setMode;
-  ret.__snip=bestSnippet;   // alleen voor tests
-  // Throttle i.p.v. debounce: de eerste woorden leveren METEEN resultaat, daarna werken de
-  // quotes elke ~600 ms bij terwijl er doorgepraat wordt (een debounce wachtte op stilte).
-  let lastRun=0;
-  function scheduleUpdate(now){
-    const gap=600,since=Date.now()-lastRun;
-    if(now||since>=gap){if(updTimer){clearTimeout(updTimer);updTimer=null;}lastRun=Date.now();if(ret.active)updateQuotes(!!now);return;}
-    if(updTimer)return;                                  // er staat al een update klaar
-    updTimer=setTimeout(()=>{updTimer=null;lastRun=Date.now();if(ret.active)updateQuotes(false);},gap-since);
+    if(key.length<=10)return lokaalOpschonen(ruw);
+    try{
+      const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SPRAAK_SYSTEM,"Gespreksfragment:\n"+ruw);
+      const q=(parseModelJSON(text).vraag||"").toString().trim();
+      return q||lokaalOpschonen(ruw);
+    }catch(e){console.warn("vraag opmaken:",e);return lokaalOpschonen(ruw);}
   }
 
-  function buildPanel(){
-    document.body.classList.remove("is-welcome");
-    conv.innerHTML="";
-    panel=document.createElement("div");panel.className="listen";
-    const warmMsg=warmText(warm)||"Spraakmodel laden…";
-    const hasKey=keyInput.value.trim().length>10;
-    const MODEINFO=[["standaard","1. Standaard","Antwoord verspringt continu mee met het gesprek."],
-      ["een","2. Eén antwoord per vraag","Alles wat sinds de start gezegd is telt mee. Met “Nieuwe vraag” begint u opnieuw."],
-      ["verzoek","3. Antwoord op verzoek","Luistert mee, maar toont pas een antwoord als u op “Geef antwoord” klikt."],
-      ["rustig","4. Rustig (10-seconden vensters)","Werkt automatisch bij, maar hoogstens elke 10 seconden — en alleen als het onderwerp wijzigt."]];
-    const radios=MODEINFO.map(([k,t,h])=>`<label class="lai-opt"><input type="radio" name="lmode" value="${k}"${MODE===k?" checked":""}><span><b>${t}</b> <span class="lai-hint">${h}</span></span></label>`).join("");
-    panel.innerHTML=`<div class="listen-head"><span class="listen-badge">🎧 Luistermodus</span> <span class="listen-msg">${warm.phase==="klaar"?"Starten…":escapeHtml(warmMsg)}</span><button type="button" class="listen-stop">Stop luistermodus</button></div>
-      <details class="listen-ai">
-        <summary>⚙︎ Manier van antwoorden</summary>
-        <div class="lai-body">${radios}
-          <label class="lai-opt lai-ai"><input type="checkbox" id="lai-q"${AIQ?" checked":""}${hasKey?"":" disabled"}><span><b>AI-vraagherkenning</b> <span class="lai-hint">AI vat uit het gesprek samen wat de klant vraagt en kiest daar het passende antwoord bij.${hasKey?"":" (vul eerst een AI-sleutel in)"}</span></span></label>
-          <label class="lai-opt"><input type="checkbox" id="lai-txt"${SHOWTXT?" checked":""}><span><b>Gesprekstekst tonen</b> <span class="lai-hint">Laat zien wat er verstaan wordt. Uitzetten geeft rust op het scherm; het luisteren en zoeken gaat gewoon door.</span></span></label>
-          <p class="lai-warn">⚠︎ Met AI-vraagherkenning wordt de uitgeschreven gesprekstekst naar de AI-provider gestuurd. Staat hij uit, dan blijft alles op dit apparaat.</p>
-        </div>
-      </details>
-      <div class="listen-bar" id="listen-bar"></div>
-      <div class="listen-transcript" aria-live="polite"></div>
-      <div class="listen-quotes"><div class="listen-hint">${warm.phase==="klaar"?"Luisteren…":"Het spraakmodel wordt eenmalig geladen (daarna direct beschikbaar)…"}</div></div>`;
-    conv.appendChild(panel);
-    headEl=panel.querySelector(".listen-msg");transcriptEl=panel.querySelector(".listen-transcript");quotesEl=panel.querySelector(".listen-quotes");barEl=panel.querySelector(".listen-bar");
-    panel.querySelector(".listen-stop").onclick=()=>stop(true);
-    panel.querySelectorAll('input[name="lmode"]').forEach(r=>r.onchange=()=>{if(r.checked)setMode(r.value);});
-    const aiq=panel.querySelector("#lai-q");if(aiq)aiq.onchange=()=>{AIQ=aiq.checked;saveAIQ();aiVraag="";aiCache.clear();renderModeBar();};
-    const txt=panel.querySelector("#lai-txt");if(txt)txt.onchange=()=>{SHOWTXT=txt.checked;saveTxt();renderTranscript();};
-    renderTranscript();
-    renderModeBar();
+  async function geefAntwoord(){
+    if(!ret.active||bezig)return;
+    const ruw=expandAbbrev([...finalsSinds(),partial.trim()].join(" ").trim());
+    if(!ruw||!tokenize(ruw).length){
+      if(statusEl){const o=statusEl.textContent;statusEl.textContent="Nog niets gehoord…";setTimeout(()=>{if(statusEl)statusEl.textContent=o;},1600);}
+      return;
+    }
+    bezig=true;toonBalk();
+    const vraag=await netteVraag(ruw);
+    bezig=false;resetContext();toonBalk();
+    if(!ret.active)return;
+    runQuestion(vraag,ruw);
+  }
+
+  function setActive(on){
+    ret.active=on;
+    micBtn.classList.toggle("rec",on);
+    micBtn.title=on?"Stop met luisteren":"Meeluisteren en op verzoek een antwoord geven";
+    micBtn.setAttribute("aria-label",on?"Stop met luisteren":"Start meeluisteren");
+    document.body.classList.toggle("spraak-aan",on);
+    if(on){if(!tikker)tikker=setInterval(()=>{if(tijdEl&&!tijdEl.hidden)tijdEl.textContent=klok();},1000);}
+    else{if(tikker){clearInterval(tikker);tikker=null;}}
+    toonBalk();
   }
   function teardownAudio(){try{if(proc)proc.disconnect();if(srcNode)srcNode.disconnect();if(audioCtx)audioCtx.close();}catch(e){}try{if(stream)stream.getTracks().forEach(t=>t.stop());}catch(e){}proc=srcNode=audioCtx=stream=null;}
-  function stop(restore){
-    if(!ret.active&&!stream)return;
-    if(updTimer){clearTimeout(updTimer);updTimer=null;}
-    if(winTimer){clearInterval(winTimer);winTimer=null;}
-    if(winTick){clearInterval(winTick);winTick=null;}
-    if(eenTick){clearInterval(eenTick);eenTick=null;}
+  function stop(){
+    document.body.classList.remove("spraak-laadt");
+    if(!ret.active&&!stream){toonBalk();return;}
     setActive(false);teardownAudio();
     try{if(recognizer)recognizer.remove();}catch(e){}recognizer=null;
-    finals=[];partial="";lastQuery="";shown=null;
-    if(panel&&panel.parentNode)panel.parentNode.removeChild(panel);panel=null;transcriptEl=quotesEl=headEl=barEl=null;
-    if(restore)showWelcome();
+    finals=[];partial="";bezig=false;
+    toonBalk();refreshComposer();
   }
   ret.stop=stop;
 
-  micBtn.addEventListener("click",async()=>{
-    if(ret.active){stop(true);return;}
-    // Microfoontoegang
-    // Vosk-modellen zijn op 16 kHz MONO getraind; vraag de microfoon daar expliciet om
-    // (met ruisonderdrukking) — anders levert het model wel Nederlandse woorden, maar de
-    // verkeerde. Lukt de constraint niet, dan valt de browser terug op de standaardinstelling.
+  async function start(){
+    // Vosk-modellen zijn op 16 kHz MONO getraind; vraag de microfoon daar expliciet om — anders
+    // levert het model wel Nederlandse woorden, maar de verkeerde.
     const micWish={channelCount:1,sampleRate:16000,echoCancellation:true,noiseSuppression:true,autoGainControl:true};
     try{stream=await navigator.mediaDevices.getUserMedia({audio:micWish});}
     catch(e){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
       catch(e2){alert("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.");return;}}
-    setActive(true);buildPanel();
-    // Live voortgang tonen zolang het model nog laadt.
-    onWarm.push(w=>{if(headEl&&w.phase!=="klaar")headEl.textContent=warmText(w);});
-    try{await loadModel();}catch(e){if(headEl)headEl.textContent="Kon het spraakmodel niet laden: "+(e.message||e);teardownAudio();setActive(false);return;}
-    if(!ret.active){teardownAudio();return;}   // ondertussen gestopt
+    document.body.classList.add("spraak-laadt");toonBalk();
+    try{await loadModel();}
+    catch(e){document.body.classList.remove("spraak-laadt");teardownAudio();alert("Kon het spraakmodel niet laden: "+(e.message||e));toonBalk();return;}
+    if(!stream){document.body.classList.remove("spraak-laadt");return;}   // ondertussen gestopt
     try{
-      // AudioContext óók op 16 kHz: dan zijn de buffers die Vosk krijgt exact wat het model
-      // verwacht (geen resampling-mismatch, die eerder onzinherkenning veroorzaakte).
+      // AudioContext óók op 16 kHz: dan krijgt Vosk exact wat het model verwacht.
       try{audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
       catch(e){audioCtx=new (window.AudioContext||window.webkitAudioContext)();}
       if(audioCtx.state==="suspended")await audioCtx.resume();
       recognizer=new model.KaldiRecognizer(audioCtx.sampleRate);
-      recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";renderTranscript();scheduleUpdate(false);});
-      // Afgeronde zin = natuurlijk moment: meteen bijwerken (niet wachten op de throttle).
-      recognizer.on("result",m=>{const t=((m.result&&m.result.text)||"").trim();if(t){finals.push({t:Date.now(),text:t});if(finals.length>12)finals=finals.slice(-12);}partial="";renderTranscript();scheduleUpdate(true);});
+      recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";tekenLive();});
+      recognizer.on("result",m=>{const t=((m.result&&m.result.text)||"").trim();if(t){finals.push({t:Date.now(),text:t});if(finals.length>40)finals=finals.slice(-40);}partial="";tekenLive();});
       srcNode=audioCtx.createMediaStreamSource(stream);
       proc=audioCtx.createScriptProcessor(4096,1,1);
       const sink=audioCtx.createGain();sink.gain.value=0;
       proc.onaudioprocess=e=>{if(ret.active&&recognizer){try{recognizer.acceptWaveform(e.inputBuffer);}catch(err){}}};
       srcNode.connect(proc);proc.connect(sink);sink.connect(audioCtx.destination);
-    }catch(e){if(headEl)headEl.textContent="Kon de microfoon niet openen: "+(e.message||e);teardownAudio();setActive(false);return;}
-    if(headEl)headEl.textContent="Praat met de klant — passende antwoorden verschijnen automatisch en volgen het gesprek.";
-    resetContext();winAt=Date.now();
-    if(MODE==="rustig"){winTimer=setInterval(windowCheck,WINDOW_MS);winTick=setInterval(renderModeBar,1000);}
-    if(MODE==="een"){eenTick=setInterval(maybeAnswerEen,1000);hint("Luistert 15 seconden mee en geeft daarna één antwoord…");}
-    if(MODE==="verzoek")hint("Luistert mee — klik op “Geef antwoord” wanneer u een antwoord wilt.");
-    renderModeBar();
-    if(MODE==="standaard")updateQuotes(true);
-  });
+    }catch(e){document.body.classList.remove("spraak-laadt");teardownAudio();alert("Kon de microfoon niet openen: "+(e.message||e));toonBalk();return;}
+    document.body.classList.remove("spraak-laadt");
+    resetContext();setActive(true);
+  }
+
+  // Testhaakje: de standen zijn zonder microfoon niet te bereiken, en juist die willen we
+  // geautomatiseerd kunnen nalopen (zie de browsertest bij deze wijziging).
+  ret.__test={
+    luisterAan:()=>{resetContext();setActive(true);},
+    hoor:t=>{finals.push({t:Date.now(),text:t});tekenLive();toonBalk();},
+    antwoord:geefAntwoord,
+    toonTekst:v=>{TOON=v;if(tekstCheck)tekstCheck.checked=v;toonBalk();},
+  };
+  micBtn.addEventListener("click",()=>{if(ret.active||document.body.classList.contains("spraak-laadt"))stop();else start();});
+  if(stopBtn)stopBtn.onclick=stop;
+  if(antwoordBtn)antwoordBtn.onclick=geefAntwoord;
   return ret;
 })();
 
@@ -1903,11 +1645,16 @@ async function askAI(q,cands,key){
   return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
 }
 
-function addTurn(q){
+function addTurn(q,gesproken){
   document.body.classList.remove("is-welcome");
   document.querySelector(".empty")?.remove();document.getElementById("samples")?.remove();
   const art=document.createElement("article");art.className="turn";
-  art.innerHTML=`<div class="row user"><div class="bubble vraag">${escapeHtml(q)}</div></div>`
+  // Bij een gesproken vraag tonen we het origineel eronder: als het antwoord raar is, wil je
+  // als eerste kunnen zien wat de AI van je woorden heeft gemaakt.
+  const vraagblok=gesproken
+    ? `<div class="vraagblok"><div class="bubble vraag">${escapeHtml(q)}</div><span class="gesproken">🎙 gesproken: “${escapeHtml(gesproken)}”</span></div>`
+    : `<div class="bubble vraag">${escapeHtml(q)}</div>`;
+  art.innerHTML=`<div class="row user">${vraagblok}</div>`
     +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span></div></div></div></div>`;
   conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
 }
