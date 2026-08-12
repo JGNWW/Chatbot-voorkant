@@ -177,7 +177,7 @@ body.spraak-aan .spraak-el,body.spraak-laadt .spraak-el{display:inline-flex;}
 /* [hidden] moet het winnen van de display hierboven, anders vallen status en tekst over elkaar. */
 .spraak-el[hidden]{display:none !important;}
 body.spraak-aan #input,body.spraak-laadt #input{display:none;}
-body.spraak-aan #send,body.spraak-laadt #send,body.spraak-aan #reset,body.spraak-laadt #reset{display:none;}
+body.spraak-aan #send,body.spraak-laadt #send,body.spraak-laadt #reset{display:none;}
 body.spraak-aan .composer-pill{border-color:#e8a0a0;box-shadow:0 0 0 3px rgba(213,43,30,.06);padding-left:12px;}
 body.spraak-laadt .composer-pill{border-color:var(--blauw-licht);background:#fbfdff;padding-left:12px;}
 body.spraak-laadt #mic{background:var(--blauw-bg);color:var(--rijk-licht);}
@@ -440,17 +440,20 @@ Volledige JSON-vorm: {"standalone_question":"...","search_terms":["..."],"alt_qu
 // (nooit antwoordtekst), zodat het getoonde citaat letterlijk uit de bron blijft komen.
 // Van een gesproken gespreksfragment naar één zelfstandige vraag. Klein en snel: dit staat
 // tussen de klik op "Geef antwoord" en het gewone zoekpad, dus het mag geen seconden kosten.
-const SPRAAK_SYSTEM=`Je krijgt een RUWE spraaktranscriptie van een telefoongesprek tussen een voorlichter van NederlandWereldwijd en een burger. De tekst is verhaspeld en bevat stopwoorden, halve zinnen en beide sprekers door elkaar.
+const SPRAAK_SYSTEM=`Je krijgt het lopende gesprek tussen een voorlichter van NederlandWereldwijd en een burger, en daarna een RUWE spraaktranscriptie van wat er zojuist gezegd is. De transcriptie is verhaspeld en bevat stopwoorden, halve zinnen en beide sprekers door elkaar.
 
-Maak er ÉÉN korte, zelfstandige vraag van, zoals de voorlichter die zou intypen. Regels:
+Maak er ÉÉN korte, zelfstandige vraag van, zoals de voorlichter die zou intypen.
+
+DE BELANGRIJKSTE REGEL: het fragment is vaak geen nieuwe vraag maar een AANVULLING op de vorige vraag uit het gesprek. "Het is voor mijn kind", "in Spanje", "het gaat om een verlenging" — dat zijn geen vragen op zichzelf. Combineer die dan met de vorige vraag tot één volledige vraag: na "Hoe vraag ik een paspoort aan?" wordt "het is voor mijn kind" dus "Hoe vraag ik een paspoort aan voor mijn kind?". Alleen als het fragment duidelijk over een ANDER onderwerp gaat, negeer je het gesprek en maak je er een losse vraag van.
+
+Verder:
 - Geef alleen de INFORMATIEVRAAG, geen beleefdheden, aanhef of context ("ja precies en mevrouw vraagt zich af wat het kost" -> "Wat kost een paspoort?").
+- Schrijf een vraag die aan de ZOEKMACHINE gesteld wordt, nooit een vraag aan de burger. Dus niet "Is het voor uw kind of voor uzelf?" maar de vraag waarop de voorlichter een antwoord zoekt.
 - Neem VAKTERMEN letterlijk over en vervang ze nooit door een andere term ("inreisvisum" is iets anders dan "Schengenvisum"). Herstel duidelijke verhaspelingen en afkortingen (IND, VFS, BSN, RNI, MVV, DigiD).
-- Verzin NIETS wat er niet in zit. Voeg vooral geen INVALSHOEK toe die niet gezegd is: is er niet over geld gesproken, maak er dan geen kostenvraag van; is er niet over tijd gesproken, geen doorlooptijdvraag; en zo ook niet over locatie, voorwaarden of geldigheid. Hoor je alleen "ik ben benieuwd wat paspoort kunnen aanvragen in het buitenland", dan is de vraag "Hoe vraag ik een paspoort aan in het buitenland?" — NIET "Wat kost een paspoort in het buitenland?".
+- Verzin NIETS wat er niet in zit. Voeg vooral geen INVALSHOEK toe die niet gezegd is: is er niet over geld gesproken, maak er dan geen kostenvraag van; is er niet over tijd gesproken, geen doorlooptijdvraag; en zo ook niet over locatie, voorwaarden of geldigheid.
 - Is de transcriptie te verhaspeld om te begrijpen, herhaal dan zo letterlijk mogelijk wat er gezegd is in plaats van er iets van te maken. Een onbeholpen vraag is beter dan een verzonnen vraag.
-- Gaat het over meerdere dingen, zet die dan in één vraag samen ("Wat kost een paspoort en hoe lang duurt het?").
 
-Antwoord UITSLUITEND met JSON: {"vraag":"..."}`;
-const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). NOEMT de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille", "attestatie de vita", "laissez-passer"), kies dan ALTIJD de pagina die over JUIST dat product gaat — ook als de vraag uit één woord bestaat. Een losse vakterm is een SPECIFIEKE vraag, geen brede vraag; kies dan dus NIET de algemene overzichtspagina van de rubriek. Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
+Antwoord UITSLUITEND met JSON: {"vraag":"..."}`;const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). NOEMT de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille", "attestatie de vita", "laissez-passer"), kies dan ALTIJD de pagina die over JUIST dat product gaat — ook als de vraag uit één woord bestaat. Een losse vakterm is een SPECIFIEKE vraag, geen brede vraag; kies dan dus NIET de algemene overzichtspagina van de rubriek. Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
 let history=[];
@@ -1135,7 +1138,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 75";
+const APP_VERSION="build 76";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1172,10 +1175,18 @@ let gesprekLoopt=false,corpusKlaar=false;
 function refreshComposer(){
   const lopend=gesprekLoopt||history.length>0;
   if(inputEl)inputEl.placeholder=lopend?PH_VERVOLG:PH_EERSTE;
-  const r=document.getElementById("reset");if(r)r.hidden=!lopend;
+  // "Nieuw gesprek" blijft tijdens het luisteren staan: dat is de knop die de gesprekscontext
+  // wist, en juist die moet je kunnen pakken zodra het gesprek een andere kant op gaat.
+  const luistert=typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.active;
+  const r=document.getElementById("reset");if(r)r.hidden=!(lopend||luistert);
   sendBtn.disabled=!corpusKlaar||!inputEl||!inputEl.value.trim();
 }
-function newConversation(){history=[];gesprekLoopt=false;showWelcome();refreshComposer();inputEl&&inputEl.focus();}
+function newConversation(){
+  history=[];gesprekLoopt=false;
+  // Ook het spraakvenster leeg: wat er tot nu toe gezegd is hoort bij het oude gesprek.
+  if(typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.nieuweContext)LISTEN.nieuweContext();
+  showWelcome();refreshComposer();inputEl&&inputEl.focus();
+}
 function recordTurn(){}  // no-op: gesprekken worden niet bewaard
 function restoreTurn(){}  // no-op
 function loadConversation(){} // no-op
@@ -1583,16 +1594,35 @@ const LISTEN=(function initSpraak(){
     }
     return true;
   }
+  // Een vraag die aan de BURGER gericht is ("Is het voor uw kind of voor uzelf?") is geen
+  // zoekvraag. Dat gebeurt als het fragment op zichzelf geen vraag is; dan hoort het bij de
+  // vorige vraag te worden gezet in plaats van er een keuzevraag van te maken.
+  const AAN_DE_BELLER=/^(is|gaat|betreft|wilt|wil|heeft|had)\s+(het|dit|dat|u|je|de aanvraag)\b.*\bof\b|^voor wie\b/i;
+  const vorigeVraag=()=>(history.length?history[history.length-1].q:"").trim();
+  // Zonder AI (of als de AI iets onbruikbaars teruggeeft): plak de aanvulling achter de vorige
+  // vraag. Dat is precies wat een voorlichter zelf zou typen.
+  function bijVorigeVraag(fragment){
+    const v=vorigeVraag();
+    if(!v)return fragment;
+    return v.replace(/\?+\s*$/,"")+" — "+fragment;
+  }
   async function netteVraag(ruw){
     const key=keyInput.value.trim();
-    if(key.length<=10)return lokaalOpschonen(ruw);
+    const schoon=lokaalOpschonen(ruw);
+    if(key.length<=10)return schoon;
+    // Het lopende gesprek gaat mee, net als bij een getypte vervolgvraag. Zonder dat moet het
+    // model van "het is voor mijn kind" in zijn eentje een vraag maken, en dat gaat mis.
+    const ctx=history.length
+      ? "Gesprek tot nu toe:\n"+history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n")+"\n\n"
+      : "";
     try{
-      const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SPRAAK_SYSTEM,"Gespreksfragment:\n"+ruw);
+      const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SPRAAK_SYSTEM,ctx+"Zojuist gezegd:\n"+ruw);
       const q=(parseModelJSON(text).vraag||"").toString().trim();
-      if(!q)return lokaalOpschonen(ruw);
-      if(!vraagIsTrouw(ruw,q)){console.warn("vraag voegde een invalshoek toe die niet gezegd is:",q);return lokaalOpschonen(ruw);}
+      if(!q)return schoon;
+      if(AAN_DE_BELLER.test(q)){console.warn("vraag was aan de beller gericht:",q);return bijVorigeVraag(schoon);}
+      if(!vraagIsTrouw(ruw,q)){console.warn("vraag voegde een invalshoek toe die niet gezegd is:",q);return schoon;}
       return q;
-    }catch(e){console.warn("vraag opmaken:",e);return lokaalOpschonen(ruw);}
+    }catch(e){console.warn("vraag opmaken:",e);return schoon;}
   }
 
   function nietsGehoord(){
@@ -1628,6 +1658,7 @@ const LISTEN=(function initSpraak(){
     micBtn.title=on?"Stop met luisteren":"Meeluisteren en op verzoek een antwoord geven";
     micBtn.setAttribute("aria-label",on?"Stop met luisteren":"Start meeluisteren");
     document.body.classList.toggle("spraak-aan",on);
+    refreshComposer();
     if(on){if(!tikker)tikker=setInterval(()=>{if(tijdEl&&!tijdEl.hidden)tijdEl.textContent=klok();},1000);}
     else{if(tikker){clearInterval(tikker);tikker=null;}}
     toonBalk();
@@ -1642,6 +1673,7 @@ const LISTEN=(function initSpraak(){
     toonBalk();refreshComposer();
   }
   ret.stop=stop;
+  ret.nieuweContext=()=>{if(ret.active){resetContext();toonBalk();}};
 
   async function start(){
     // Vosk-modellen zijn op 16 kHz MONO getraind; vraag de microfoon daar expliciet om — anders
@@ -1690,6 +1722,8 @@ const LISTEN=(function initSpraak(){
     luisterAan:()=>{resetContext();setActive(true);},
     trouw:vraagIsTrouw,
     netteVraag,
+    aanDeBeller:q=>AAN_DE_BELLER.test(q),
+    bijVorige:bijVorigeVraag,
     hoor:t=>{finals.push({t:Date.now(),text:t});tekenLive();toonBalk();},
     antwoord:geefAntwoord,
     toonTekst:v=>{TOON=v;if(tekstCheck)tekstCheck.checked=v;toonToggle();toonBalk();},
