@@ -192,6 +192,30 @@ test("verduidelijking zonder prefill valt af", () => {
   waar(Q.maakVerduidelijking("Is dit een eerste aanvraag of een verlenging?", "Het is een"), "geldige keuzevraag geweigerd");
 });
 
+// --- gesproken vraag mag geen invalshoek verzinnen ---
+console.log("\nGESPROKEN VRAAG\n");
+{
+  // vraagIsTrouw zit in de spraakmodule (browsercode met DOM), dus de regel staat hier los
+  // gespiegeld. Wijzigt de lijst in index.html, dan hoort deze mee te veranderen.
+  const groepen = (html.match(/const INVALSHOEKEN=\[([\s\S]*?)\]\.map/) || [])[1];
+  test("de invalshoekenlijst staat nog in de app", () => waar(!!groepen, "INVALSHOEKEN niet gevonden in docs/index.html"));
+  const sets = (groepen || "").split("\n").map(r => (r.match(/"([^"]+)"/) || [])[1]).filter(Boolean).map(g => new Set(g.split(" ")));
+  const woorden = t => new Set((t || "").toLowerCase().match(/[a-zà-ÿ]+/g) || []);
+  const trouw = (ruw, vraag) => {
+    const r = woorden(ruw), v = woorden(vraag);
+    return sets.every(g => ![...v].some(w => g.has(w)) || [...r].some(w => g.has(w)));
+  };
+  test("verzonnen kostenvraag wordt geweigerd", () =>
+    waar(!trouw("ik ben benieuwd wat paspoort kunnen aanvragen in het buitenland", "Wat kost een paspoort aanvragen in het buitenland?")));
+  test("verzonnen locatievraag wordt geweigerd", () =>
+    waar(!trouw("ik wil een paspoort aanvragen", "Waar kan ik een paspoort aanvragen?")));
+  test("uitgesproken invalshoek blijft toegestaan", () => {
+    waar(trouw("mevrouw vraagt zich af wat het kost", "Wat kost een paspoort?"), "kosten waren wel gezegd");
+    waar(trouw("hoe lang moet ik wachten op mijn paspoort", "Hoe lang duurt een paspoortaanvraag?"), "tijd was wel gezegd");
+    waar(trouw("ik ben benieuwd wat paspoort kunnen aanvragen", "Hoe vraag ik een paspoort aan?"), "geen invalshoek toegevoegd");
+  });
+}
+
 // --- weergave ---
 console.log("\nWEERGAVE\n");
 test("inline link wordt in de alinea teruggeplaatst", () => {

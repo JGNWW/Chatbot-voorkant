@@ -194,6 +194,7 @@ body.spraak-laadt .spraak-status{color:var(--rijk-licht);}
 .spraak-btn.stil:hover{background:var(--blauw-bg);}
 /* Het gesproken origineel onder de vraagbubbel, zodat te zien is wat de AI ervan maakte. */
 .vraagblok{display:flex;flex-direction:column;align-items:flex-end;max-width:78%;min-width:0;}
+body:not(.spraak-toon) .gesproken{display:none;}
 .gesproken{display:block;text-align:right;font-size:.74rem;color:var(--ink-licht);margin:3px 4px 0;line-height:1.4;}
 .send-btn:hover:not(:disabled){background:var(--rijk-donker);}
 .send-btn:active:not(:disabled){transform:scale(.93);}
@@ -433,7 +434,8 @@ const SPRAAK_SYSTEM=`Je krijgt een RUWE spraaktranscriptie van een telefoongespr
 Maak er ÉÉN korte, zelfstandige vraag van, zoals de voorlichter die zou intypen. Regels:
 - Geef alleen de INFORMATIEVRAAG, geen beleefdheden, aanhef of context ("ja precies en mevrouw vraagt zich af wat het kost" -> "Wat kost een paspoort?").
 - Neem VAKTERMEN letterlijk over en vervang ze nooit door een andere term ("inreisvisum" is iets anders dan "Schengenvisum"). Herstel duidelijke verhaspelingen en afkortingen (IND, VFS, BSN, RNI, MVV, DigiD).
-- Verzin NIETS wat er niet in zit. Staat er geen onderwerp in, herhaal dan zo letterlijk mogelijk wat er gezegd is.
+- Verzin NIETS wat er niet in zit. Voeg vooral geen INVALSHOEK toe die niet gezegd is: is er niet over geld gesproken, maak er dan geen kostenvraag van; is er niet over tijd gesproken, geen doorlooptijdvraag; en zo ook niet over locatie, voorwaarden of geldigheid. Hoor je alleen "ik ben benieuwd wat paspoort kunnen aanvragen in het buitenland", dan is de vraag "Hoe vraag ik een paspoort aan in het buitenland?" — NIET "Wat kost een paspoort in het buitenland?".
+- Is de transcriptie te verhaspeld om te begrijpen, herhaal dan zo letterlijk mogelijk wat er gezegd is in plaats van er iets van te maken. Een onbeholpen vraag is beter dan een verzonnen vraag.
 - Gaat het over meerdere dingen, zet die dan in één vraag samen ("Wat kost een paspoort en hoe lang duurt het?").
 
 Antwoord UITSLUITEND met JSON: {"vraag":"..."}`;
@@ -1122,7 +1124,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 73";
+const APP_VERSION="build 74";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1348,8 +1350,13 @@ const LISTEN=(function initSpraak(){
   try{TOON=localStorage.getItem("vk_spraak_tekst")==="1";}catch(e){}
   if(tekstCheck){
     tekstCheck.checked=TOON;
-    tekstCheck.onchange=()=>{TOON=tekstCheck.checked;try{localStorage.setItem("vk_spraak_tekst",TOON?"1":"0");}catch(e){}toonBalk();};
+    tekstCheck.onchange=()=>{TOON=tekstCheck.checked;try{localStorage.setItem("vk_spraak_tekst",TOON?"1":"0");}catch(e){}toonToggle();toonBalk();};
   }
+
+  // Het vinkje bepaalt óók of het gesproken origineel onder de vraagbubbel staat: staat de
+  // gesprekstekst uit, dan wil je ook in het gesprek geen ruwe spraak zien.
+  function toonToggle(){document.body.classList.toggle("spraak-toon",TOON);}
+  toonToggle();
 
   // ---- laadvoortgang van het spraakmodel (40 MB, eenmalig) ----
   const warm={phase:"idle",pct:0};
@@ -1442,11 +1449,22 @@ const LISTEN=(function initSpraak(){
   }
   function tekenLive(){
     if(!liveEl||liveEl.hidden)return;
-    const oud=finalsSinds().join(" ");
+    // Toon precies het venster dat straks ook doorzoekt wordt, zodat wat je leest klopt met
+    // wat er gebeurt.
     const nu=partial.trim();
+    const heel=gehoord();
+    const oud=nu&&heel.endsWith(nu)?heel.slice(0,heel.length-nu.length).trim():heel;
     liveEl.innerHTML='<span>'+escapeHtml(oud)+(oud&&nu?" ":"")+'<span class="nieuw">'+escapeHtml(nu)+"</span></span>";
   }
   const finalsSinds=()=>finals.filter(f=>f.t>=ctxStart).map(f=>f.text);
+  // Alleen de LAATSTE 60 woorden sinds de vorige klik gaan naar de vraag — precies zoals de
+  // oude "antwoord op verzoek". Neem je alles mee, dan verdrinkt de eigenlijke vraag in het
+  // voorafgaande gesprek en wordt het antwoord slechter, ook al is de herkenning hetzelfde.
+  const VENSTER_WOORDEN=60;
+  function gehoord(){
+    const t=[...finalsSinds(),partial.trim()].join(" ").trim();
+    return (t.match(/\S+/g)||[]).slice(-VENSTER_WOORDEN).join(" ");
+  }
   function resetContext(){ctxStart=Date.now();finals=finals.filter(f=>f.t>=ctxStart);partial="";}
 
   // ---- van gesproken tekst naar een nette vraag ----
@@ -1459,19 +1477,45 @@ const LISTEN=(function initSpraak(){
     while(w.length&&VULWOORD.test(w[0]))w.shift();
     return w.join(" ").replace(/\s+/g," ").trim();
   }
+  // De prompt vraagt het al, maar één misser is er één te veel: een vraag die een INVALSHOEK
+  // toevoegt die niet is uitgesproken ("kost" terwijl er niet over geld ging) leidt naar een
+  // heel ander antwoord. Per invalshoek een handjevol woorden; zit er in de vraag een woord uit
+  // een groep terwijl de gesproken tekst er geen enkel woord uit heeft, dan is die invalshoek
+  // verzonnen en gebruiken we de opgeschoonde spraaktekst.
+  const INVALSHOEKEN=[
+    "kost kosten prijs prijzen bedrag bedragen euro euros betalen betaling tarief tarieven duur duurder gratis",
+    "duurt duur lang langer termijn termijnen wachttijd wachten snel sneller doorlooptijd weken dagen maanden",
+    "waar locatie locaties loket loketten adres balie balies dichtstbijzijnde",
+    "geldig geldigheid verloopt verlopen vervalt houdbaar",
+  ].map(g=>new Set(g.split(" ")));
+  function vraagIsTrouw(ruw,vraag){
+    // Losse woorden, NIET via tokenize: die filtert stopwoorden weg, en juist "waar", "wat" en
+    // "hoe" zijn hier betekenisdragend.
+    const woorden=t=>new Set((t||"").toLowerCase().match(/[a-zà-ÿ]+/g)||[]);
+    const r=woorden(ruw),v=woorden(vraag);
+    for(const groep of INVALSHOEKEN){
+      const inVraag=[...v].some(w=>groep.has(w));
+      if(!inVraag)continue;
+      const inSpraak=[...r].some(w=>groep.has(w));
+      if(!inSpraak)return false;
+    }
+    return true;
+  }
   async function netteVraag(ruw){
     const key=keyInput.value.trim();
     if(key.length<=10)return lokaalOpschonen(ruw);
     try{
       const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SPRAAK_SYSTEM,"Gespreksfragment:\n"+ruw);
       const q=(parseModelJSON(text).vraag||"").toString().trim();
-      return q||lokaalOpschonen(ruw);
+      if(!q)return lokaalOpschonen(ruw);
+      if(!vraagIsTrouw(ruw,q)){console.warn("vraag voegde een invalshoek toe die niet gezegd is:",q);return lokaalOpschonen(ruw);}
+      return q;
     }catch(e){console.warn("vraag opmaken:",e);return lokaalOpschonen(ruw);}
   }
 
   async function geefAntwoord(){
     if(!ret.active||bezig)return;
-    const ruw=expandAbbrev([...finalsSinds(),partial.trim()].join(" ").trim());
+    const ruw=expandAbbrev(gehoord());
     if(!ruw||!tokenize(ruw).length){
       if(statusEl){const o=statusEl.textContent;statusEl.textContent="Nog niets gehoord…";setTimeout(()=>{if(statusEl)statusEl.textContent=o;},1600);}
       return;
@@ -1523,23 +1567,28 @@ const LISTEN=(function initSpraak(){
       recognizer=new model.KaldiRecognizer(audioCtx.sampleRate);
       recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";tekenLive();});
       recognizer.on("result",m=>{const t=((m.result&&m.result.text)||"").trim();if(t){finals.push({t:Date.now(),text:t});if(finals.length>40)finals=finals.slice(-40);}partial="";tekenLive();});
+      // Actief zetten VOORDAT de keten hangt: onaudioprocess negeert buffers zolang ret.active
+      // nog false is, en één buffer is hier 4096 samples = ruim een kwart seconde spraak.
+      resetContext();setActive(true);
       srcNode=audioCtx.createMediaStreamSource(stream);
       proc=audioCtx.createScriptProcessor(4096,1,1);
       const sink=audioCtx.createGain();sink.gain.value=0;
       proc.onaudioprocess=e=>{if(ret.active&&recognizer){try{recognizer.acceptWaveform(e.inputBuffer);}catch(err){}}};
       srcNode.connect(proc);proc.connect(sink);sink.connect(audioCtx.destination);
-    }catch(e){document.body.classList.remove("spraak-laadt");teardownAudio();alert("Kon de microfoon niet openen: "+(e.message||e));toonBalk();return;}
+    }catch(e){document.body.classList.remove("spraak-laadt");setActive(false);teardownAudio();alert("Kon de microfoon niet openen: "+(e.message||e));toonBalk();return;}
     document.body.classList.remove("spraak-laadt");
-    resetContext();setActive(true);
+    toonBalk();
   }
 
   // Testhaakje: de standen zijn zonder microfoon niet te bereiken, en juist die willen we
   // geautomatiseerd kunnen nalopen (zie de browsertest bij deze wijziging).
   ret.__test={
     luisterAan:()=>{resetContext();setActive(true);},
+    trouw:vraagIsTrouw,
+    netteVraag,
     hoor:t=>{finals.push({t:Date.now(),text:t});tekenLive();toonBalk();},
     antwoord:geefAntwoord,
-    toonTekst:v=>{TOON=v;if(tekstCheck)tekstCheck.checked=v;toonBalk();},
+    toonTekst:v=>{TOON=v;if(tekstCheck)tekstCheck.checked=v;toonToggle();toonBalk();},
   };
   micBtn.addEventListener("click",()=>{if(ret.active||document.body.classList.contains("spraak-laadt"))stop();else start();});
   if(stopBtn)stopBtn.onclick=stop;
