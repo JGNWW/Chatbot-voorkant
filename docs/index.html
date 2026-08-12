@@ -50,6 +50,8 @@ html,body{height:100%;overflow:hidden;}
 .keybar{background:var(--grijs);color:var(--ink);padding:14px 20px;font-size:.82rem;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--rand);}
 .keybar select,.keybar input{padding:8px 10px;border:1px solid var(--rand);border-radius:8px;font-size:.85rem;background:#fff;color:var(--ink);font-family:inherit;}
 .keybar input{flex:1;min-width:180px;}
+/* Het vinkje is geen invoerveld: niet uitrekken, anders staat het los van zijn label. */
+.keybar input[type="checkbox"]{flex:0 0 auto;min-width:0;width:auto;margin:0;}
 /* Zoekgebied staat in de bovenbalk: je moet kunnen zien dat een filter aanstaat. */
 .filterbar{display:flex;gap:7px;align-items:center;font-size:.82rem;}
 .filterbar-label{color:var(--ink-licht);font-weight:600;}
@@ -60,7 +62,9 @@ html,body{height:100%;overflow:hidden;}
 .keybar a{color:var(--rijk-licht);font-size:.78rem;white-space:nowrap;font-weight:600;}
 .keybar .status{font-size:.78rem;width:100%;color:var(--ink-licht);}
 .keybar .status.build{width:auto;opacity:.55;font-size:.72rem;}
-.spraak-optie{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink-licht);cursor:pointer;}
+.spraak-optie{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-size:.78rem;color:var(--ink-licht);cursor:pointer;}
+.spraak-optie select{padding:4px 7px;border:1px solid var(--rand);border-radius:7px;font-size:.78rem;font-family:inherit;background:#fff;color:var(--ink);}
+.spraak-optie input:disabled+span,.spraak-optie:has(input:disabled){opacity:.55;}
 .fb-export{background:none;border:none;padding:0;font-family:inherit;font-size:.72rem;color:var(--ink-licht);cursor:pointer;text-decoration:underline;}
 .fb-export:hover{color:var(--rijk-licht);}
 .conversation{flex:1;padding:32px 28px;overflow-y:auto;}
@@ -335,6 +339,13 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <span class="status" id="keystatus"></span>
       <span class="status" id="semstatus">zoeken laden…</span>
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
+      <label class="spraak-optie">spraakmodel
+        <select id="spraak-motor" title="Groter model = nauwkeuriger, maar eenmalig meer downloaden">
+          <option value="vosk">Vosk NL — 40 MB · leest live mee</option>
+          <option value="whisper-base">Whisper base — 77 MB · nauwkeuriger</option>
+          <option value="whisper-small">Whisper small — 249 MB · meest nauwkeurig</option>
+        </select>
+      </label>
       <label class="spraak-optie" title="Alleen nodig om te controleren of u goed verstaan wordt"><input type="checkbox" id="spraak-tekst"> gesprekstekst tonen tijdens spraak</label>
       <button type="button" class="fb-export" id="fb-export" title="Download de lokaal opgeslagen feedback en gemiste vragen als CSV">feedback exporteren ↓</button>
     </div>
@@ -1124,7 +1135,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 74";
+const APP_VERSION="build 75";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1342,7 +1353,76 @@ const LISTEN=(function initSpraak(){
         stopBtn=document.getElementById("spraak-stop"),tekstCheck=document.getElementById("spraak-tekst");
 
   let model=null,modelPromise=null,recognizer=null,stream=null,audioCtx=null,srcNode=null,proc=null;
-  let finals=[],partial="",ctxStart=0,tikker=null,bezig=false;
+  let finals=[],partial="",ctxStart=0,tikker=null,bezig=false,bezigTekst="Vraag opmaken…";
+
+  // ---- keuze van het spraakmodel ----
+  // Vosk draait vanaf onze eigen server en leest woord voor woord mee. Whisper is nauwkeuriger,
+  // maar werkt per stuk audio: pas als je op "Geef antwoord" klikt gaat de opname er in één keer
+  // doorheen. Dat kan sinds spraak op verzoek werkt; in de oude ambient modus kon het niet.
+  // De maten zijn de werkelijke downloadgrootte van de q8-modellen (encoder + decoder).
+  const MOTOREN={
+    "vosk":{naam:"Vosk NL",mb:40,live:true},
+    "whisper-base":{naam:"Whisper base",mb:77,live:false,id:"onnx-community/whisper-base"},
+    "whisper-small":{naam:"Whisper small",mb:249,live:false,id:"onnx-community/whisper-small"},
+  };
+  let MOTOR="vosk";
+  try{const m=localStorage.getItem("vk_spraak_motor");if(MOTOREN[m])MOTOR=m;}catch(e){}
+  const motor=()=>MOTOREN[MOTOR]||MOTOREN.vosk;
+  const liveMogelijk=()=>motor().live;
+  const motorSel=document.getElementById("spraak-motor");
+  if(motorSel){
+    motorSel.value=MOTOR;
+    motorSel.onchange=()=>{
+      MOTOR=MOTOREN[motorSel.value]?motorSel.value:"vosk";
+      try{localStorage.setItem("vk_spraak_motor",MOTOR);}catch(e){}
+      if(ret.active||document.body.classList.contains("spraak-laadt"))stop();   // opnieuw starten met het nieuwe model
+      tekstVinkje();
+    };
+  }
+  // Zonder live meelezen heeft het vinkje alleen zin ná de omzetting; dat maken we zichtbaar.
+  function tekstVinkje(){
+    if(!tekstCheck)return;
+    tekstCheck.disabled=!liveMogelijk();
+    const l=tekstCheck.closest("label");
+    if(l)l.title=liveMogelijk()?"Alleen nodig om te controleren of u goed verstaan wordt"
+      :"Whisper zet de spraak pas om als u op “Geef antwoord” klikt; meelezen tijdens het spreken kan alleen met Vosk.";
+  }
+
+  // ---- Whisper via transformers.js (zelfde bibliotheek als het semantisch zoeken) ----
+  let asr=null,asrPromise=null,asrId=null,pcm=[],pcmLen=0;
+  const PCM_MAX=16000*45;                       // 45 seconden; ouder dan dat is de vraag niet meer
+  async function loadWhisper(){
+    const id=motor().id;
+    if(asr&&asrId===id)return asr;
+    if(!asrPromise||asrId!==id){
+      asrId=id;
+      asrPromise=(async()=>{
+        setWarm("downloaden",0);
+        const tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
+        tf.env.allowLocalModels=false;
+        const gezien={};
+        asr=await tf.pipeline("automatic-speech-recognition",id,{
+          dtype:"q8",
+          progress_callback:p=>{
+            if(p.status!=="progress"||!p.total)return;
+            gezien[p.file]=p.loaded;
+            const klaar=Object.values(gezien).reduce((a,b)=>a+b,0);
+            setWarm("downloaden",Math.min(99,Math.round(klaar/(motor().mb*1e6)*100)));
+          },
+        });
+        setWarm("klaar",100);
+        return asr;
+      })().catch(e=>{asrPromise=null;throw e;});
+    }
+    return asrPromise;
+  }
+  async function whisperTekst(){
+    if(!pcmLen)return "";
+    const buf=new Float32Array(pcmLen);let o=0;
+    for(const stuk of pcm){buf.set(stuk,o);o+=stuk.length;}
+    const uit=await asr(buf,{language:"dutch",task:"transcribe",chunk_length_s:30,stride_length_s:5});
+    return ((uit&&uit.text)||"").trim();
+  }
 
   // Gesprekstekst tonen: alleen nodig om te controleren of je goed verstaan wordt, dus standaard
   // uit. De keuze blijft bewaard.
@@ -1356,7 +1436,7 @@ const LISTEN=(function initSpraak(){
   // Het vinkje bepaalt óók of het gesproken origineel onder de vraagbubbel staat: staat de
   // gesprekstekst uit, dan wil je ook in het gesprek geen ruwe spraak zien.
   function toonToggle(){document.body.classList.toggle("spraak-toon",TOON);}
-  toonToggle();
+  toonToggle();tekstVinkje();
 
   // ---- laadvoortgang van het spraakmodel (40 MB, eenmalig) ----
   const warm={phase:"idle",pct:0};
@@ -1396,7 +1476,7 @@ const LISTEN=(function initSpraak(){
   }
   // Vooraf laden zodra de pagina rustig is: dan is de eerste klik meteen bruikbaar.
   ret.warm=warm;ret.onWarm=f=>onWarm.push(f);
-  const kickoff=()=>{loadModel().catch(()=>{});};
+  const kickoff=()=>{if(MOTOR==="vosk")loadModel().catch(()=>{});};   // niet 40 MB halen voor een model dat niet gekozen is
   if("requestIdleCallback" in window)requestIdleCallback(kickoff,{timeout:8000});else setTimeout(kickoff,4000);
 
   // ---- afkortingen herstellen ----
@@ -1427,16 +1507,18 @@ const LISTEN=(function initSpraak(){
   function toonBalk(){
     const laadt=document.body.classList.contains("spraak-laadt");
     const aan=document.body.classList.contains("spraak-aan");
-    zichtbaar(statusEl,laadt||bezig||(aan&&!TOON));
-    zichtbaar(liveEl,aan&&TOON&&!bezig);
+    const live=TOON&&liveMogelijk();
+    zichtbaar(statusEl,laadt||bezig||(aan&&!live));
+    zichtbaar(liveEl,aan&&live&&!bezig);
     zichtbaar(meterEl,laadt&&warm.phase==="downloaden");
-    zichtbaar(vulEl,laadt||bezig||(aan&&!TOON));
+    zichtbaar(vulEl,laadt||bezig||(aan&&!live));
     zichtbaar(tijdEl,aan&&!bezig);
     zichtbaar(antwoordBtn,aan&&!bezig);
     zichtbaar(stopBtn,aan||laadt);
     if(statusEl){
-      statusEl.textContent=bezig?"Vraag opmaken…"
-        :laadt?(warm.phase==="uitpakken"?("Spraakmodel gereedmaken… ("+(warm.pct||0)+"s, eenmalig)"):("Spraakmodel laden… "+(warm.pct||0)+"%"))
+      statusEl.textContent=bezig?bezigTekst
+        :laadt?(warm.phase==="uitpakken"?("Spraakmodel gereedmaken… ("+(warm.pct||0)+"s, eenmalig)")
+                                        :(motor().naam+" laden… "+(warm.pct||0)+"% van "+motor().mb+" MB"))
         :"Luistert mee…";
     }
     if(meterEl)meterEl.firstElementChild.style.width=(warm.pct||0)+"%";
@@ -1465,7 +1547,7 @@ const LISTEN=(function initSpraak(){
     const t=[...finalsSinds(),partial.trim()].join(" ").trim();
     return (t.match(/\S+/g)||[]).slice(-VENSTER_WOORDEN).join(" ");
   }
-  function resetContext(){ctxStart=Date.now();finals=finals.filter(f=>f.t>=ctxStart);partial="";}
+  function resetContext(){ctxStart=Date.now();finals=finals.filter(f=>f.t>=ctxStart);partial="";pcm=[];pcmLen=0;}
 
   // ---- van gesproken tekst naar een nette vraag ----
   // Zonder AI-sleutel poetsen we lokaal de ergste ruis weg; met sleutel maakt het model er één
@@ -1513,14 +1595,27 @@ const LISTEN=(function initSpraak(){
     }catch(e){console.warn("vraag opmaken:",e);return lokaalOpschonen(ruw);}
   }
 
+  function nietsGehoord(){
+    if(!statusEl)return;
+    const o=statusEl.textContent;statusEl.textContent="Nog niets gehoord…";
+    setTimeout(()=>{if(statusEl)statusEl.textContent=o;},1600);
+  }
   async function geefAntwoord(){
     if(!ret.active||bezig)return;
-    const ruw=expandAbbrev(gehoord());
-    if(!ruw||!tokenize(ruw).length){
-      if(statusEl){const o=statusEl.textContent;statusEl.textContent="Nog niets gehoord…";setTimeout(()=>{if(statusEl)statusEl.textContent=o;},1600);}
-      return;
+    let ruw;
+    if(liveMogelijk()){
+      ruw=gehoord();
+    }else{
+      // Whisper zet de opname nu pas om; dat duurt een seconde of wat en dat moet je zien.
+      if(!pcmLen)return nietsGehoord();
+      bezig=true;bezigTekst="Spraak omzetten…";toonBalk();
+      try{ruw=await whisperTekst();}
+      catch(e){console.warn("omzetten mislukt:",e);bezig=false;toonBalk();alert("Kon de spraak niet omzetten: "+(e.message||e));return;}
+      ruw=(ruw.match(/\S+/g)||[]).slice(-VENSTER_WOORDEN).join(" ");
     }
-    bezig=true;toonBalk();
+    ruw=expandAbbrev(ruw||"");
+    if(!ruw||!tokenize(ruw).length){bezig=false;toonBalk();return nietsGehoord();}
+    bezig=true;bezigTekst="Vraag opmaken…";toonBalk();
     const vraag=await netteVraag(ruw);
     bezig=false;resetContext();toonBalk();
     if(!ret.active)return;
@@ -1543,7 +1638,7 @@ const LISTEN=(function initSpraak(){
     if(!ret.active&&!stream){toonBalk();return;}
     setActive(false);teardownAudio();
     try{if(recognizer)recognizer.remove();}catch(e){}recognizer=null;
-    finals=[];partial="";bezig=false;
+    finals=[];partial="";bezig=false;pcm=[];pcmLen=0;
     toonBalk();refreshComposer();
   }
   ret.stop=stop;
@@ -1556,24 +1651,33 @@ const LISTEN=(function initSpraak(){
     catch(e){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});}
       catch(e2){alert("Microfoontoegang geweigerd. Klik op het slotje links van de URL en sta microfoon toe.");return;}}
     document.body.classList.add("spraak-laadt");toonBalk();
-    try{await loadModel();}
-    catch(e){document.body.classList.remove("spraak-laadt");teardownAudio();alert("Kon het spraakmodel niet laden: "+(e.message||e));toonBalk();return;}
+    try{await (liveMogelijk()?loadModel():loadWhisper());}
+    catch(e){document.body.classList.remove("spraak-laadt");teardownAudio();alert("Kon "+motor().naam+" niet laden: "+(e.message||e));toonBalk();return;}
     if(!stream){document.body.classList.remove("spraak-laadt");return;}   // ondertussen gestopt
     try{
       // AudioContext óók op 16 kHz: dan krijgt Vosk exact wat het model verwacht.
       try{audioCtx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:16000});}
       catch(e){audioCtx=new (window.AudioContext||window.webkitAudioContext)();}
       if(audioCtx.state==="suspended")await audioCtx.resume();
-      recognizer=new model.KaldiRecognizer(audioCtx.sampleRate);
-      recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";tekenLive();});
-      recognizer.on("result",m=>{const t=((m.result&&m.result.text)||"").trim();if(t){finals.push({t:Date.now(),text:t});if(finals.length>40)finals=finals.slice(-40);}partial="";tekenLive();});
+      if(liveMogelijk()){
+        recognizer=new model.KaldiRecognizer(audioCtx.sampleRate);
+        recognizer.on("partialresult",m=>{partial=(m.result&&m.result.partial)||"";tekenLive();});
+        recognizer.on("result",m=>{const t=((m.result&&m.result.text)||"").trim();if(t){finals.push({t:Date.now(),text:t});if(finals.length>40)finals=finals.slice(-40);}partial="";tekenLive();});
+      }
       // Actief zetten VOORDAT de keten hangt: onaudioprocess negeert buffers zolang ret.active
       // nog false is, en één buffer is hier 4096 samples = ruim een kwart seconde spraak.
       resetContext();setActive(true);
       srcNode=audioCtx.createMediaStreamSource(stream);
       proc=audioCtx.createScriptProcessor(4096,1,1);
       const sink=audioCtx.createGain();sink.gain.value=0;
-      proc.onaudioprocess=e=>{if(ret.active&&recognizer){try{recognizer.acceptWaveform(e.inputBuffer);}catch(err){}}};
+      proc.onaudioprocess=e=>{
+        if(!ret.active)return;
+        if(recognizer){try{recognizer.acceptWaveform(e.inputBuffer);}catch(err){}return;}
+        // Whisper krijgt de audio pas bij de klik; tot dan bewaren we een rollend venster.
+        const kanaal=e.inputBuffer.getChannelData(0);
+        pcm.push(new Float32Array(kanaal));pcmLen+=kanaal.length;
+        while(pcmLen>PCM_MAX&&pcm.length>1){pcmLen-=pcm[0].length;pcm.shift();}
+      };
       srcNode.connect(proc);proc.connect(sink);sink.connect(audioCtx.destination);
     }catch(e){document.body.classList.remove("spraak-laadt");setActive(false);teardownAudio();alert("Kon de microfoon niet openen: "+(e.message||e));toonBalk();return;}
     document.body.classList.remove("spraak-laadt");
