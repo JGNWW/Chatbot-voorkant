@@ -107,6 +107,16 @@ body.is-welcome .empty{margin-top:0;}
 .ans-ai{border-left:3px solid #b3bac2;padding:3px 0 3px 15px;min-width:0;}
 .ans-row + .ans-row .ans-ai{padding-top:0;}
 .intro{font-size:.95rem;color:var(--ink);margin:0;line-height:1.55;}
+/* Volledig generatief antwoord: oker streepje, want dit is GEEN letterlijke tekst. De
+   nummertjes openen dezelfde bronviewer als een citaat, met de passage gemarkeerd. */
+.ans-gen{border-left:3px solid #d9bd6a;padding:3px 0 3px 15px;min-width:0;}
+.gen-label{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a6d15;background:#fdf8ec;border:1px solid #ecdcae;border-radius:5px;padding:2px 7px;margin:0 0 8px;}
+.gen-p{font-size:.97rem;line-height:1.62;margin:0 0 10px;}
+.gen-p:last-child{margin-bottom:2px;}
+.cite-chip{font-size:.68rem;font-weight:700;vertical-align:super;line-height:1;background:var(--blauw-bg);color:var(--rijk-licht);border:1px solid var(--blauw-licht);border-radius:5px;padding:1px 5px;margin:0 1px;cursor:pointer;font-family:inherit;transition:background .12s,color .12s;}
+.cite-chip:hover{background:var(--rijk-licht);color:#fff;border-color:var(--rijk-licht);}
+.passage.bron-only{margin-top:2px;}
+.passage.bron-only .src-card{margin-left:0;}
 .brug{font-size:.95rem;color:var(--ink);margin:9px 0 0;line-height:1.55;}
 /* Passage = één citaat als nette, gestructureerde tekst met een bron-kaartje eronder */
 .passage{display:grid;grid-template-columns:34px 1fr;margin:0;}
@@ -347,6 +357,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <span class="status" id="keystatus"></span>
       <span class="status" id="semstatus">zoeken laden…</span>
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
+      <label class="spraak-optie" title="De AI schrijft het antwoord zelf op basis van de gevonden passages, in plaats van ze letterlijk te tonen"><input type="checkbox" id="generatief"> volledig generatief antwoord</label>
       <label class="spraak-optie">spraakmodel
         <select id="spraak-motor" title="Groter model = nauwkeuriger, maar eenmalig meer downloaden">
           <option value="vosk">Vosk NL — 40 MB · leest live mee</option>
@@ -461,7 +472,21 @@ Verder:
 - Verzin NIETS wat er niet in zit. Voeg vooral geen INVALSHOEK toe die niet gezegd is: is er niet over geld gesproken, maak er dan geen kostenvraag van; is er niet over tijd gesproken, geen doorlooptijdvraag; en zo ook niet over locatie, voorwaarden of geldigheid.
 - Is de transcriptie te verhaspeld om te begrijpen, herhaal dan zo letterlijk mogelijk wat er gezegd is in plaats van er iets van te maken. Een onbeholpen vraag is beter dan een verzonnen vraag.
 
-Antwoord UITSLUITEND met JSON: {"vraag":"..."}`;const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). NOEMT de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille", "attestatie de vita", "laissez-passer"), kies dan ALTIJD de pagina die over JUIST dat product gaat — ook als de vraag uit één woord bestaat. Een losse vakterm is een SPECIFIEKE vraag, geen brede vraag; kies dan dus NIET de algemene overzichtspagina van de rubriek. Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
+Antwoord UITSLUITEND met JSON: {"vraag":"..."}`;// Volledig generatief antwoord: de AI schrijft zelf, maar elke bewering moet aan een passage
+// hangen. De app controleert dat achteraf; wat niet klopt wordt niet getoond.
+const GENERATIEF_SYSTEM=`Je krijgt de vraag van een voorlichter van NederlandWereldwijd en enkele genummerde PASSAGES die letterlijk van nederlandwereldwijd.nl komen. Schrijf daarmee één samenhangend antwoord in het Nederlands, in de aanspreekvorm "u".
+
+Regels:
+- Gebruik UITSLUITEND wat in de passages staat. Voeg geen kennis van buitenaf toe, ook niet als je het zeker weet.
+- Elke alinea MOET verwijzen naar minstens één passage. Een alinea zonder bron wordt weggegooid.
+- Neem bedragen, termijnen, jaartallen en aantallen exact over uit de passage waarnaar je verwijst. Noem geen getal dat daar niet in staat.
+- Schrijf 1 tot 4 korte alinea's, in de volgorde die de vraag het beste beantwoordt. Geen kopjes, geen opsommingstekens.
+- Begin niet met een herhaling van de vraag; begin met het antwoord.
+- Neem VAKTERMEN letterlijk over ("inreisvisum" is iets anders dan "Schengenvisum").
+- Hangt het antwoord af van de situatie (land, eerste aanvraag of verlenging, volwassene of kind), zeg dat dan met zoveel woorden in plaats van één situatie te kiezen.
+
+Antwoord UITSLUITEND met JSON: {"alineas":[{"tekst":"<alinea>","bronnen":[<passagenummers>]}]}`;
+const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). NOEMT de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille", "attestatie de vita", "laissez-passer"), kies dan ALTIJD de pagina die over JUIST dat product gaat — ook als de vraag uit één woord bestaat. Een losse vakterm is een SPECIFIEKE vraag, geen brede vraag; kies dan dus NIET de algemene overzichtspagina van de rubriek. Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
 let history=[];
@@ -527,6 +552,10 @@ const TOPK=6; // aantal kandidaat-pagina's dat naar het AI-model gaat
 // Hoeveel citaten een antwoord hoogstens telt. Eén citaat blijft de regel; meer alleen als de
 // vraag echt uit meerdere onderdelen bestaat (kosten én doorlooptijd, of per situatie anders).
 const MAX_CITES=3;
+// Volledig generatief antwoord: standaard UIT. De letterlijke modus blijft de norm, omdat je
+// die aan de telefoon woordelijk kunt voorlezen.
+let GENERATIEF=false;
+try{GENERATIEF=localStorage.getItem("vk_generatief")==="1";}catch(e){}
 // Koppen en linkteksten per pagina, gecachet: nodig om blokgrenzen en inline links te herkennen.
 const _HEADS=[],_ANCH=[];
 function headingSet(i){
@@ -1139,6 +1168,14 @@ async function fillModels(){
   refreshMode();
 }
 function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)||"";}
+// Volledig generatief aan/uit. De keuze blijft bewaard; hij geldt pas bij de volgende vraag.
+{
+  const g=document.getElementById("generatief");
+  if(g){
+    g.checked=GENERATIEF;
+    g.onchange=()=>{GENERATIEF=g.checked;try{localStorage.setItem("vk_generatief",GENERATIEF?"1":"0");}catch(e){}};
+  }
+}
 function refreshMode(){const p=PROVIDERS[provSel.value];keyLink.href=p.keyUrl;keyInput.placeholder=p.keyHint;const has=keyInput.value.trim().length>10;keyStatus.textContent=has?("AI-modus actief — "+p.label+" / "+modelSel.value):("Demo-modus (geen AI). Tip: "+p.keyHint);modeBadge.innerHTML=has?'<span class="badge ai">AI</span>':'<span class="badge demo">DEMO</span>';}
 
 provSel.addEventListener("change",()=>{localStorage.setItem("provider",provSel.value);fillModels();loadKey();refreshMode();});
@@ -1146,7 +1183,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 77";
+const APP_VERSION="build 78";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1751,6 +1788,16 @@ function srcOf(i){return {title:CORPUS[i].title,url:CORPUS[i].url};}
 // vastligt wat AI-tekst is en wat bron. Wie hier een blok toevoegt, moet zich uitspreken.
 function answerBlocks(r){
   const blokken=[];
+  // Volledig generatief: één blok met door de AI geschreven alinea's; de nummertjes verwijzen
+  // naar dezelfde passages die anders letterlijk getoond zouden worden.
+  if(r.generatief&&r.generatief.length){
+    blokken.push({type:"generated",alineas:r.generatief,
+                  text:r.generatief.map(a=>a.tekst).join("\n\n")});
+    (r.citations||[]).forEach((c,i)=>blokken.push({type:"source",text:c.text,
+      sourceUrl:c.src?c.src.url:"",sourceTitle:c.src?c.src.title:"",
+      verified:!!c.verified,srcIdx:c.srcIdx,ci:i,alleenBron:true}));
+    return blokken;
+  }
   (r.citations||[]).forEach((c,i)=>{
     const tekst=[];
     if(i===0&&r.intro)tekst.push(r.intro);
@@ -1837,7 +1884,47 @@ async function askAI(q,cands,key){
   }
   // Intro: korte herformulering van de informatiebehoefte; alleen tonen als er een citaat is.
   const intro=citations.length?((r.intro||"").toString().trim().replace(/\s+/g," ").slice(0,200)):"";
-  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
+  const uit={restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
+  if(GENERATIEF&&citations.length)uit.generatief=await schrijfAntwoord(q,citations,key);
+  return uit;
+}
+
+// ---- Volledig generatief antwoord (staat standaard uit) ----------------------------------
+// De AI schrijft zelf, op basis van dezelfde passages die anders letterlijk getoond zouden
+// worden. Twee vangrails, want een vloeiend antwoord leest alsof het klopt:
+//   1. elke alinea moet aan minstens één passage hangen; hangt er niets aan, dan valt hij af;
+//   2. elk getal, bedrag of jaartal in een alinea moet ook in de aangehaalde passage staan.
+// Sneuvelt er iets, dan tonen we het gegenereerde antwoord NIET en valt de app terug op de
+// letterlijke weergave. Liever een saai antwoord dan een vloeiend antwoord dat niet klopt.
+function getallenIn(t){return (String(t).match(/\d[\d.,]*/g)||[]).map(x=>x.replace(/[.,]$/,""));}
+function alineaKlopt(tekst,passages){
+  const bron=passages.join(" ").toLowerCase();
+  for(const g of getallenIn(tekst))if(!bron.includes(g.toLowerCase()))return false;
+  if(/€|euro/i.test(tekst)&&!/€|euro/i.test(bron))return false;
+  return true;
+}
+async function schrijfAntwoord(q,citations,key){
+  const lijst=citations.map((c,i)=>"["+(i+1)+"] "+c.text).join("\n\n");
+  let j;
+  try{
+    const text=await PROVIDERS[provSel.value].call(key,modelSel.value,GENERATIEF_SYSTEM,
+      "Vraag:\n"+q+"\n\nPassages:\n"+lijst);
+    j=parseModelJSON(text);
+  }catch(e){console.warn("generatief antwoord:",e);return null;}
+  const ruw=Array.isArray(j&&j.alineas)?j.alineas:[];
+  const alineas=[];
+  for(const a of ruw){
+    const tekst=((a&&a.tekst)||"").toString().trim().replace(/\s+/g," ");
+    if(!tekst)continue;
+    const bronnen=[...new Set((Array.isArray(a.bronnen)?a.bronnen:[])
+      .map(n=>parseInt(n,10)).filter(n=>n>=1&&n<=citations.length))];
+    if(!bronnen.length){console.warn("alinea zonder bron, valt af:",tekst.slice(0,60));return null;}
+    if(!alineaKlopt(tekst,bronnen.map(n=>citations[n-1].text))){
+      console.warn("alinea noemt een getal dat niet in de bron staat:",tekst.slice(0,80));return null;
+    }
+    alineas.push({tekst,bronnen});
+  }
+  return alineas.length?alineas:null;
 }
 
 function addTurn(q,gesproken){
@@ -1872,7 +1959,7 @@ function fallbackCopy(t,cb){const ta=document.createElement("textarea");ta.value
 function answerPlainText(r){
   const parts=[];
   for(const b of answerBlocks(r)){
-    if(b.type==="bridge")parts.push(b.text);
+    if(b.type==="bridge"||b.type==="generated")parts.push(b.text);
     else parts.push("“"+b.text+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${b.sourceUrl})`:""));
   }
   return parts.join("\n\n");
@@ -1961,6 +2048,16 @@ function renderResult(turn,r){
     // antwoord zonder aanloop.
     if(!r.intro&&!r.citations.some(c=>c.bridge))h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
     for(const blok of answerBlocks(r)){
+      if(blok.type==="generated"){
+        const lab=eersteAI?"AI":"";eersteAI=false;
+        const alineas=blok.alineas.map(a=>{
+          const chips=a.bronnen.map(n=>`<button type="button" class="cite-chip" data-ci="${n-1}" title="Bekijk de passage op de bronpagina">${n}</button>`).join("");
+          return `<p class="gen-p">${escapeHtml(a.tekst)} ${chips}</p>`;
+        }).join("");
+        h+=`<div class="ans-row"><span class="ans-lab">${lab}</span><div class="ans-gen">`
+          +`<span class="gen-label">door AI geschreven op basis van de bronnen hieronder</span>${alineas}</div></div>`;
+        continue;
+      }
       if(blok.type==="bridge"){
         const lab=eersteAI?"AI":"";eersteAI=false;
         const alineas=blok.alineas.map((t,n)=>`<p class="${n===0?"intro":"brug"}">${escapeHtml(t)}</p>`).join("");
@@ -1969,6 +2066,16 @@ function renderResult(turn,r){
       }
       const i=blok.ci,n=num[blok.sourceUrl]||(i+1);
       const lab=eersteCit?"NWW":"";eersteCit=false;
+      if(blok.alleenBron){
+        // Generatieve modus: alleen de bronkaart, genummerd zoals in de tekst.
+        h+=`<div class="passage bron-only" data-ci="${i}"><span class="ans-lab"></span><div class="cite-col">`
+          +`<div class="src-card" data-ci="${i}" role="button" tabindex="0" title="Bekijk dit stuk op de bronpagina">`
+            +`<span class="src-badge">${i+1}</span>`
+            +`<span class="src-info">${ICON_DOC}<span class="src-title">${escapeHtml(blok.sourceTitle||"Bron")}</span></span>`
+            +`<span class="src-go">Lees verder op de pagina →</span>`
+          +`</div></div></div>`;
+        continue;
+      }
       h+=`<div class="passage ${blok.verified?'verified':'unverified'}" data-ci="${i}">`
         +`<span class="ans-lab">${lab}</span><div class="cite-col">`
         +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
@@ -2011,6 +2118,7 @@ function renderResult(turn,r){
   });
   slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(r.citations[+b.getAttribute("data-ci")].text,b);});
   const openCite=el=>{const c=r.citations[+el.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);};
+  slot.querySelectorAll(".cite-chip").forEach(el=>el.onclick=e=>{e.stopPropagation();openCite(el);});
   slot.querySelectorAll(".cite-body.clickable-cite, .src-card").forEach(el=>{
     el.onclick=e=>{if(e.target.closest(".copy-cite")||e.target.closest("a"))return;openCite(el);};
     el.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&el.classList.contains("src-card")){e.preventDefault();openCite(el);}};

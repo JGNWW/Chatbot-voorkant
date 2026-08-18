@@ -216,6 +216,23 @@ console.log("\nGESPROKEN VRAAG\n");
   });
 }
 
+// --- volledig generatief antwoord: vangrails ---
+console.log("\nGENERATIEF ANTWOORD\n");
+{
+  const src = fn("getallenIn") + "\n" + fn("alineaKlopt");
+  const G = new Function(src + "\nreturn {alineaKlopt};")();
+  test("getal dat in de bron staat mag", () =>
+    waar(G.alineaKlopt("De verwerkingstijd is 4 weken.", ["De reguliere verwerkingstijd is 4 weken."])));
+  test("getal dat NIET in de bron staat valt af", () =>
+    waar(!G.alineaKlopt("De verwerkingstijd is 6 weken.", ["De reguliere verwerkingstijd is 4 weken."])));
+  test("bedrag dat NIET in de bron staat valt af", () => {
+    waar(!G.alineaKlopt("Een paspoort kost \u20ac 83,85.", ["U betaalt alleen de kosten die nodig zijn."]));
+    waar(G.alineaKlopt("Een paspoort kost \u20ac 83,85.", ["Een paspoort kost \u20ac 83,85 voor volwassenen."]), "bedrag stond wel in de bron");
+  });
+  test("alinea zonder getallen is altijd in orde", () =>
+    waar(G.alineaKlopt("U doet aangifte bij de lokale politie.", ["Doe aangifte bij de lokale politie."])));
+}
+
 // --- weergave ---
 console.log("\nWEERGAVE\n");
 test("inline link wordt in de alinea teruggeplaatst", () => {
