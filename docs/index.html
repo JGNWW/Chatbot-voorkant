@@ -867,16 +867,49 @@ const PROVIDERS={
     keyHint:"Geen sleutel nodig — draait op de processor, ook zonder videokaart",
     modelLabel:m=>(WASM_MODELLEN[m]||{}).label||m,
     async call(key,model,system,user){return WASMAI.genereer(model,system,user);}},
-  gemini:{label:"Google Gemini (gratis)",models:["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"],keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
+  gemini:{label:"Google Gemini (gratis)",keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
+    // Google zet modellen uit: gemini-2.0-flash ging op 1 juni 2026 op zwart en geeft sindsdien
+    // een 404. Een handmatige lijst loopt daar altijd achteraan, dus we VRAGEN het aan Google
+    // zelf. Zonder sleutel kan dat niet; dan valt hij terug op de lijst hieronder.
+    fallbackModels:["gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3.5-flash-lite","gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.5-pro"],
+    async loadModels(key){
+      if(!key||key.length<10)throw new Error("geen sleutel");
+      const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key="+encodeURIComponent(key));
+      if(!r.ok)throw new Error("modellen ophalen mislukt");
+      const d=await r.json();
+      // Alleen wat wij nodig hebben: tekst erin, tekst eruit. Beeld-, spraak- en
+      // vertaalmodellen kunnen onze JSON-opdracht niet aan en horen niet in de lijst.
+      const NIET=/image|tts|audio|live|embedding|aqa|robotics|translate|veo|imagen/i;
+      const ids=(d.models||[])
+        .filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent"))
+        .map(m=>(m.name||"").replace(/^models\//,""))
+        .filter(id=>/^gemini-/.test(id)&&!NIET.test(id));
+      // Nieuwste versie bovenaan, en binnen een versie flash vóór pro (sneller en gratis).
+      const versie=id=>{const m=/^gemini-(\d+)(?:\.(\d+))?/.exec(id);return m?(+m[1])*100+(+(m[2]||0)):0;};
+      const soort=id=>/flash-lite/.test(id)?1:/flash/.test(id)?0:2;
+      const uniek=[...new Set(ids)].filter(id=>!/-preview|-exp|-\d{2}-\d{4}$/.test(id));
+      uniek.sort((a,b)=>versie(b)-versie(a)||soort(a)-soort(b)||a.localeCompare(b));
+      if(!uniek.length)throw new Error("geen bruikbare modellen");
+      return uniek;},
     async call(key,model,system,user){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-      const cfg={temperature:0,maxOutputTokens:8000,responseMimeType:"application/json"};
-      // 2.5-modellen "denken" standaard; die redeneer-tokens vullen anders de limiet. Uitzetten.
-      if(model.indexOf("2.5")>=0)cfg.thinkingConfig={thinkingBudget:0};
-      const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:cfg};
-      const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
-      if(!r.ok)throw new Error("Gemini "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();
+      // Alle Gemini-modellen "denken" standaard, en die redeneer-tokens vullen de limiet zonder
+      // dat er een letter antwoord uit komt. Bij 2.5 zet je dat uit met thinkingBudget, bij de
+      // 3-serie met thinkingLevel. Werkt geen van beide, dan proberen we het gewoon zonder:
+      // Google verandert deze knop vaker dan wij kunnen bijhouden, en een antwoord dat iets
+      // langer duurt is beter dan een foutmelding.
+      const denk=model.indexOf("2.5")>=0?{thinkingConfig:{thinkingBudget:0}}
+        :{thinkingLevel:/flash-lite/.test(model)?"minimal":"low"};
+      const doe=async extra=>{
+        const cfg=Object.assign({temperature:0,maxOutputTokens:8000,responseMimeType:"application/json"},extra);
+        const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:cfg};
+        const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+        return {ok:r.ok,status:r.status,tekst:await r.text()};
+      };
+      let res=await doe(denk);
+      if(!res.ok&&res.status===400&&/thinking/i.test(res.tekst))res=await doe({});
+      if(!res.ok)throw new Error("Gemini "+res.status+": "+res.tekst.slice(0,200));
+      const d=JSON.parse(res.tekst);
       const txt=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
       if(!txt&&d.candidates?.[0]?.finishReason)throw new Error("Gemini gaf geen tekst terug ("+d.candidates[0].finishReason+"). Probeer opnieuw of kies een ander model.");
       return txt;}},
@@ -1525,7 +1558,9 @@ async function fillModels(){
   let models=p.models||[];
   if(p.loadModels){
     modelSel.innerHTML="<option>laden…</option>";modelSel.disabled=true;
-    try{models=await p.loadModels();}catch(e){models=p.fallbackModels||[];}
+    // De sleutel hoort bij DEZE provider; keyInput staat op dat moment nog op de vorige.
+    let sleutel="";try{sleutel=localStorage.getItem("apikey_"+provSel.value)||"";}catch(e){}
+    try{models=await p.loadModels(sleutel);}catch(e){models=p.fallbackModels||[];}
     modelSel.disabled=false;
   }
   modelSel.innerHTML="";
@@ -1643,10 +1678,20 @@ function refreshMode(){
 
 provSel.addEventListener("change",()=>{localStorage.setItem("provider",provSel.value);fillModels();loadKey();refreshMode();});
 modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.value,modelSel.value);refreshMode();});
-keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
+// Bij providers die hun modellenlijst bij de aanbieder opvragen, kan dat pas als er een sleutel
+// staat. Die typ je ná het kiezen van de provider, dus verversen we de lijst zodra hij compleet
+// lijkt — maar niet bij elke aanslag, anders vuur je bij het plakken van een sleutel tien
+// verzoeken af.
+let lijstTimer=null;
+keyInput.addEventListener("input",()=>{
+  localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();
+  const p=PROVIDERS[provSel.value];
+  if(!p||!p.loadModels||keyInput.value.trim().length<10)return;
+  clearTimeout(lijstTimer);lijstTimer=setTimeout(fillModels,600);
+});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 86";
+const APP_VERSION="build 87";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
