@@ -511,121 +511,101 @@ async function oaiChat(endpoint,key,model,system,user,name){
 // verkeer naar buiten na het eenmalig ophalen van de gewichten. De maten hieronder zijn gemeten
 // aan de q4f16-bestanden op HuggingFace (decoder + embeddings, zonder het beeldgedeelte).
 const LOKAAL_MODELLEN={
-  "gemma-3-1b":    {id:"onnx-community/gemma-3-1b-it-ONNX",                 label:"Gemma 3 1B — 764 MB",      mb:764,  soort:"tekst"},
-  "ministral-3b":  {id:"mistralai/Ministral-3-3B-Instruct-2512-ONNX",       label:"Ministral 3 3B — 2,4 GB",  mb:2437, soort:"beeldtaal"},
-  "gemma-3-4b":    {id:"onnx-community/gemma-3-4b-it-ONNX",                 label:"Gemma 3 4B — 2,4 GB",      mb:2379, soort:"beeldtaal"},
+  "gemma-3-1b":   {id:"gemma3-1b-it-q4f16_1-MLC",                            label:"Gemma 3 1B — 0,7 GB",      licht:true},
+  "gemma-2-2b":   {id:"gemma-2-2b-it-q4f16_1-MLC",                           label:"Gemma 2 2B — 1,9 GB",      licht:false},
+  "ministral-3b": {id:"Ministral-3-3B-Instruct-2512-BF16-q4f16_1-MLC",       label:"Ministral 3 3B — 2,8 GB",  licht:true},
+  "gemma-2-9b":   {id:"gemma-2-9b-it-q4f16_1-MLC",                           label:"Gemma 2 9B — 6,3 GB",      licht:false},
 };
 // ===== LOKAAL MODEL IN DE BROWSER =============================================================
-// Draait Gemma of Ministral op het apparaat zelf via transformers.js. Na het eenmalig ophalen
-// van de gewichten gaat er niets meer naar buiten — geen sleutel, geen provider.
+// Draait op WebLLM (MLC), dezelfde soort motor als de Android-apps die lokale modellen draaien:
+// de gewichten worden eenmalig opgehaald en daarna gebeurt alles op het apparaat zelf. Geen
+// sleutel, geen verkeer naar buiten.
 //
-// Twee soorten modellen, en dat verschil zit in de architectuur, niet in onze voorkeur:
-//   tekst      : Gemma 3 1B, gewone tekstpijplijn
-//   beeldtaal  : Gemma 3 4B en Ministral 3 3B zijn multimodaal; die laden via de processor +
-//                AutoModelForImageTextToText, precies zoals Mistrals eigen WebGPU-demo doet.
-//                Wij gebruiken ze alleen voor tekst.
+// WAAROM NIET transformers.js, dat we voor het zoekmodel wel gebruiken: die bibliotheek kent
+// Ministral 3 niet (geen enkele Mistral3-klasse in de uitgebrachte versies, ook niet in 4.2.0),
+// en het multimodale pad voor Gemma liep stuk op de tekst-zonder-beeld-aanroep. WebLLM levert
+// deze modellen kant-en-klaar, inclusief cachebeheer.
 const LOKAALAI=(function(){
-  const ret={bezig:false};
-  let tf=null, huidig=null, pijplijn=null, laden=null;
+  const ret={};
+  let lib=null, engine=null, huidig=null, laden=null;
 
-  // Voortgang en meldingen gaan naar de knop in de instellingen; bij het laden tijdens een vraag
-  // valt hij terug op de statusregel van het zoekmodel.
   let melder=null;
   ret.opVoortgang=f=>{melder=f;};
   const zeg=t=>{if(!t)return;if(melder)melder(t);else{const el=document.getElementById("semstatus");if(el)el.textContent=t;}};
 
-  // De gewichten staan in de Cache Storage van de browser onder "transformers-cache". Zo kunnen
-  // we zien of een model al binnen is, en het ook weer weggooien.
-  const CACHE="transformers-cache";
-  async function bestanden(sleutel){
-    const m=LOKAAL_MODELLEN[sleutel];
-    if(!m||!("caches" in window))return [];
-    try{
-      const c=await caches.open(CACHE);
-      const keys=await c.keys();
-      return keys.filter(r=>r.url.includes(m.id));
-    }catch(e){return [];}
+  async function web(){
+    if(!lib)lib=await import("https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/+esm");
+    return lib;
   }
-  // Een model telt als binnengehaald zodra de zware gewichten er staan (.onnx of .onnx_data).
+  const modelId=sleutel=>(LOKAAL_MODELLEN[sleutel]||{}).id;
+
+  ret.beschikbaar=async()=>{
+    try{return !!(navigator.gpu&&await navigator.gpu.requestAdapter());}catch(e){return false;}
+  };
+  // Staat het model al op dit apparaat? We kijken rechtstreeks in de browsercache waar WebLLM
+  // zijn gewichten neerzet ("webllm/model"). Bewust NIET via de bibliotheek: die zou dan al
+  // opgehaald worden zodra je de instellingen opent.
   ret.aanwezig=async sleutel=>{
-    const f=await bestanden(sleutel);
-    return f.some(r=>/\.onnx(_data)?(\?|$)/.test(r.url));
+    const id=modelId(sleutel);
+    if(!id||!("caches" in window))return false;
+    try{
+      const c=await caches.open("webllm/model");
+      const keys=await c.keys();
+      // De URL's bevatten de modelnaam; de gewichten zitten in params_shard-bestanden.
+      const van=keys.filter(r=>r.url.includes(id.replace(/-MLC$/,"")));
+      return van.some(r=>/params_shard|ndarray-cache/.test(r.url));
+    }catch(e){return false;}
   };
   ret.verwijder=async sleutel=>{
-    if(!("caches" in window))return 0;
-    const c=await caches.open(CACHE);
-    const f=await bestanden(sleutel);
-    for(const r of f)await c.delete(r);
-    if(huidig===sleutel){pijplijn=null;huidig=null;laden=null;}
-    return f.length;
+    const id=modelId(sleutel);if(!id)return 0;
+    if(engine&&huidig===sleutel){try{await engine.unload();}catch(e){}engine=null;huidig=null;laden=null;}
+    try{
+      const W=await web();
+      await W.deleteModelAllInfoInCache(id);
+    }catch(e){
+      // Lukt de bibliotheek niet, dan ruimen we de caches zelf op — anders zit je vast aan
+      // gigabytes die je niet meer weg krijgt.
+      if(!("caches" in window))return 0;
+      const kort=id.replace(/-MLC$/,"");
+      for(const naam of ["webllm/model","webllm/config","webllm/wasm"]){
+        try{
+          const c=await caches.open(naam);
+          for(const r of await c.keys())if(r.url.includes(kort))await c.delete(r);
+        }catch(_){}
+      }
+    }
+    return 1;
   };
 
-  async function lib(){
-    // Bewust een NIEUWERE versie dan het zoekmodel gebruikt: 3.8.1 kan de Gemma-exports niet
-    // laden (onbekende operator in de gekwantiseerde embeddings), 4.x wel. Het zoekmodel laten
-    // we op 3.8.1 staan zodat daar niets aan verandert.
-    if(!tf){tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0");tf.env.allowLocalModels=false;}
-    return tf;
-  }
-  async function webgpu(){
-    try{return !!(navigator.gpu&&await navigator.gpu.requestAdapter());}catch(e){return false;}
-  }
-  // Voortgang optellen over alle bestanden en als één percentage tonen.
-  function voortgang(m){
-    const gezien={};
-    return p=>{
-      if(p.status!=="progress"||!p.total)return;
-      gezien[p.file]=p.loaded;
-      const klaar=Object.values(gezien).reduce((a,b)=>a+b,0);
-      zeg(m.label.split(" — ")[0]+" laden… "+Math.min(99,Math.round(klaar/(m.mb*1e6)*100))+"% van "+m.label.split(" — ")[1]);
-    };
-  }
-  async function zorgVoorModel(sleutel){
-    const m=LOKAAL_MODELLEN[sleutel];
-    if(!m)throw new Error("onbekend lokaal model: "+sleutel);
-    if(pijplijn&&huidig===sleutel)return pijplijn;
+  // Laadt het model (of geeft het lopende laden terug). Eén model tegelijk in het geheugen.
+  ret.laad=function(sleutel){
+    const id=modelId(sleutel);
+    if(!id)return Promise.reject(new Error("onbekend lokaal model: "+sleutel));
+    if(engine&&huidig===sleutel)return Promise.resolve(engine);
     if(laden&&huidig===sleutel)return laden;
-    huidig=sleutel;pijplijn=null;
+    huidig=sleutel;engine=null;
     laden=(async()=>{
-      const T=await lib();
-      const device=(await webgpu())?"webgpu":"wasm";
-      if(device==="wasm")zeg("Let op: geen WebGPU — het lokale model draait op de processor en is traag.");
-      const opties={dtype:"q4f16",device,progress_callback:voortgang(m)};
-      if(m.soort==="tekst"){
-        const p=await T.pipeline("text-generation",m.id,opties);
-        pijplijn={soort:"tekst",p};
-      }else{
-        // Multimodaal model, alleen tekst gebruikt.
-        const processor=await T.AutoProcessor.from_pretrained(m.id);
-        const model=await T.AutoModelForImageTextToText.from_pretrained(m.id,
-          {dtype:{embed_tokens:"q4f16",vision_encoder:"q4f16",decoder_model_merged:"q4f16"},device,
-           progress_callback:voortgang(m)});
-        pijplijn={soort:"beeldtaal",processor,model};
-      }
-      zeg("lokaal model klaar ("+device+")");
-      laden=null;
-      return pijplijn;
-    })().catch(e=>{laden=null;huidig=null;zeg("lokaal model laden mislukt");throw e;});
+      if(!await ret.beschikbaar())throw new Error("deze browser heeft geen WebGPU; een lokaal model kan niet draaien");
+      const W=await web();
+      const e=await W.CreateMLCEngine(id,{initProgressCallback:p=>{
+        // WebLLM levert een leesbare tekst plus een voortgang tussen 0 en 1.
+        const pct=p&&typeof p.progress==="number"?Math.round(p.progress*100):null;
+        zeg((LOKAAL_MODELLEN[sleutel].label.split(" — ")[0])+" laden… "+(pct!==null?pct+"%":(p&&p.text)||""));
+      }});
+      engine=e;laden=null;zeg("lokaal model klaar");
+      return e;
+    })().catch(err=>{laden=null;huidig=null;engine=null;zeg("laden mislukt: "+(err.message||err));throw err;});
     return laden;
-  }
-  ret.laad=zorgVoorModel;
+  };
 
   // Zelfde contract als de andere providers: (systeem, gebruiker) -> tekst.
   ret.genereer=async function(sleutel,system,user){
-    const P=await zorgVoorModel(sleutel);
-    const berichten=[{role:"system",content:system},{role:"user",content:user}];
-    if(P.soort==="tekst"){
-      const r=await P.p(berichten,{max_new_tokens:1200,do_sample:false,return_full_text:false});
-      const g=r&&r[0]&&r[0].generated_text;
-      return Array.isArray(g)?((g.at(-1)||{}).content||""):String(g||"");
-    }
-    const T=await lib();
-    const mm=berichten.map(b=>({role:b.role,content:[{type:"text",text:b.content}]}));
-    const prompt=P.processor.apply_chat_template(mm,{add_generation_prompt:true,tokenize:false});
-    const inputs=await P.processor(null,prompt,{add_special_tokens:false});
-    const uit=await P.model.generate({...inputs,max_new_tokens:1200,do_sample:false});
-    const nieuw=uit.slice(null,[inputs.input_ids.dims.at(-1),null]);
-    return P.processor.batch_decode(nieuw,{skip_special_tokens:true})[0]||"";
+    const e=await ret.laad(sleutel);
+    const r=await e.chat.completions.create({
+      messages:[{role:"system",content:system},{role:"user",content:user}],
+      temperature:0,max_tokens:1200,
+    });
+    return (r&&r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content)||"";
   };
   return ret;
 })();
@@ -1325,12 +1305,15 @@ async function toonLokaalKnop(){
   dlBtn.hidden=!lokaal;dlStatus.hidden=!lokaal;
   if(!lokaal||dlBezig)return;
   const sleutel=modelSel.value,m=LOKAAL_MODELLEN[sleutel]||{};
-  const er=await LOKAALAI.aanwezig(sleutel);
+  const er=await LOKAALAI.aanwezig(sleutel);   // leest alleen de cache, laadt niets
   dlBtn.disabled=false;
   dlBtn.classList.toggle("klaar",er);
   dlBtn.textContent=er?"✓ Binnengehaald — verwijderen":("↓ Downloaden ("+(m.label||"").split("— ")[1]+")");
   dlBtn.title=er?"Verwijder dit model uit de browseropslag":"Haal het model nu binnen, zodat het klaarstaat als u het nodig heeft";
-  dlStatus.textContent=er?"":"nog niet op dit apparaat";
+  const gpu=await LOKAALAI.beschikbaar();
+  dlStatus.textContent=!gpu?"deze browser heeft geen WebGPU — een lokaal model kan hier niet draaien"
+    :er?"":(m.licht?"nog niet op dit apparaat":"nog niet op dit apparaat · vraagt een stevigere videokaart");
+  dlBtn.disabled=!gpu;
   dlStatus.hidden=false;
 }
 if(dlBtn)dlBtn.addEventListener("click",async()=>{
@@ -1376,7 +1359,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 80";
+const APP_VERSION="build 82";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2029,15 +2012,28 @@ function demoAnswer(q,cands){
 }
 
 async function askAI(q,cands,key){
+  // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
+  // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
+  // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
+  const lokaal=!!(PROVIDERS[provSel.value]||{}).geenSleutel;
+  const perPagina=lokaal?2200:Infinity;
+  const knip=t=>{
+    if(!lokaal||t.length<=perPagina)return t;
+    // Afkappen op een alineagrens, zodat er geen halve zin in de prompt belandt.
+    const kort=t.slice(0,perPagina);
+    const n=kort.lastIndexOf("\n");
+    return (n>perPagina*0.5?kort.slice(0,n):kort).trim();
+  };
   // De pagina's staan al op volgorde van relevantie (na AI-herrangschikking).
-  const listing=cands.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${CORPUS[idx].text}`).join("\n\n---\n\n");
+  const bronnen=lokaal?cands.slice(0,3):cands;
+  const listing=bronnen.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${knip(CORPUS[idx].text)}`).join("\n\n---\n\n");
   const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
   const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SYSTEM,user);
   const r=parseModelJSON(text);
   const rawCites=Array.isArray(r.citations)?r.citations:[];
   const citations=[];const usedSet=new Set();let notFound=0;
   for(const c of rawCites){
-    const local=c.source_index;const gi=Number.isInteger(local)?cands[local]:null;if(gi===null)continue;
+    const local=c.source_index;const gi=Number.isInteger(local)?bronnen[local]:null;if(gi===null||gi===undefined)continue;
     // Knip het exacte stuk zelf uit de pagina o.b.v. de start/end-verwijzing -> altijd letterlijk.
     // Het model wijst de passage aan (letterlijk, of met begin/eind-woorden); de app bepaalt de
     // definitieve grenzen op hele zinnen en knipt het stuk uit de PAGINA. De getoonde tekst is
@@ -2056,7 +2052,7 @@ async function askAI(q,cands,key){
     if(citations.length>=MAX_CITES)break;
   }
   const used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
-  let related=(r.related_indices||[]).map(n=>cands[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
+  let related=(r.related_indices||[]).map(n=>bronnen[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
   let note=r.note||"";
   let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[])
     .map(c=>maakVerduidelijking(c.question,c.prefill)).filter(Boolean).slice(0,3);
