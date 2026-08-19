@@ -516,6 +516,13 @@ const LOKAAL_MODELLEN={
   "ministral-3b": {id:"Ministral-3-3B-Instruct-2512-BF16-q4f16_1-MLC",       label:"Ministral 3 3B — 2,8 GB",  licht:true},
   "gemma-2-9b":   {id:"gemma-2-9b-it-q4f16_1-MLC",                           label:"Gemma 2 9B — 6,3 GB",      licht:false},
 };
+// Contextvenster. De modelbestanden van Gemma en Ministral dragen zelf een schuivend venster van
+// 512 tokens; de kant-en-klare beschrijving bij WebLLM zet daarnaast een vast venster van 4096.
+// WebLLM staat er precies één van beide toe en weigert te laden als ze allebei positief zijn.
+// We kiezen het vaste venster van 4096 en zetten het schuivende expliciet uit: onze lokale
+// opdracht (drie bronpagina's, ~1.900 tokens) past niet in 512 en de citaatstap zou dan de
+// bronteksten niet meer zien.
+const LOKAAL_CHAT={context_window_size:4096,sliding_window_size:-1,attention_sink_size:0};
 // ===== LOKAAL MODEL IN DE BROWSER =============================================================
 // Draait op WebLLM (MLC), dezelfde soort motor als de Android-apps die lokale modellen draaien:
 // de gewichten worden eenmalig opgehaald en daarna gebeurt alles op het apparaat zelf. Geen
@@ -587,11 +594,12 @@ const LOKAALAI=(function(){
     laden=(async()=>{
       if(!await ret.beschikbaar())throw new Error("deze browser heeft geen WebGPU; een lokaal model kan niet draaien");
       const W=await web();
+      const opts=Object.assign({},LOKAAL_CHAT,LOKAAL_MODELLEN[sleutel].chat||{});
       const e=await W.CreateMLCEngine(id,{initProgressCallback:p=>{
         // WebLLM levert een leesbare tekst plus een voortgang tussen 0 en 1.
         const pct=p&&typeof p.progress==="number"?Math.round(p.progress*100):null;
         zeg((LOKAAL_MODELLEN[sleutel].label.split(" — ")[0])+" laden… "+(pct!==null?pct+"%":(p&&p.text)||""));
-      }});
+      }},opts);
       engine=e;laden=null;zeg("lokaal model klaar");
       return e;
     })().catch(err=>{laden=null;huidig=null;engine=null;zeg("laden mislukt: "+(err.message||err));throw err;});
@@ -1359,7 +1367,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 82";
+const APP_VERSION="build 83";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
