@@ -536,12 +536,21 @@ async function oaiChat(endpoint,key,model,system,user,name){
 // De lokale modellen draaien in de browser zelf (transformers.js + WebGPU): geen sleutel, geen
 // verkeer naar buiten na het eenmalig ophalen van de gewichten. De maten hieronder zijn gemeten
 // aan de q4f16-bestanden op HuggingFace (decoder + embeddings, zonder het beeldgedeelte).
+// gb = wat je binnenhaalt (gemeten aan de gewichtsbestanden op HuggingFace); vram = wat de
+// videokaart tijdens het rekenen vrij moet hebben (opgave van WebLLM). Die twee lopen flink
+// uiteen, en het is de eerste die de downloadknop belooft — vandaar allebei.
+// denkt: modellen met een "denkstap" schrijven eerst een <think>-blok. Dat kost tijd en zet
+// ongeldige tekst voor de JSON; bij die modellen zetten we de denkstap uit.
 const LOKAAL_MODELLEN={
-  "gemma-3-1b":   {id:"gemma3-1b-it-q4f16_1-MLC",                            label:"Gemma 3 1B — 0,7 GB",      licht:true},
-  "gemma-2-2b":   {id:"gemma-2-2b-it-q4f16_1-MLC",                           label:"Gemma 2 2B — 1,9 GB",      licht:false},
-  "ministral-3b": {id:"Ministral-3-3B-Instruct-2512-BF16-q4f16_1-MLC",       label:"Ministral 3 3B — 2,8 GB",  licht:true},
-  "gemma-2-9b":   {id:"gemma-2-9b-it-q4f16_1-MLC",                           label:"Gemma 2 9B — 6,3 GB",      licht:false},
+  "qwen35-0.8b":  {id:"Qwen3.5-0.8B-q4f16_1-MLC",                      naam:"Qwen 3.5 0,8B",  gb:0.42, vram:1.6, licht:true,  denkt:true},
+  "gemma-3-1b":   {id:"gemma3-1b-it-q4f16_1-MLC",                      naam:"Gemma 3 1B",     gb:0.56, vram:0.7, licht:true},
+  "llama-32-1b":  {id:"Llama-3.2-1B-Instruct-q4f16_1-MLC",             naam:"Llama 3.2 1B",   gb:0.70, vram:0.9, licht:true},
+  "gemma-2-2b":   {id:"gemma-2-2b-it-q4f16_1-MLC",                     naam:"Gemma 2 2B",     gb:1.47, vram:1.9, licht:false},
+  "ministral-3b": {id:"Ministral-3-3B-Instruct-2512-BF16-q4f16_1-MLC", naam:"Ministral 3 3B", gb:1.93, vram:2.9, licht:true},
+  "gemma-2-9b":   {id:"gemma-2-9b-it-q4f16_1-MLC",                     naam:"Gemma 2 9B",     gb:5.20, vram:6.4, licht:false},
 };
+const gbTekst=n=>(Math.round(n*10)/10).toString().replace(".",",")+" GB";
+for(const m of Object.values(LOKAAL_MODELLEN))m.label=m.naam+" — "+gbTekst(m.gb);
 // Contextvenster. De modelbestanden van Gemma en Ministral dragen zelf een schuivend venster van
 // 512 tokens; de kant-en-klare beschrijving bij WebLLM zet daarnaast een vast venster van 4096.
 // WebLLM staat er precies één van beide toe en weigert te laden als ze allebei positief zijn.
@@ -646,10 +655,14 @@ const LOKAALAI=(function(){
   // Zelfde contract als de andere providers: (systeem, gebruiker) -> tekst.
   ret.genereer=async function(sleutel,system,user){
     const e=await ret.laad(sleutel);
-    const r=await e.chat.completions.create({
+    const verzoek={
       messages:[{role:"system",content:system},{role:"user",content:user}],
       temperature:0,max_tokens:LOKAAL_LIMIET.uit,
-    });
+    };
+    // Zonder dit schrijft een denkend model eerst honderden tokens hardop nadenken vóór de JSON:
+    // pure vertraging, en de app leest die tekst als een kapot antwoord.
+    if(LOKAAL_MODELLEN[sleutel].denkt)verzoek.extra_body={enable_thinking:false};
+    const r=await e.chat.completions.create(verzoek);
     // WebLLM meet zelf hoe snel het ging. We tellen het per vraag op, zodat je kunt ZIEN waar de
     // tijd blijft in plaats van te gissen: doorrekenen van de prompt, of het schrijven zelf.
     try{
@@ -1371,11 +1384,13 @@ async function toonLokaalKnop(){
   const er=await LOKAALAI.aanwezig(sleutel);   // leest alleen de cache, laadt niets
   dlBtn.disabled=false;
   dlBtn.classList.toggle("klaar",er);
-  dlBtn.textContent=er?"✓ Binnengehaald — verwijderen":("↓ Downloaden ("+(m.label||"").split("— ")[1]+")");
+  dlBtn.textContent=er?"✓ Binnengehaald — verwijderen":("↓ Downloaden ("+gbTekst(m.gb||0)+")");
   dlBtn.title=er?"Verwijder dit model uit de browseropslag":"Haal het model nu binnen, zodat het klaarstaat als u het nodig heeft";
   const gpu=await LOKAALAI.beschikbaar();
+  const geheugen=m.vram?" · vraagt "+gbTekst(m.vram)+" vrij videogeheugen":"";
   dlStatus.textContent=!gpu?"deze browser heeft geen WebGPU — een lokaal model kan hier niet draaien"
-    :er?"":(m.licht?"nog niet op dit apparaat":"nog niet op dit apparaat · vraagt een stevigere videokaart");
+    :er?("klaar voor gebruik"+geheugen)
+    :("nog niet op dit apparaat"+geheugen+(m.licht?"":" · vraagt een stevigere videokaart"));
   dlBtn.disabled=!gpu;
   dlStatus.hidden=false;
 }
@@ -1422,7 +1437,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 84";
+const APP_VERSION="build 85";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
