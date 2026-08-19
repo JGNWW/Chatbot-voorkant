@@ -10,6 +10,23 @@
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
 <link rel="icon" href="assets/favicon-16.png" sizes="16x16" type="image/png" />
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<!-- Meerdere processorkernen gebruiken (WebAssembly-modus) vereist SharedArrayBuffer, en dat
+     staat de browser alleen toe op een "cross-origin isolated" pagina: met de headers
+     Cross-Origin-Opener-Policy en Cross-Origin-Embedder-Policy. GitHub Pages kan geen headers
+     zetten. Deze service worker (MIT, gzuidhof/coi-serviceworker) plaatst ze alsnog, door de
+     antwoorden onderweg aan te vullen en de pagina één keer te herladen.
+     Bewust NIET standaard aan: isolatie verandert hoe de pagina externe bestanden mag ophalen,
+     en dat raakt ook het zoekmodel en het spraakmodel. Hij wordt alleen geregistreerd als je in
+     de instellingen om meerdere kernen vraagt, en weer verwijderd als je dat uitzet. -->
+<script>
+  window.coi={
+    shouldRegister:()=>{try{return localStorage.getItem("vk_coi")==="1";}catch(e){return false;}},
+    shouldDeregister:()=>{try{return localStorage.getItem("vk_coi")!=="1";}catch(e){return true;}},
+    coepCredentialless:()=>true,   // mildste vorm: haalt de inloggegevens weg, eist geen CORP
+    quiet:true,
+  };
+</script>
+<script src="coi-serviceworker.js"></script>
 <link rel="manifest" href="manifest.webmanifest" />
 <meta name="theme-color" content="#154273" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -366,6 +383,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <span class="status" id="semstatus">zoeken laden…</span>
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
       <button type="button" id="lokaal-dl" class="lokaal-btn" hidden></button>
+      <label class="spraak-optie lokaal-optie" id="kernen-optie" hidden title="Laat het processor-model alle kernen gebruiken. Hiervoor moet de pagina eenmalig herladen worden."><input type="checkbox" id="meer-kernen"> meerdere kernen gebruiken</label>
       <span id="lokaal-status" class="lokaal-status" hidden></span>
       <label class="spraak-optie" title="De AI schrijft het antwoord zelf op basis van de gevonden passages, in plaats van ze letterlijk te tonen"><input type="checkbox" id="generatief"> volledig generatief antwoord</label>
       <label class="spraak-optie">spraakmodel
@@ -685,12 +703,170 @@ const LOKAALAI=(function(){
       uitTps:Math.round(m.uitTok/Math.max(m.totSec-m.inSec,0.001))};};
   return ret;
 })();
+// ===== LOKAAL MODEL OP DE PROCESSOR (WebAssembly) =============================================
+// wllama is llama.cpp naar WebAssembly: dezelfde motor die op een telefoon draait, maar dan in de
+// browser en zónder videokaart. Dat is het hele punt — de WebGPU-modus hierboven werkt niet op een
+// werkplek met een zuinige onboard-videokaart, en dit wel.
+//
+// EERLIJKE VERWACHTING: dit is LANGZAMER dan WebGPU, niet sneller. Een processor haalt geen
+// honderden tokens per seconde. Twee dingen maken het toch de moeite waard:
+//  - het werkt overal, ook waar WebGPU ontbreekt of uitstaat;
+//  - llama.cpp kán wél wat WebLLM niet kan: de prompt in de cache houden (cache_prompt) en JSON
+//    afdwingen met een grammatica (response_format). Dat eerste scheelt bij een vervolgvraag het
+//    hele doorrekenen van de systeemprompt; het tweede scheelt kapotte antwoorden.
+//
+// Waarom Whisper wél vlot werkt in dezelfde WebAssembly-laag: dat model is 77 MB en schrijft
+// twintig woorden. Een taalmodel van 0,5B is 400 MB en leest bij ELK geschreven token al zijn
+// gewichten opnieuw. Dat is een verschil van twee ordes van grootte in geheugenverkeer.
+const WASM_MODELLEN={
+  "qwen25-0.5b": {id:"qwen25-0.5b",naam:"Qwen 2.5 0,5B",gb:0.40,repo:"bartowski/Qwen2.5-0.5B-Instruct-GGUF",file:"Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"},
+  "llama32-1b":  {id:"llama32-1b", naam:"Llama 3.2 1B", gb:0.81,repo:"bartowski/Llama-3.2-1B-Instruct-GGUF",file:"Llama-3.2-1B-Instruct-Q4_K_M.gguf"},
+  "gemma3-1b":   {id:"gemma3-1b",  naam:"Gemma 3 1B",   gb:0.81,repo:"ggml-org/gemma-3-1b-it-GGUF",        file:"gemma-3-1b-it-Q4_K_M.gguf"},
+};
+for(const m of Object.values(WASM_MODELLEN)){
+  m.label=m.naam+" — "+gbTekst(m.gb);
+  m.url="https://huggingface.co/"+m.repo+"/resolve/main/"+m.file;
+}
+const WASMAI=(function(){
+  const ret={};ret.modellen=WASM_MODELLEN;
+  // Krapper dan de videokaart-variant, want hier telt elk token dubbel. Gemeten op een
+  // 4-kerns 2,1 GHz Xeon met 3 werkkernen: 752 tokens doorrekenen kostte 68 seconden. Een
+  // moderne laptop is een veelvoud sneller, maar de verhouding blijft: minder is hier beter.
+  ret.limiet={kandidaten:8,fragment:110,bronnen:2,perPagina:1400,uit:600};
+  const CDN="https://cdn.jsdelivr.net/npm/@wllama/wllama@3.6.0/esm/";
+  let lib=null,motor=null,huidig=null,laden=null,melder=null;
+  ret.opVoortgang=f=>{melder=f;};
+  const zeg=t=>{if(!t)return;if(melder)melder(t);else{const el=document.getElementById("semstatus");if(el)el.textContent=t;}};
+  async function web(){ if(!lib)lib=await import(CDN+"index.js"); return lib; }
+  // De .wasm hoort bij deze versie van de bibliotheek; los versienummer = stukke boel.
+  const PADEN={"single-thread/wllama.wasm":CDN+"wasm/wllama.wasm","multi-thread/wllama.wasm":CDN+"wasm/wllama.wasm",default:CDN+"wasm/wllama.wasm"};
+
+  // Op de processor is een kern een kern: meer kernen is bijna lineair sneller. Zonder
+  // cross-origin isolatie mag de browser er maar één gebruiken.
+  ret.kernen=()=>{
+    if(typeof SharedArrayBuffer==="undefined"||!self.crossOriginIsolated)return 1;
+    return Math.max(1,Math.min(8,(navigator.hardwareConcurrency||4)-1));
+  };
+  ret.beschikbaar=async()=>typeof WebAssembly!=="undefined";
+
+  async function beheer(){ const W=await web(); return new W.ModelManager(); }
+  // Kijken of een model al binnen is, ZONDER de bibliotheek te laden. Zou `aanwezig()` daarvoor
+  // wllama importeren, dan haalt het openen van het instellingenpaneel al 370 kB op — en in een
+  // browser zonder netwerk blijft de knop dan leeg hangen. wllama bewaart zijn bestanden in OPFS
+  // (map "cache", sleutel `<hash>_<bestandsnaam>`), dus daar kijken we rechtstreeks.
+  const META="__metadata__";
+  async function opfsMap(){
+    if(!navigator.storage||!navigator.storage.getDirectory)return null;
+    const root=await navigator.storage.getDirectory();
+    return await root.getDirectoryHandle("cache",{create:false}).catch(()=>null);
+  }
+  async function bestanden(m){
+    const map=await opfsMap();if(!map)return [];
+    const uit=[];
+    for await(const [naam,h] of map.entries()){
+      if(!naam.includes(m.file)||naam.startsWith(META))continue;
+      let grootte=0;try{grootte=(await h.getFile()).size;}catch(e){}
+      uit.push({naam,grootte});
+    }
+    return uit;
+  }
+  ret.aanwezig=async sleutel=>{
+    const m=WASM_MODELLEN[sleutel];if(!m)return false;
+    try{
+      // Een half binnengehaald bestand telt niet mee: dan laadt het model straks alsnog niet.
+      const nodig=m.gb*1e9*0.9;
+      return (await bestanden(m)).some(b=>b.grootte>=nodig);
+    }catch(e){return false;}
+  };
+  ret.verwijder=async sleutel=>{
+    const m=WASM_MODELLEN[sleutel];if(!m)return 0;
+    if(motor&&huidig===sleutel){try{await motor.exit();}catch(e){}motor=null;huidig=null;laden=null;}
+    try{
+      const map=await opfsMap();if(!map)return 0;
+      let n=0;
+      for(const b of await bestanden(m)){await map.removeEntry(b.naam).catch(()=>{});n++;}
+      // De bijbehorende metadata staat onder een eigen sleutel; laat die niet slingeren.
+      for await(const [naam] of map.entries())
+        if(naam.startsWith(META)&&naam.includes(m.file))await map.removeEntry(naam).catch(()=>{});
+      return n;
+    }catch(e){return 0;}
+  };
+  // Alleen binnenhalen, nog niet in het geheugen laden. Zo kan de downloadknop zijn werk doen
+  // zonder dat er meteen een gigabyte aan gewichten in het werkgeheugen komt te staan.
+  ret.haal=async sleutel=>{
+    const m=WASM_MODELLEN[sleutel];if(!m)throw new Error("onbekend model: "+sleutel);
+    const mm=await beheer();
+    await mm.downloadModel(m.url,{progressCallback:({loaded,total})=>{
+      if(total)zeg(m.naam+" downloaden… "+Math.round(loaded/total*100)+"%");
+    }});
+    return true;
+  };
+  ret.laad=function(sleutel){
+    const m=WASM_MODELLEN[sleutel];
+    if(!m)return Promise.reject(new Error("onbekend model: "+sleutel));
+    if(motor&&huidig===sleutel)return Promise.resolve(motor);
+    if(laden&&huidig===sleutel)return laden;
+    huidig=sleutel;motor=null;
+    laden=(async()=>{
+      const W=await web();
+      const w=new W.Wllama(PADEN,{parallelDownloads:4,allowOffline:true});
+      const kernen=ret.kernen();
+      await w.loadModelFromUrl(m.url,{
+        n_ctx:4096,                 // ruim genoeg voor onze grootste aanroep (~2.200 tokens)
+        n_threads:kernen,
+        n_batch:256,                // kleinere brokken: minder piekgeheugen op een processor
+        cache_type_k:"q8_0",cache_type_v:"q8_0",   // halveert de KV-cache, kost nauwelijks kwaliteit
+        n_cache_reuse:256,          // hergebruik het gelijke begin van een eerdere prompt
+        progressCallback:({loaded,total})=>{
+          if(total)zeg(m.naam+" laden… "+Math.round(loaded/total*100)+"%");
+        },
+      });
+      motor=w;laden=null;
+      zeg("klaar — "+kernen+(kernen===1?" kern":" kernen"));
+      return w;
+    })().catch(err=>{laden=null;huidig=null;motor=null;zeg("laden mislukt: "+(err.message||err));throw err;});
+    return laden;
+  };
+  ret.genereer=async function(sleutel,system,user){
+    const w=await ret.laad(sleutel);
+    const t0=performance.now();
+    const r=await w.createChatCompletion({
+      messages:[{role:"system",content:system},{role:"user",content:user}],
+      temperature:0,max_tokens:ret.limiet.uit,
+      // llama.cpp kan JSON AFDWINGEN met een grammatica. Bij een model van 0,5B scheelt dat
+      // het verschil tussen een bruikbaar antwoord en een half codeblok.
+      response_format:{type:"json_object"},
+      cache_prompt:true,
+    });
+    try{
+      const u=r&&r.usage,sec=(performance.now()-t0)/1000;
+      if(u)meetTel({inTok:u.prompt_tokens||0,uitTok:u.completion_tokens||0,
+        gecacht:(u.prompt_tokens_details||{}).cached_tokens||0,totSec:sec});
+    }catch(_){}
+    return (r&&r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content)||"";
+  };
+  let meting=null;
+  function meetTel(m){ if(!meting)return; meting.n++; meting.inTok+=m.inTok; meting.uitTok+=m.uitTok;
+    meting.gecacht+=m.gecacht||0; meting.totSec+=m.totSec; }
+  ret.meetStart=()=>{meting={n:0,inTok:0,uitTok:0,gecacht:0,inSec:0,totSec:0};};
+  ret.meetKlaar=()=>{const m=meting;meting=null;if(!m||!m.n)return null;
+    const r1=x=>Math.round(x*10)/10;
+    return {n:m.n,inTok:m.inTok,uitTok:m.uitTok,gecacht:m.gecacht,totSec:r1(m.totSec),
+      kernen:ret.kernen(),
+      uitTps:Math.round(m.uitTok/Math.max(m.totSec,0.001))};};
+  return ret;
+})();
 const PROVIDERS={
-  lokaal:{label:"Lokaal (in de browser)",models:Object.keys(LOKAAL_MODELLEN),geenSleutel:true,
+  lokaal:{label:"Lokaal — videokaart (WebGPU)",models:Object.keys(LOKAAL_MODELLEN),geenSleutel:true,motor:LOKAALAI,
     keyUrl:"https://developer.mozilla.org/docs/Web/API/WebGPU_API",
     keyHint:"Geen sleutel nodig — het model draait op dit apparaat",
     modelLabel:m=>(LOKAAL_MODELLEN[m]||{}).label||m,
     async call(key,model,system,user){return LOKAALAI.genereer(model,system,user);}},
+  wasm:{label:"Lokaal — processor (WebAssembly)",models:Object.keys(WASM_MODELLEN),geenSleutel:true,motor:WASMAI,
+    keyUrl:"https://github.com/ngxson/wllama",
+    keyHint:"Geen sleutel nodig — draait op de processor, ook zonder videokaart",
+    modelLabel:m=>(WASM_MODELLEN[m]||{}).label||m,
+    async call(key,model,system,user){return WASMAI.genereer(model,system,user);}},
   gemini:{label:"Google Gemini (gratis)",models:["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"],keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
     async call(key,model,system,user){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
@@ -1362,6 +1538,24 @@ async function fillModels(){
   refreshMode();
 }
 function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)||"";}
+// Meerdere processorkernen aan/uit. Dit kan niet zonder de pagina te herladen: cross-origin
+// isolatie wordt bij het LADEN van het document bepaald, niet daarna. Daarom vragen we het
+// expliciet in plaats van stiekem te herladen — je bent midden in een gesprek met een burger.
+{
+  const k=document.getElementById("meer-kernen");
+  if(k){
+    let aan=false;try{aan=localStorage.getItem("vk_coi")==="1";}catch(e){}
+    k.checked=aan;
+    k.onchange=()=>{
+      try{localStorage.setItem("vk_coi",k.checked?"1":"0");}catch(e){}
+      const nu=!!self.crossOriginIsolated;
+      if(nu===k.checked){toonLokaalKnop();return;}   // stond al goed
+      if(confirm(k.checked
+        ? "Meerdere kernen gaan pas gebruikt worden na herladen. Nu herladen?"
+        : "Terug naar één kern gaat pas in na herladen. Nu herladen?"))location.reload();
+    };
+  }
+}
 // Volledig generatief aan/uit. De keuze blijft bewaard; hij geldt pas bij de volgende vraag.
 {
   const g=document.getElementById("generatief");
@@ -1375,43 +1569,58 @@ function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)|
 // de lijn 800 MB te wachten zonder dat je dat had zien aankomen.
 const dlBtn=document.getElementById("lokaal-dl"),dlStatus=document.getElementById("lokaal-status");
 let dlBezig=false;
+// Welke lokale motor hoort bij de gekozen provider: de videokaart (WebGPU) of de processor
+// (WebAssembly). Beide bieden dezelfde handelingen, zodat deze knop niet hoeft te weten welke.
+function lokaleMotor(){const p=PROVIDERS[provSel.value];return (p&&p.geenSleutel&&p.motor)||null;}
+// De grenzen van de gekozen lokale motor. De processor-variant is krapper dan de videokaart.
+function lokLimiet(){const mo=lokaleMotor();return Object.assign({},LOKAAL_LIMIET,(mo&&mo.limiet)||{});}
+function lokaalModel(k){const mo=lokaleMotor();return (mo&&(mo.modellen||LOKAAL_MODELLEN)[k])||{};}
 async function toonLokaalKnop(){
   if(!dlBtn)return;
-  const lokaal=PROVIDERS[provSel.value]&&PROVIDERS[provSel.value].geenSleutel;
-  dlBtn.hidden=!lokaal;dlStatus.hidden=!lokaal;
-  if(!lokaal||dlBezig)return;
-  const sleutel=modelSel.value,m=LOKAAL_MODELLEN[sleutel]||{};
-  const er=await LOKAALAI.aanwezig(sleutel);   // leest alleen de cache, laadt niets
-  dlBtn.disabled=false;
+  const mo=lokaleMotor();
+  dlBtn.hidden=!mo;dlStatus.hidden=!mo;
+  const kOpt=document.getElementById("kernen-optie");
+  if(kOpt)kOpt.hidden=(mo!==WASMAI);   // alleen de processor-motor heeft er iets aan
+  if(!mo||dlBezig)return;
+  const sleutel=modelSel.value,m=lokaalModel(sleutel);
+  const er=await mo.aanwezig(sleutel);   // leest alleen de opslag, laadt niets
+  const kan=await mo.beschikbaar();
+  dlBtn.disabled=!kan;
   dlBtn.classList.toggle("klaar",er);
   dlBtn.textContent=er?"✓ Binnengehaald — verwijderen":("↓ Downloaden ("+gbTekst(m.gb||0)+")");
   dlBtn.title=er?"Verwijder dit model uit de browseropslag":"Haal het model nu binnen, zodat het klaarstaat als u het nodig heeft";
-  const gpu=await LOKAALAI.beschikbaar();
+  // Waarom het hier niet kan, verschilt per motor: de videokaart kan ontbreken, de processor niet.
   const geheugen=m.vram?" · vraagt "+gbTekst(m.vram)+" vrij videogeheugen":"";
-  dlStatus.textContent=!gpu?"deze browser heeft geen WebGPU — een lokaal model kan hier niet draaien"
-    :er?("klaar voor gebruik"+geheugen)
-    :("nog niet op dit apparaat"+geheugen+(m.licht?"":" · vraagt een stevigere videokaart"));
-  dlBtn.disabled=!gpu;
+  const kernen=mo.kernen?mo.kernen():0;
+  const kernTekst=kernen?(" · "+kernen+(kernen===1?" kern (één kern: traag — zet 'meerdere kernen' aan)":" kernen")):"";
+  // Geen mooie praatjes: deze motor is minuten per vraag, geen seconden. Dat hoor je te weten
+  // vóór je een gigabyte binnenhaalt, niet erna.
+  const traag=mo===WASMAI?" · reken op minuten per vraag, niet op seconden":"";
+  dlStatus.textContent=!kan?(mo===LOKAALAI?"deze browser heeft geen WebGPU — kies de processor-variant":"deze browser kent geen WebAssembly")
+    :er?("klaar voor gebruik"+geheugen+kernTekst+traag)
+    :("nog niet op dit apparaat"+geheugen+(m.licht===false?" · vraagt een stevigere videokaart":"")+kernTekst+traag);
   dlStatus.hidden=false;
 }
 if(dlBtn)dlBtn.addEventListener("click",async()=>{
-  const sleutel=modelSel.value,m=LOKAAL_MODELLEN[sleutel]||{};
-  if(dlBezig)return;
-  if(await LOKAALAI.aanwezig(sleutel)){
+  const mo=lokaleMotor();if(!mo||dlBezig)return;
+  const sleutel=modelSel.value,m=lokaalModel(sleutel);
+  if(await mo.aanwezig(sleutel)){
     if(!confirm("“"+(m.label||sleutel)+"” uit de browseropslag verwijderen? U kunt het later opnieuw downloaden."))return;
-    const n=await LOKAALAI.verwijder(sleutel);
+    const n=await mo.verwijder(sleutel);
     dlStatus.textContent=n?"verwijderd":"er stond niets in de opslag";
     return toonLokaalKnop();
   }
   dlBezig=true;dlBtn.disabled=true;dlBtn.textContent="Bezig met downloaden…";dlStatus.hidden=false;
-  LOKAALAI.opVoortgang(t=>{dlStatus.textContent=t;});
+  mo.opVoortgang(t=>{dlStatus.textContent=t;});
   try{
-    await LOKAALAI.laad(sleutel);
+    // De processor-motor kan binnenhalen ZONDER te laden; dat scheelt een gigabyte werkgeheugen
+    // als je alleen even wilt downloaden. De videokaart-motor kent dat onderscheid niet.
+    await (mo.haal?mo.haal(sleutel):mo.laad(sleutel));
     dlStatus.textContent="klaar voor gebruik";
   }catch(e){
     dlStatus.textContent="mislukt: "+((e&&e.message)||e);
   }finally{
-    LOKAALAI.opVoortgang(null);dlBezig=false;toonLokaalKnop();
+    mo.opVoortgang(null);dlBezig=false;toonLokaalKnop();
   }
 });
 
@@ -1437,7 +1646,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 85";
+const APP_VERSION="build 86";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1556,9 +1765,9 @@ async function rerankCandidates(q,cands){
   if(!aiKlaar()||cands.length<=TOPK)return cands.slice(0,TOPK);
   // Bij een lokaal model kost elke regel in deze lijst rekentijd; met 30 kandidaten x 300 tekens
   // is de keuzelijst alleen al ~3.100 tokens. Korter kiezen scheelt meer dan het kost.
-  const lok=geenSleutelNodig();
-  if(lok)cands=cands.slice(0,LOKAAL_LIMIET.kandidaten);
-  const breed=lok?LOKAAL_LIMIET.fragment:300;
+  const lok=geenSleutelNodig(),lim=lokLimiet();
+  if(lok)cands=cands.slice(0,lim.kandidaten);
+  const breed=lok?lim.fragment:300;
   const listing=cands.map((idx,n)=>{const c=CORPUS[idx];const snip=((c.desc?c.desc+" ":"")+(c.text||"")).replace(/\s+/g," ").slice(0,breed);return `[${n}] ${c.title}\n${snip}`;}).join("\n\n");
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,RERANK_SYSTEM,`Vraag van de burger:\n${q}\n\nKandidaat-pagina's:\n${listing}`);
@@ -1575,7 +1784,7 @@ async function runQuestion(rawQ,gesproken){
   gesprekLoopt=true;refreshComposer();    // vanaf nu: vervolgvragen bouwen voort op dit gesprek
   const key=keyInput.value.trim();const ai=aiKlaar();
   const lokaal=geenSleutelNodig();
-  if(lokaal)LOKAALAI.meetStart();
+  if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
   let q,cands;
   if(lokaal){
     // LOKAAL: de zoekstap zelf heeft het taalmodel niet nodig. BM25 + het semantische model
@@ -1584,7 +1793,7 @@ async function runQuestion(rawQ,gesproken){
     // lokaal model ~1.200 tokens extra laat doorrekenen. We slaan die stap dus over en laten
     // het model alleen doen wat het wél moet: kiezen en citeren.
     q=await condenseQuestion(rawQ);
-    const broad=hubCandidates(await fuseRetrieval([q,rawQ].filter(Boolean),[rawQ,q].join(" "),"",LOKAAL_LIMIET.kandidaten),[rawQ,q].join(" "));
+    const broad=hubCandidates(await fuseRetrieval([q,rawQ].filter(Boolean),[rawQ,q].join(" "),"",lokLimiet().kandidaten),[rawQ,q].join(" "));
     const picked=await rerankCandidates(q,broad);
     cands=forceProduct(rawQ+" "+q,(picked&&picked.length?picked:broad.slice(0,TOPK)));
   }else if(ai){
@@ -2112,7 +2321,8 @@ async function askAI(q,cands,key){
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
   // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
   const lokaal=!!(PROVIDERS[provSel.value]||{}).geenSleutel;
-  const perPagina=lokaal?LOKAAL_LIMIET.perPagina:Infinity;
+  const lim=lokLimiet();
+  const perPagina=lokaal?lim.perPagina:Infinity;
   const knip=t=>{
     if(!lokaal||t.length<=perPagina)return t;
     // Afkappen op een alineagrens, zodat er geen halve zin in de prompt belandt.
@@ -2121,7 +2331,7 @@ async function askAI(q,cands,key){
     return (n>perPagina*0.5?kort.slice(0,n):kort).trim();
   };
   // De pagina's staan al op volgorde van relevantie (na AI-herrangschikking).
-  const bronnen=lokaal?cands.slice(0,LOKAAL_LIMIET.bronnen):cands;
+  const bronnen=lokaal?cands.slice(0,lim.bronnen):cands;
   const listing=bronnen.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${knip(CORPUS[idx].text)}`).join("\n\n---\n\n");
   const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
   const text=await PROVIDERS[provSel.value].call(key,modelSel.value,lokaal?SYSTEM_LOKAAL:SYSTEM,user);
@@ -2320,10 +2530,16 @@ const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stro
 // "hij is traag" niet te onderscheiden van "de prompt is te groot", en dat zijn twee heel
 // verschillende problemen. "Doorrekenen" is de prefill, "schrijven" het genereren zelf.
 function toonMeting(turn){
-  const m=LOKAALAI.meetKlaar();if(!m||!turn)return;
+  const mo=lokaleMotor();if(!mo)return;
+  const m=mo.meetKlaar();if(!m||!turn)return;
   const bubble=turn.querySelector(".bubble.antwoord");if(!bubble)return;
   const el=document.createElement("div");el.className="meting";
-  el.textContent=`${m.totSec}s · ${m.n} aanroep${m.n===1?"":"en"} · doorrekenen ${m.inTok} tokens in ${m.inSec}s (${m.inTps}/s) · schrijven ${m.uitTok} tokens (${m.uitTps}/s)`;
+  const deel=[`${m.totSec}s`,`${m.n} aanroep${m.n===1?"":"en"}`];
+  if(m.kernen)deel.push(`${m.kernen} kern${m.kernen===1?"":"en"}`);
+  if(m.inSec)deel.push(`doorrekenen ${m.inTok} tokens in ${m.inSec}s (${m.inTps}/s)`);
+  else deel.push(`prompt ${m.inTok} tokens`+(m.gecacht?` (${m.gecacht} uit de cache)`:""));
+  deel.push(`schrijven ${m.uitTok} tokens (${m.uitTps}/s)`);
+  el.textContent=deel.join(" · ");
   bubble.appendChild(el);
 }
 function renderResult(turn,r){
