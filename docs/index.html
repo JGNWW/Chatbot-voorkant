@@ -498,7 +498,104 @@ async function oaiChat(endpoint,key,model,system,user,name){
   if(!r.ok)throw new Error(name+" "+r.status+": "+(await r.text()).slice(0,200));
   const d=await r.json();return d.choices?.[0]?.message?.content||"";
 }
+// De lokale modellen draaien in de browser zelf (transformers.js + WebGPU): geen sleutel, geen
+// verkeer naar buiten na het eenmalig ophalen van de gewichten. De maten hieronder zijn gemeten
+// aan de q4f16-bestanden op HuggingFace (decoder + embeddings, zonder het beeldgedeelte).
+const LOKAAL_MODELLEN={
+  "gemma-3-1b":    {id:"onnx-community/gemma-3-1b-it-ONNX",                 label:"Gemma 3 1B — 764 MB",      mb:764,  soort:"tekst"},
+  "ministral-3b":  {id:"mistralai/Ministral-3-3B-Instruct-2512-ONNX",       label:"Ministral 3 3B — 2,4 GB",  mb:2437, soort:"beeldtaal"},
+  "gemma-3-4b":    {id:"onnx-community/gemma-3-4b-it-ONNX",                 label:"Gemma 3 4B — 2,4 GB",      mb:2379, soort:"beeldtaal"},
+};
+// ===== LOKAAL MODEL IN DE BROWSER =============================================================
+// Draait Gemma of Ministral op het apparaat zelf via transformers.js. Na het eenmalig ophalen
+// van de gewichten gaat er niets meer naar buiten — geen sleutel, geen provider.
+//
+// Twee soorten modellen, en dat verschil zit in de architectuur, niet in onze voorkeur:
+//   tekst      : Gemma 3 1B, gewone tekstpijplijn
+//   beeldtaal  : Gemma 3 4B en Ministral 3 3B zijn multimodaal; die laden via de processor +
+//                AutoModelForImageTextToText, precies zoals Mistrals eigen WebGPU-demo doet.
+//                Wij gebruiken ze alleen voor tekst.
+const LOKAALAI=(function(){
+  const ret={bezig:false};
+  let tf=null, huidig=null, pijplijn=null, laden=null;
+
+  const zeg=t=>{const el=document.getElementById("semstatus");if(el&&t)el.textContent=t;};
+
+  async function lib(){
+    // Bewust een NIEUWERE versie dan het zoekmodel gebruikt: 3.8.1 kan de Gemma-exports niet
+    // laden (onbekende operator in de gekwantiseerde embeddings), 4.x wel. Het zoekmodel laten
+    // we op 3.8.1 staan zodat daar niets aan verandert.
+    if(!tf){tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0");tf.env.allowLocalModels=false;}
+    return tf;
+  }
+  async function webgpu(){
+    try{return !!(navigator.gpu&&await navigator.gpu.requestAdapter());}catch(e){return false;}
+  }
+  // Voortgang optellen over alle bestanden en als één percentage tonen.
+  function voortgang(m){
+    const gezien={};
+    return p=>{
+      if(p.status!=="progress"||!p.total)return;
+      gezien[p.file]=p.loaded;
+      const klaar=Object.values(gezien).reduce((a,b)=>a+b,0);
+      zeg(m.label.split(" — ")[0]+" laden… "+Math.min(99,Math.round(klaar/(m.mb*1e6)*100))+"% van "+m.label.split(" — ")[1]);
+    };
+  }
+  async function zorgVoorModel(sleutel){
+    const m=LOKAAL_MODELLEN[sleutel];
+    if(!m)throw new Error("onbekend lokaal model: "+sleutel);
+    if(pijplijn&&huidig===sleutel)return pijplijn;
+    if(laden&&huidig===sleutel)return laden;
+    huidig=sleutel;pijplijn=null;
+    laden=(async()=>{
+      const T=await lib();
+      const device=(await webgpu())?"webgpu":"wasm";
+      if(device==="wasm")zeg("Let op: geen WebGPU — het lokale model draait op de processor en is traag.");
+      const opties={dtype:"q4f16",device,progress_callback:voortgang(m)};
+      if(m.soort==="tekst"){
+        const p=await T.pipeline("text-generation",m.id,opties);
+        pijplijn={soort:"tekst",p};
+      }else{
+        // Multimodaal model, alleen tekst gebruikt.
+        const processor=await T.AutoProcessor.from_pretrained(m.id);
+        const model=await T.AutoModelForImageTextToText.from_pretrained(m.id,
+          {dtype:{embed_tokens:"q4f16",vision_encoder:"q4f16",decoder_model_merged:"q4f16"},device,
+           progress_callback:voortgang(m)});
+        pijplijn={soort:"beeldtaal",processor,model};
+      }
+      zeg("lokaal model klaar ("+device+")");
+      laden=null;
+      return pijplijn;
+    })().catch(e=>{laden=null;huidig=null;zeg("lokaal model laden mislukt");throw e;});
+    return laden;
+  }
+  ret.laad=zorgVoorModel;
+
+  // Zelfde contract als de andere providers: (systeem, gebruiker) -> tekst.
+  ret.genereer=async function(sleutel,system,user){
+    const P=await zorgVoorModel(sleutel);
+    const berichten=[{role:"system",content:system},{role:"user",content:user}];
+    if(P.soort==="tekst"){
+      const r=await P.p(berichten,{max_new_tokens:1200,do_sample:false,return_full_text:false});
+      const g=r&&r[0]&&r[0].generated_text;
+      return Array.isArray(g)?((g.at(-1)||{}).content||""):String(g||"");
+    }
+    const T=await lib();
+    const mm=berichten.map(b=>({role:b.role,content:[{type:"text",text:b.content}]}));
+    const prompt=P.processor.apply_chat_template(mm,{add_generation_prompt:true,tokenize:false});
+    const inputs=await P.processor(null,prompt,{add_special_tokens:false});
+    const uit=await P.model.generate({...inputs,max_new_tokens:1200,do_sample:false});
+    const nieuw=uit.slice(null,[inputs.input_ids.dims.at(-1),null]);
+    return P.processor.batch_decode(nieuw,{skip_special_tokens:true})[0]||"";
+  };
+  return ret;
+})();
 const PROVIDERS={
+  lokaal:{label:"Lokaal (in de browser)",models:Object.keys(LOKAAL_MODELLEN),geenSleutel:true,
+    keyUrl:"https://developer.mozilla.org/docs/Web/API/WebGPU_API",
+    keyHint:"Geen sleutel nodig — het model draait op dit apparaat",
+    modelLabel:m=>(LOKAAL_MODELLEN[m]||{}).label||m,
+    async call(key,model,system,user){return LOKAALAI.genereer(model,system,user);}},
   gemini:{label:"Google Gemini (gratis)",models:["gemini-2.5-flash","gemini-2.0-flash","gemini-2.5-flash-lite"],keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
     async call(key,model,system,user){
       const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
@@ -1161,7 +1258,9 @@ async function fillModels(){
     modelSel.disabled=false;
   }
   modelSel.innerHTML="";
-  models.forEach(m=>{const o=document.createElement("option");o.value=m;o.textContent=m;modelSel.appendChild(o);});
+  const prov=PROVIDERS[provSel.value];
+  models.forEach(m=>{const o=document.createElement("option");o.value=m;
+    o.textContent=prov&&prov.modelLabel?prov.modelLabel(m):m;modelSel.appendChild(o);});
   const saved=localStorage.getItem("model_"+provSel.value);
   modelSel.value=models.includes(saved)?saved:models[0];
   localStorage.setItem("model_"+provSel.value,modelSel.value);
@@ -1176,14 +1275,28 @@ function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)|
     g.onchange=()=>{GENERATIEF=g.checked;try{localStorage.setItem("vk_generatief",GENERATIEF?"1":"0");}catch(e){}};
   }
 }
-function refreshMode(){const p=PROVIDERS[provSel.value];keyLink.href=p.keyUrl;keyInput.placeholder=p.keyHint;const has=keyInput.value.trim().length>10;keyStatus.textContent=has?("AI-modus actief — "+p.label+" / "+modelSel.value):("Demo-modus (geen AI). Tip: "+p.keyHint);modeBadge.innerHTML=has?'<span class="badge ai">AI</span>':'<span class="badge demo">DEMO</span>';}
+// Met een lokaal model is er geen sleutel nodig; de AI-stappen zijn dan gewoon beschikbaar.
+function geenSleutelNodig(){const p=PROVIDERS[provSel.value];return !!(p&&p.geenSleutel);}
+function aiKlaar(){return geenSleutelNodig()||keyInput.value.trim().length>10;}
+function refreshMode(){
+  const p=PROVIDERS[provSel.value];
+  keyLink.href=p.keyUrl;keyInput.placeholder=p.keyHint;
+  // Een lokaal model heeft geen sleutel nodig; het sleutelveld verdwijnt dan.
+  const lokaal=!!p.geenSleutel;
+  keyInput.hidden=lokaal;keyLink.hidden=lokaal;
+  const naam=p.modelLabel?p.modelLabel(modelSel.value):modelSel.value;
+  const aan=aiKlaar();
+  keyStatus.textContent=aan?("AI-modus actief — "+p.label+" / "+naam+(lokaal?" · draait op dit apparaat":""))
+                           :("Demo-modus (geen AI). Tip: "+p.keyHint);
+  modeBadge.innerHTML=aan?'<span class="badge ai">AI</span>':'<span class="badge demo">DEMO</span>';
+}
 
 provSel.addEventListener("change",()=>{localStorage.setItem("provider",provSel.value);fillModels();loadKey();refreshMode();});
 modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.value,modelSel.value);refreshMode();});
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 78";
+const APP_VERSION="build 79";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1191,7 +1304,7 @@ document.getElementById("fb-export").addEventListener("click",exportFeedback);
 const settingsToggle=document.getElementById("settings-toggle"),keybar=document.getElementById("keybar");
 function setSettings(open){keybar.classList.toggle("hidden",!open);settingsToggle.setAttribute("aria-expanded",open?"true":"false");}
 settingsToggle.addEventListener("click",()=>setSettings(keybar.classList.contains("hidden")));
-setSettings(keyInput.value.trim().length<=10);
+setSettings(!aiKlaar());
 
 const inputEl=document.getElementById("input");
 function askText(t){inputEl.value=t;refreshComposer();document.getElementById("form").requestSubmit();}
@@ -1259,7 +1372,7 @@ document.getElementById("reset").addEventListener("click",newConversation);
 async function condenseQuestion(rawQ){
   if(!history.length)return rawQ;
   const key=keyInput.value.trim();
-  if(key.length<=10)return rawQ; // demo-modus: geen herschrijving mogelijk
+  if(!aiKlaar())return rawQ; // demo-modus: geen herschrijving mogelijk
   const ctx=history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n");
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,CONDENSE_SYSTEM,`Gesprek tot nu toe:\n${ctx}\n\nNieuwe vraag: ${rawQ}`);
@@ -1271,7 +1384,7 @@ async function condenseQuestion(rawQ){
 // Stap 1 (AI-modus): maak de vraag zelfstandig + genereer zoektermen voor betere recall.
 async function prepareQuery(rawQ){
   const key=keyInput.value.trim();
-  if(key.length<=10)return {q:rawQ,terms:[]};
+  if(!aiKlaar())return {q:rawQ,terms:[]};
   const ctx=history.length?("Gesprek tot nu toe:\n"+history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n")+"\n\n"):"";
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,PREPARE_SYSTEM,ctx+"Vraag van de burger: "+rawQ);
@@ -1299,7 +1412,7 @@ async function fuseRetrieval(semTexts,kwText,category,limit){
 // (op titel + tekstfragment). Retour: array picks (kan [] zijn = niets past), of null bij fout.
 async function rerankCandidates(q,cands){
   const key=keyInput.value.trim();
-  if(key.length<=10||cands.length<=TOPK)return cands.slice(0,TOPK);
+  if(!aiKlaar()||cands.length<=TOPK)return cands.slice(0,TOPK);
   const listing=cands.map((idx,n)=>{const c=CORPUS[idx];const snip=((c.desc?c.desc+" ":"")+(c.text||"")).replace(/\s+/g," ").slice(0,300);return `[${n}] ${c.title}\n${snip}`;}).join("\n\n");
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,RERANK_SYSTEM,`Vraag van de burger:\n${q}\n\nKandidaat-pagina's:\n${listing}`);
@@ -1314,7 +1427,7 @@ async function runQuestion(rawQ,gesproken){
   if(!corpusKlaar||!rawQ)return;
   const turn=addTurn(rawQ,gesproken);     // toon de vraag zoals gesteld
   gesprekLoopt=true;refreshComposer();    // vanaf nu: vervolgvragen bouwen voort op dit gesprek
-  const key=keyInput.value.trim();const ai=key.length>10;
+  const key=keyInput.value.trim();const ai=aiKlaar();
   let q,cands;
   if(ai){
     // Expansie+HyDE+multi-query -> breed ophalen (+hubs) -> AI kiest op intentie -> confidence-check.
@@ -1654,7 +1767,7 @@ const LISTEN=(function initSpraak(){
   async function netteVraag(ruw){
     const key=keyInput.value.trim();
     const schoon=lokaalOpschonen(ruw);
-    if(key.length<=10)return schoon;
+    if(!aiKlaar())return schoon;
     // Het lopende gesprek gaat mee, net als bij een getypte vervolgvraag. Zonder dat moet het
     // model van "het is voor mijn kind" in zijn eentje een vraag maken, en dat gaat mis.
     const ctx=history.length
