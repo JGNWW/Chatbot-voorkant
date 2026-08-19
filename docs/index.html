@@ -201,6 +201,7 @@ a{color:var(--rijk-licht);}
 body.spraak-aan .spraak-el,body.spraak-laadt .spraak-el{display:inline-flex;}
 /* [hidden] moet het winnen van de display hierboven, anders vallen status en tekst over elkaar. */
 .spraak-el[hidden]{display:none !important;}
+.meting{margin-top:10px;padding-top:8px;border-top:1px solid var(--lijn,#dde);font-size:.78rem;color:#667;font-variant-numeric:tabular-nums;}
 body.spraak-aan #input,body.spraak-laadt #input{display:none;}
 body.spraak-aan #send,body.spraak-laadt #send,body.spraak-laadt #reset{display:none;}
 body.spraak-aan .composer-pill{border-color:#e8a0a0;box-shadow:0 0 0 3px rgba(213,43,30,.06);padding-left:12px;}
@@ -448,6 +449,31 @@ Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
 
 Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
 
+// Dezelfde opdracht, maar kort. Een lokaal model in de browser moet elk woord van de prompt eerst
+// dóórrekenen voordat het één letter schrijft; de uitgebreide versie hierboven is alleen al 2.950
+// tokens en past met drie bronpagina's niet eens in het venster van 4.096. Deze versie houdt de
+// harde eisen (letterlijk citeren, start/end, JSON-vorm) en laat de nuance-instructies weg, want
+// die volgt een model van 1 tot 3 miljard parameters toch niet betrouwbaar op.
+const SYSTEM_LOKAAL=`Je helpt een voorlichter van NederlandWereldwijd. Je krijgt een vraag en genummerde pagina's met hun LETTERLIJKE tekst.
+
+Kies uit die tekst de passage die de vraag beantwoordt. Schrijf zelf GEEN inhoud: alle feiten, bedragen en termijnen komen uit de bron.
+
+Regels:
+- "quote": LETTERLIJK overgeschreven uit de paginatekst, zelfde woorden en leestekens. Geen samenvatting, geen beletseltekens.
+- Begin en eindig op een HELE zin. Hoogstens 80 woorden.
+- Citeer geen los kopje of navigatielabel.
+- Geef ÉÉN citaat, tenzij de vraag echt uit meerdere onderdelen bestaat (dan maximaal 3, elk over een ander onderdeel).
+- Neem geen situatie aan die de burger niet noemde; kies bij twijfel de algemene pagina.
+- "start" en "end": de eerste en laatste 4 tot 8 woorden van datzelfde citaat, exact.
+- "bridge": hooguit één korte zin die naar het citaat leidt, zonder nieuwe feiten. Mag leeg zijn.
+- "intro": één zin die de vraag herformuleert, zonder feiten en zonder aannames.
+- "clarifications": alleen als het antwoord echt van de situatie afhangt. "prefill" is het begin van het ANTWOORD in de ik-vorm, eindigend op een spatie ("In welk land woont u?" -> "Ik woon in ").
+
+Antwoord UITSLUITEND met JSON:
+{"restated_question":"","intro":"","citations":[{"source_index":0,"bridge":"","quote":"","start":"","end":""}],"clarifications":[{"question":"","prefill":""}],"followups":[""],"related_indices":[],"note":""}
+
+Beantwoordt geen enkele pagina de vraag, laat "citations" dan leeg en leg dat uit in "note".`;
+
 // Herschrijft een (mogelijk elliptische) vervolgvraag tot een zelfstandige vraag, met gesprekscontext.
 const CONDENSE_SYSTEM=`Je krijgt de samenvatting van een lopend gesprek tussen een voorlichter en een AI over overheidsvragen, plus een nieuwe vraag. Herschrijf de NIEUWE vraag tot één zelfstandige, op zichzelf staande vraag die ook zonder de context te begrijpen is (vul ontbrekend onderwerp aan uit de context). Betreft de nieuwe vraag duidelijk een nieuw onderwerp, geef hem dan vrijwel ongewijzigd terug. Antwoord UITSLUITEND met JSON: {"standalone_question":"<de zelfstandige vraag>"}`;
 // Stap 1: maak de vraag zelfstandig én genereer zoektermen (spreektaal -> ambtelijke/officiële termen) voor betere recall.
@@ -523,6 +549,17 @@ const LOKAAL_MODELLEN={
 // opdracht (drie bronpagina's, ~1.900 tokens) past niet in 512 en de citaatstap zou dan de
 // bronteksten niet meer zien.
 const LOKAAL_CHAT={context_window_size:4096,sliding_window_size:-1,attention_sink_size:0};
+// Hoeveel tekst er per vraag naar een lokaal model mag. Alles wat je meestuurt moet het model
+// eerst dóórrekenen (de "prefill"), en juist dat is in de browser traag: WebGPU betaalt per
+// rekenopdracht ~33-59 microseconde overhead, waar een telefoon-app die kosten niet heeft. De
+// prompt klein houden is daarom de enige knop die echt werkt.
+const LOKAAL_LIMIET={
+  kandidaten:12,     // pagina's in de keuzelijst (cloud: 25-30)
+  fragment:140,      // tekens per pagina in die lijst (cloud: 300)
+  bronnen:3,         // pagina's waaruit geciteerd wordt (cloud: 6)
+  perPagina:1800,    // tekens per bronpagina (cloud: onbeperkt)
+  uit:800,           // maximaal te schrijven tokens (cloud: 3000)
+};
 // ===== LOKAAL MODEL IN DE BROWSER =============================================================
 // Draait op WebLLM (MLC), dezelfde soort motor als de Android-apps die lokale modellen draaien:
 // de gewichten worden eenmalig opgehaald en daarna gebeurt alles op het apparaat zelf. Geen
@@ -611,10 +648,28 @@ const LOKAALAI=(function(){
     const e=await ret.laad(sleutel);
     const r=await e.chat.completions.create({
       messages:[{role:"system",content:system},{role:"user",content:user}],
-      temperature:0,max_tokens:1200,
+      temperature:0,max_tokens:LOKAAL_LIMIET.uit,
     });
+    // WebLLM meet zelf hoe snel het ging. We tellen het per vraag op, zodat je kunt ZIEN waar de
+    // tijd blijft in plaats van te gissen: doorrekenen van de prompt, of het schrijven zelf.
+    try{
+      const u=r&&r.usage,x=u&&u.extra;
+      if(x)meetTel({inTok:u.prompt_tokens||0,uitTok:u.completion_tokens||0,
+        inSec:x.time_to_first_token_s||0,totSec:x.e2e_latency_s||0,
+        inTps:x.prefill_tokens_per_s||0,uitTps:x.decode_tokens_per_s||0});
+    }catch(_){}
     return (r&&r.choices&&r.choices[0]&&r.choices[0].message&&r.choices[0].message.content)||"";
   };
+  // Optellen over alle aanroepen van één vraag; `meetStart()` zet de teller op nul.
+  let meting=null;
+  function meetTel(m){ if(!meting)return; meting.n++; meting.inTok+=m.inTok; meting.uitTok+=m.uitTok;
+    meting.inSec+=m.inSec; meting.totSec+=m.totSec; }
+  ret.meetStart=()=>{meting={n:0,inTok:0,uitTok:0,inSec:0,totSec:0};};
+  ret.meetKlaar=()=>{const m=meting;meting=null;if(!m||!m.n)return null;
+    const r1=x=>Math.round(x*10)/10;
+    return {n:m.n,inTok:m.inTok,uitTok:m.uitTok,inSec:r1(m.inSec),totSec:r1(m.totSec),
+      inTps:Math.round(m.inTok/Math.max(m.inSec,0.001)),
+      uitTps:Math.round(m.uitTok/Math.max(m.totSec-m.inSec,0.001))};};
   return ret;
 })();
 const PROVIDERS={
@@ -1367,7 +1422,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 83";
+const APP_VERSION="build 84";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1484,7 +1539,12 @@ async function fuseRetrieval(semTexts,kwText,category,limit){
 async function rerankCandidates(q,cands){
   const key=keyInput.value.trim();
   if(!aiKlaar()||cands.length<=TOPK)return cands.slice(0,TOPK);
-  const listing=cands.map((idx,n)=>{const c=CORPUS[idx];const snip=((c.desc?c.desc+" ":"")+(c.text||"")).replace(/\s+/g," ").slice(0,300);return `[${n}] ${c.title}\n${snip}`;}).join("\n\n");
+  // Bij een lokaal model kost elke regel in deze lijst rekentijd; met 30 kandidaten x 300 tekens
+  // is de keuzelijst alleen al ~3.100 tokens. Korter kiezen scheelt meer dan het kost.
+  const lok=geenSleutelNodig();
+  if(lok)cands=cands.slice(0,LOKAAL_LIMIET.kandidaten);
+  const breed=lok?LOKAAL_LIMIET.fragment:300;
+  const listing=cands.map((idx,n)=>{const c=CORPUS[idx];const snip=((c.desc?c.desc+" ":"")+(c.text||"")).replace(/\s+/g," ").slice(0,breed);return `[${n}] ${c.title}\n${snip}`;}).join("\n\n");
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,RERANK_SYSTEM,`Vraag van de burger:\n${q}\n\nKandidaat-pagina's:\n${listing}`);
     const j=parseModelJSON(text);
@@ -1499,8 +1559,20 @@ async function runQuestion(rawQ,gesproken){
   const turn=addTurn(rawQ,gesproken);     // toon de vraag zoals gesteld
   gesprekLoopt=true;refreshComposer();    // vanaf nu: vervolgvragen bouwen voort op dit gesprek
   const key=keyInput.value.trim();const ai=aiKlaar();
+  const lokaal=geenSleutelNodig();
+  if(lokaal)LOKAALAI.meetStart();
   let q,cands;
-  if(ai){
+  if(lokaal){
+    // LOKAAL: de zoekstap zelf heeft het taalmodel niet nodig. BM25 + het semantische model
+    // draaien op de processor en halen op de testset 95% recall@6 — de AI-expansie (HyDE,
+    // alternatieve formuleringen, zoektermen) levert daar bovenop weinig op, terwijl hij een
+    // lokaal model ~1.200 tokens extra laat doorrekenen. We slaan die stap dus over en laten
+    // het model alleen doen wat het wél moet: kiezen en citeren.
+    q=await condenseQuestion(rawQ);
+    const broad=hubCandidates(await fuseRetrieval([q,rawQ].filter(Boolean),[rawQ,q].join(" "),"",LOKAAL_LIMIET.kandidaten),[rawQ,q].join(" "));
+    const picked=await rerankCandidates(q,broad);
+    cands=forceProduct(rawQ+" "+q,(picked&&picked.length?picked:broad.slice(0,TOPK)));
+  }else if(ai){
     // Expansie+HyDE+multi-query -> breed ophalen (+hubs) -> AI kiest op intentie -> confidence-check.
     const pre=await prepareQuery(rawQ);q=pre.q;
     if(!pre.inScope){                                           // buiten het domein -> niet zoeken
@@ -1539,6 +1611,7 @@ async function runQuestion(rawQ,gesproken){
   try{
     const result=ai?await askAI(q,cands,key):demoAnswer(q,cands);
     renderResult(turn,result);
+    if(lokaal)toonMeting(turn);
     recordTurn(rawQ,result);
     if(result.citations&&result.citations.length){
       const summary=(result.citations[0].text||"").slice(0,220);
@@ -2024,7 +2097,7 @@ async function askAI(q,cands,key){
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
   // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
   const lokaal=!!(PROVIDERS[provSel.value]||{}).geenSleutel;
-  const perPagina=lokaal?2200:Infinity;
+  const perPagina=lokaal?LOKAAL_LIMIET.perPagina:Infinity;
   const knip=t=>{
     if(!lokaal||t.length<=perPagina)return t;
     // Afkappen op een alineagrens, zodat er geen halve zin in de prompt belandt.
@@ -2033,10 +2106,10 @@ async function askAI(q,cands,key){
     return (n>perPagina*0.5?kort.slice(0,n):kort).trim();
   };
   // De pagina's staan al op volgorde van relevantie (na AI-herrangschikking).
-  const bronnen=lokaal?cands.slice(0,3):cands;
+  const bronnen=lokaal?cands.slice(0,LOKAAL_LIMIET.bronnen):cands;
   const listing=bronnen.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${knip(CORPUS[idx].text)}`).join("\n\n---\n\n");
   const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
-  const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SYSTEM,user);
+  const text=await PROVIDERS[provSel.value].call(key,modelSel.value,lokaal?SYSTEM_LOKAAL:SYSTEM,user);
   const r=parseModelJSON(text);
   const rawCites=Array.isArray(r.citations)?r.citations:[];
   const citations=[];const usedSet=new Set();let notFound=0;
@@ -2228,6 +2301,16 @@ function citeBodyHTML(c){
   return alineas.map(ln=>`<p class="cite-p">${escapeHtml(ln)}</p>`).join("")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
 }
 const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
+// Laat na een lokaal antwoord zien waar de tijd heen ging. Niet als opsmuk: zonder deze regel is
+// "hij is traag" niet te onderscheiden van "de prompt is te groot", en dat zijn twee heel
+// verschillende problemen. "Doorrekenen" is de prefill, "schrijven" het genereren zelf.
+function toonMeting(turn){
+  const m=LOKAALAI.meetKlaar();if(!m||!turn)return;
+  const bubble=turn.querySelector(".bubble.antwoord");if(!bubble)return;
+  const el=document.createElement("div");el.className="meting";
+  el.textContent=`${m.totSec}s · ${m.n} aanroep${m.n===1?"":"en"} · doorrekenen ${m.inTok} tokens in ${m.inSec}s (${m.inTps}/s) · schrijven ${m.uitTok} tokens (${m.uitTps}/s)`;
+  bubble.appendChild(el);
+}
 function renderResult(turn,r){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
   const hasCites=r.citations&&r.citations.length;
