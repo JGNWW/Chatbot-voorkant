@@ -70,6 +70,13 @@ html,body{height:100%;overflow:hidden;}
 .keybar a{color:var(--rijk-licht);font-size:.78rem;white-space:nowrap;font-weight:600;}
 .keybar .status{font-size:.78rem;width:100%;color:var(--ink-licht);}
 .keybar .status.build{width:auto;opacity:.55;font-size:.72rem;}
+/* Lokaal model beheren: expliciet downloaden en verwijderen, niet stiekem bij de eerste vraag. */
+.lokaal-btn{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;background:#fff;color:var(--rijk-blauw);border:1px solid var(--blauw-licht);border-radius:14px;padding:5px 12px;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;}
+.lokaal-btn:hover:not(:disabled){background:var(--blauw-bg);border-color:var(--rijk-licht);}
+.lokaal-btn:disabled{opacity:.6;cursor:default;}
+.lokaal-btn.klaar{color:var(--groen);border-color:#bfe3cb;background:#f3faf1;}
+.lokaal-btn[hidden],.lokaal-status[hidden]{display:none;}
+.lokaal-status{font-size:.76rem;color:var(--ink-licht);flex:0 0 auto;}
 .spraak-optie{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto;font-size:.78rem;color:var(--ink-licht);cursor:pointer;}
 .spraak-optie select{padding:4px 7px;border:1px solid var(--rand);border-radius:7px;font-size:.78rem;font-family:inherit;background:#fff;color:var(--ink);}
 .spraak-optie input:disabled+span,.spraak-optie:has(input:disabled){opacity:.55;}
@@ -357,6 +364,8 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <span class="status" id="keystatus"></span>
       <span class="status" id="semstatus">zoeken laden…</span>
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
+      <button type="button" id="lokaal-dl" class="lokaal-btn" hidden></button>
+      <span id="lokaal-status" class="lokaal-status" hidden></span>
       <label class="spraak-optie" title="De AI schrijft het antwoord zelf op basis van de gevonden passages, in plaats van ze letterlijk te tonen"><input type="checkbox" id="generatief"> volledig generatief antwoord</label>
       <label class="spraak-optie">spraakmodel
         <select id="spraak-motor" title="Groter model = nauwkeuriger, maar eenmalig meer downloaden">
@@ -519,7 +528,37 @@ const LOKAALAI=(function(){
   const ret={bezig:false};
   let tf=null, huidig=null, pijplijn=null, laden=null;
 
-  const zeg=t=>{const el=document.getElementById("semstatus");if(el&&t)el.textContent=t;};
+  // Voortgang en meldingen gaan naar de knop in de instellingen; bij het laden tijdens een vraag
+  // valt hij terug op de statusregel van het zoekmodel.
+  let melder=null;
+  ret.opVoortgang=f=>{melder=f;};
+  const zeg=t=>{if(!t)return;if(melder)melder(t);else{const el=document.getElementById("semstatus");if(el)el.textContent=t;}};
+
+  // De gewichten staan in de Cache Storage van de browser onder "transformers-cache". Zo kunnen
+  // we zien of een model al binnen is, en het ook weer weggooien.
+  const CACHE="transformers-cache";
+  async function bestanden(sleutel){
+    const m=LOKAAL_MODELLEN[sleutel];
+    if(!m||!("caches" in window))return [];
+    try{
+      const c=await caches.open(CACHE);
+      const keys=await c.keys();
+      return keys.filter(r=>r.url.includes(m.id));
+    }catch(e){return [];}
+  }
+  // Een model telt als binnengehaald zodra de zware gewichten er staan (.onnx of .onnx_data).
+  ret.aanwezig=async sleutel=>{
+    const f=await bestanden(sleutel);
+    return f.some(r=>/\.onnx(_data)?(\?|$)/.test(r.url));
+  };
+  ret.verwijder=async sleutel=>{
+    if(!("caches" in window))return 0;
+    const c=await caches.open(CACHE);
+    const f=await bestanden(sleutel);
+    for(const r of f)await c.delete(r);
+    if(huidig===sleutel){pijplijn=null;huidig=null;laden=null;}
+    return f.length;
+  };
 
   async function lib(){
     // Bewust een NIEUWERE versie dan het zoekmodel gebruikt: 3.8.1 kan de Gemma-exports niet
@@ -1275,6 +1314,46 @@ function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)|
     g.onchange=()=>{GENERATIEF=g.checked;try{localStorage.setItem("vk_generatief",GENERATIEF?"1":"0");}catch(e){}};
   }
 }
+// ---- Lokaal model beheren: eerst downloaden, dan pas gebruiken ----
+// Zonder deze knop begon de download pas bij de eerste vraag, en dan sta je met een klant aan
+// de lijn 800 MB te wachten zonder dat je dat had zien aankomen.
+const dlBtn=document.getElementById("lokaal-dl"),dlStatus=document.getElementById("lokaal-status");
+let dlBezig=false;
+async function toonLokaalKnop(){
+  if(!dlBtn)return;
+  const lokaal=PROVIDERS[provSel.value]&&PROVIDERS[provSel.value].geenSleutel;
+  dlBtn.hidden=!lokaal;dlStatus.hidden=!lokaal;
+  if(!lokaal||dlBezig)return;
+  const sleutel=modelSel.value,m=LOKAAL_MODELLEN[sleutel]||{};
+  const er=await LOKAALAI.aanwezig(sleutel);
+  dlBtn.disabled=false;
+  dlBtn.classList.toggle("klaar",er);
+  dlBtn.textContent=er?"✓ Binnengehaald — verwijderen":("↓ Downloaden ("+(m.label||"").split("— ")[1]+")");
+  dlBtn.title=er?"Verwijder dit model uit de browseropslag":"Haal het model nu binnen, zodat het klaarstaat als u het nodig heeft";
+  dlStatus.textContent=er?"":"nog niet op dit apparaat";
+  dlStatus.hidden=false;
+}
+if(dlBtn)dlBtn.addEventListener("click",async()=>{
+  const sleutel=modelSel.value,m=LOKAAL_MODELLEN[sleutel]||{};
+  if(dlBezig)return;
+  if(await LOKAALAI.aanwezig(sleutel)){
+    if(!confirm("“"+(m.label||sleutel)+"” uit de browseropslag verwijderen? U kunt het later opnieuw downloaden."))return;
+    const n=await LOKAALAI.verwijder(sleutel);
+    dlStatus.textContent=n?"verwijderd":"er stond niets in de opslag";
+    return toonLokaalKnop();
+  }
+  dlBezig=true;dlBtn.disabled=true;dlBtn.textContent="Bezig met downloaden…";dlStatus.hidden=false;
+  LOKAALAI.opVoortgang(t=>{dlStatus.textContent=t;});
+  try{
+    await LOKAALAI.laad(sleutel);
+    dlStatus.textContent="klaar voor gebruik";
+  }catch(e){
+    dlStatus.textContent="mislukt: "+((e&&e.message)||e);
+  }finally{
+    LOKAALAI.opVoortgang(null);dlBezig=false;toonLokaalKnop();
+  }
+});
+
 // Met een lokaal model is er geen sleutel nodig; de AI-stappen zijn dan gewoon beschikbaar.
 function geenSleutelNodig(){const p=PROVIDERS[provSel.value];return !!(p&&p.geenSleutel);}
 function aiKlaar(){return geenSleutelNodig()||keyInput.value.trim().length>10;}
@@ -1289,6 +1368,7 @@ function refreshMode(){
   keyStatus.textContent=aan?("AI-modus actief — "+p.label+" / "+naam+(lokaal?" · draait op dit apparaat":""))
                            :("Demo-modus (geen AI). Tip: "+p.keyHint);
   modeBadge.innerHTML=aan?'<span class="badge ai">AI</span>':'<span class="badge demo">DEMO</span>';
+  toonLokaalKnop();
 }
 
 provSel.addEventListener("change",()=>{localStorage.setItem("provider",provSel.value);fillModels();loadKey();refreshMode();});
@@ -1296,7 +1376,7 @@ modelSel.addEventListener("change",()=>{localStorage.setItem("model_"+provSel.va
 keyInput.addEventListener("input",()=>{localStorage.setItem("apikey_"+provSel.value,keyInput.value);refreshMode();});
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 79";
+const APP_VERSION="build 80";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
