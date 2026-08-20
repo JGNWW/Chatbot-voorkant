@@ -913,6 +913,74 @@ const PROVIDERS={
       const txt=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
       if(!txt&&d.candidates?.[0]?.finishReason)throw new Error("Gemini gaf geen tekst terug ("+d.candidates[0].finishReason+"). Probeer opnieuw of kies een ander model.");
       return txt;}},
+  // HuggingFace bundelt tientallen aanbieders achter één OpenAI-compatibel adres. De lijst is
+  // openbaar op te vragen (zonder sleutel) en bevat de prijs per aanbieder, dus we kunnen de
+  // goedkoopste vooraan zetten én in het label tonen hoeveel vragen je ermee kunt stellen.
+  // "Gratis" is hier bescheiden: een gratis account krijgt ongeveer $0,10 aan tegoed per maand.
+  // Met het goedkoopste model is dat ruwweg 300 vragen — genoeg voor een testomgeving, niet
+  // voor de balie. De prijs staat erbij zodat je die afweging zelf kunt maken.
+  huggingface:{label:"HuggingFace (veel modellen)",keyUrl:"https://huggingface.co/settings/tokens",
+    keyHint:"Gratis token via huggingface.co (± $0,10 tegoed per maand)",
+    fallbackModels:["Qwen/Qwen3-4B-Instruct-2507","meta-llama/Llama-3.1-8B-Instruct","openai/gpt-oss-20b","google/gemma-3-12b-it"],
+    prijzen:{},
+    modelLabel(m){const p=this.prijzen[m];
+      if(p===null)return m+" — prijs onbekend";
+      return p?(m+" — ± "+p+" vragen met het gratis tegoed"):m;},
+    async loadModels(){
+      const r=await fetch("https://router.huggingface.co/v1/models");
+      if(!r.ok)throw new Error("modellen ophalen mislukt");
+      const d=await r.json();
+      const goedkoopst=m=>{
+        const live=(m.providers||[]).filter(p=>p.status==="live"&&p.pricing);
+        if(!live.length)return null;
+        return live.reduce((a,p)=>{
+          const k=p.pricing.input+0, u=p.pricing.output!=null?p.pricing.output:k;
+          return (a===null||k<a.in)?{in:k,uit:u}:a;
+        },null);
+      };
+      // Niet elk goedkoop model is een goed model VOOR ONS. Een codemodel schrijft geen
+      // Nederlandse voorlichtingstekst, en een denkmodel zet honderden redeneer-tokens vóór de
+      // JSON — dat vreet precies het tegoed op dat we willen sparen.
+      const ONGESCHIKT=/coder|thinking|-r1|distill|lunaris|stheno|guard|embed|rerank|vision|audio/i;
+      const uit=[];
+      for(const m of d.data||[]){
+        const a=m.architecture||{};
+        // Alleen tekst erin en tekst eruit; een beeldmodel kan onze JSON-opdracht niet aan.
+        if(!(a.output_modalities||[]).includes("text"))continue;
+        if(!(a.input_modalities||["text"]).includes("text"))continue;
+        if(ONGESCHIKT.test(m.id))continue;
+        const pr=goedkoopst(m);if(!pr)continue;
+        // Wat kost één vraag bij ons? Ruwweg 30.000 tokens erin en 600 eruit (gemeten).
+        const kosten=30000/1e6*pr.in+600/1e6*pr.uit;
+        uit.push({id:m.id,kosten});
+      }
+      if(!uit.length)throw new Error("geen bruikbare modellen");
+      // Goedkoopst eerst, maar modellen zonder prijs achteraan: dat zijn doorgaans tijdelijke
+      // proefopstellingen van de gemeenschap, en die wil je niet als standaardkeuze hebben.
+      uit.sort((a,b)=>(a.kosten>0?0:1)-(b.kosten>0?0:1)||a.kosten-b.kosten);
+      this.prijzen={};
+      for(const m of uit)this.prijzen[m.id]=m.kosten>0?Math.round(0.10/m.kosten):null;
+      return uit.map(m=>m.id);},
+    async call(key,model,system,user){
+      // Niet elke aanbieder achter HuggingFace kent response_format. Weigert er een, dan
+      // proberen we het zonder — de app leest de JSON toch al tolerant uit de tekst.
+      const doe=async json=>{
+        const body={model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]};
+        if(json)body.response_format={type:"json_object"};
+        const r=await fetch("https://router.huggingface.co/v1/chat/completions",{method:"POST",
+          headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
+        return {ok:r.ok,status:r.status,tekst:await r.text()};
+      };
+      let res=await doe(true);
+      if(!res.ok&&(res.status===400||res.status===422))res=await doe(false);
+      if(!res.ok){
+        // 402 betekent: tegoed op. Dat is geen storing, dus zeg dat gewoon.
+        if(res.status===402)throw new Error("HuggingFace: het maandtegoed is op. Kies een ander model of een andere provider.");
+        throw new Error("HuggingFace "+res.status+": "+res.tekst.slice(0,200));
+      }
+      const d=JSON.parse(res.tekst);
+      if(d.error)throw new Error("HuggingFace: "+((d.error.message||d.error)+"").slice(0,200));
+      return d.choices?.[0]?.message?.content||"";}},
   groq:{label:"Groq (gratis, snel)",models:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],keyUrl:"https://console.groq.com/keys",keyHint:"Gratis sleutel via console.groq.com",
     call(key,model,system,user){return oaiChat("https://api.groq.com/openai/v1/chat/completions",key,model,system,user,"Groq");}},
   cerebras:{label:"Cerebras (gratis, zeer snel)",models:["llama-3.3-70b","llama-3.1-8b"],keyUrl:"https://cloud.cerebras.ai/",keyHint:"Gratis sleutel via cloud.cerebras.ai",
@@ -1691,7 +1759,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 87";
+const APP_VERSION="build 88";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
