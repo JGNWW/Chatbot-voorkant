@@ -1801,7 +1801,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 89";
+const APP_VERSION="build 90";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2556,8 +2556,12 @@ async function askAI(q,cands,key){
 // worden. Twee vangrails, want een vloeiend antwoord leest alsof het klopt:
 //   1. elke alinea moet aan minstens één passage hangen; hangt er niets aan, dan valt hij af;
 //   2. elk getal, bedrag of jaartal in een alinea moet ook in de aangehaalde passage staan.
-// Sneuvelt er iets, dan tonen we het gegenereerde antwoord NIET en valt de app terug op de
-// letterlijke weergave. Liever een saai antwoord dan een vloeiend antwoord dat niet klopt.
+// Sneuvelt een alinea, dan valt ALLEEN die alinea af en blijft de rest staan. Een niet-gedekte
+// bewering weghalen maakt het antwoord juist veiliger, en één slordige alinea hoort vier goede
+// niet mee te slepen. Twee uitzonderingen waarbij we alsnog volledig terugvallen op de
+// letterlijke weergave: als er niets overblijft, en als de MEERDERHEID sneuvelt — dan volgde het
+// model de opdracht kennelijk niet, en is wat er wel doorkomt ook niet te vertrouwen.
+// Liever een saai antwoord dan een vloeiend antwoord dat niet klopt.
 function getallenIn(t){return (String(t).match(/\d[\d.,]*/g)||[]).map(x=>x.replace(/[.,]$/,""));}
 function alineaKlopt(tekst,passages){
   const bron=passages.join(" ").toLowerCase();
@@ -2574,19 +2578,35 @@ async function schrijfAntwoord(q,citations,key){
     j=parseModelJSON(text);
   }catch(e){console.warn("generatief antwoord:",e);return null;}
   const ruw=Array.isArray(j&&j.alineas)?j.alineas:[];
-  const alineas=[];
+  const alineas=[];const afgevallen=[];
   for(const a of ruw){
     const tekst=((a&&a.tekst)||"").toString().trim().replace(/\s+/g," ");
     if(!tekst)continue;
     const bronnen=[...new Set((Array.isArray(a.bronnen)?a.bronnen:[])
       .map(n=>parseInt(n,10)).filter(n=>n>=1&&n<=citations.length))];
-    if(!bronnen.length){console.warn("alinea zonder bron, valt af:",tekst.slice(0,60));return null;}
+    if(!bronnen.length){
+      afgevallen.push({reden:"geen bron",tekst});
+      console.warn("alinea zonder bron, valt af:",tekst.slice(0,60));continue;
+    }
     if(!alineaKlopt(tekst,bronnen.map(n=>citations[n-1].text))){
-      console.warn("alinea noemt een getal dat niet in de bron staat:",tekst.slice(0,80));return null;
+      afgevallen.push({reden:"getal niet in de bron",tekst});
+      console.warn("alinea noemt een getal dat niet in de bron staat:",tekst.slice(0,80));continue;
     }
     alineas.push({tekst,bronnen});
   }
-  return alineas.length?alineas:null;
+  if(!alineas.length){
+    if(afgevallen.length)console.warn("generatief antwoord volledig afgekeurd ("+afgevallen.length+" alinea's)");
+    return null;
+  }
+  // Meer dan de helft weggevallen: het model hield zich niet aan de opdracht. Dan is de rest
+  // ook verdacht, en bovendien blijft er tekst over die naar weggehaalde alinea's verwijst.
+  if(afgevallen.length>alineas.length){
+    console.warn("generatief antwoord afgekeurd: "+afgevallen.length+" van de "+(afgevallen.length+alineas.length)+" alinea's sneuvelden");
+    return null;
+  }
+  // Wat er afviel blijft beschikbaar, zodat het later ook te tonen is.
+  alineas.afgevallen=afgevallen;
+  return alineas;
 }
 
 function addTurn(q,gesproken){
