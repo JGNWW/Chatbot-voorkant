@@ -992,11 +992,29 @@ const PROVIDERS={
       const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
       if(!r.ok)throw new Error("OpenAI "+r.status+": "+(await r.text()).slice(0,200));
       const d=await r.json();return d.choices?.[0]?.message?.content||"";}},
-  anthropic:{label:"Anthropic (Claude)",models:["claude-sonnet-4-6","claude-haiku-4-5-20251001"],keyUrl:"https://console.anthropic.com/settings/keys",keyHint:"Sleutel via console.anthropic.com (betaald)",
+  anthropic:{label:"Anthropic (Claude)",models:["claude-sonnet-4-6","claude-haiku-4-5"],keyUrl:"https://console.anthropic.com/settings/keys",keyHint:"Sleutel via console.anthropic.com (betaald)",
+    // Onder welke promptlengte het cachen stilzwijgend niet gebeurt. Die drempel loopt niet
+    // netjes op met de generatie: Haiku 4.5 vraagt 4.096 tokens, Sonnet 4.6 maar 1.024. Onze
+    // systeemprompt is ~3.240 tokens, dus hij cachet wél bij Sonnet en NIET bij Haiku.
+    cacheMin(m){
+      if(/opus-4-6|opus-4-5|haiku-4-5/.test(m))return 4096;
+      if(/opus-4-7|haiku-3-5/.test(m))return 2048;
+      if(/opus-5|fable-5|mythos-5/.test(m))return 512;
+      return 1024;   // Sonnet 4.6/4.5/5, Opus 4.8, Opus 4/4.1
+    },
     async call(key,model,system,user){
-      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:3000,system,messages:[{role:"user",content:user},{role:"assistant",content:"{"}]})});
+      // De systeemprompt is constant en staat vooraan; markeren is genoeg om hem te laten cachen.
+      // Alleen markeren als hij de drempel haalt, anders betaal je de schrijfkosten voor niets.
+      const tokens=system.length/3;
+      const sys=tokens>=this.cacheMin(model)
+        ? [{type:"text",text:system,cache_control:{type:"ephemeral"}}]
+        : system;
+      // GEEN assistant-prefill meer. Dat trucje ("{" alvast neerzetten om JSON af te dwingen)
+      // geeft op Sonnet 4.6 en alles daarna een 400 — deze provider was daardoor stuk. De
+      // systeemprompt vraagt zelf al om uitsluitend JSON, en parseModelJSON is er tegen bestand.
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:3000,system:sys,messages:[{role:"user",content:user}]})});
       if(!r.ok)throw new Error("Claude "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();return "{"+(d.content||[]).map(c=>c.text||"").join("");}},
+      const d=await r.json();return (d.content||[]).map(c=>c.text||"").join("");}},
   openrouter:{label:"OpenRouter (veel modellen)",keyUrl:"https://openrouter.ai/keys",keyHint:"Sleutel via openrouter.ai (gratis modellen beschikbaar)",
     fallbackModels:["deepseek/deepseek-chat-v3-0324:free","meta-llama/llama-3.3-70b-instruct:free","openai/gpt-4o-mini"],
     async loadModels(){
@@ -1156,7 +1174,15 @@ function initFilters(){
 }
 
 // ---- Semantisch zoeken (embeddings in de browser, zelfde model als de vooraf berekende vectoren) ----
-const SEM={ready:false,meta:null,vecs:null,extractor:null,modelPromise:null};
+const SEM={ready:false,meta:null,vecs:null,extractor:null,modelPromise:null,pct:0};
+// Gemeten grootte van model_quantized.onnx van Xenova/multilingual-e5-small: 118.308.185 bytes,
+// ongecomprimeerd. Alleen nodig om de voortgang in een percentage uit te drukken.
+const SEM_MODEL_BYTES=118.3e6;
+// Hoe lang een vraag hoogstens op dat model wacht. Stond er geen grens, dan hing de eerste vraag
+// na het openen van de pagina net zo lang als de download duurt — op een trage lijn minuten,
+// zonder dat je iets anders zag dan "Bezig met opzoeken…". Liever een antwoord dat alleen op
+// trefwoorden is gevonden (87% recall in plaats van 95%) dan een scherm dat stilstaat.
+const SEM_WACHT_MS=1500;
 function setSearchStatus(t){const el=document.getElementById("semstatus");if(el)el.textContent=t;}
 async function initSemantic(){
   try{
@@ -1176,14 +1202,30 @@ async function initSemantic(){
     SEM.modelPromise=(async()=>{
       const tf=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
       tf.env.allowLocalModels=false;
-      SEM.extractor=await tf.pipeline("feature-extraction",SEM.meta.model);
-      SEM.ready=true;setSearchStatus("semantisch zoeken ✓");
+      // Dit bestand is 118 MB en wordt maar één keer per browser opgehaald, maar zolang het
+      // binnenkomt zag je alleen "Bezig met opzoeken…". Nu is de voortgang zichtbaar, hier en
+      // in de wachtregel onder de vraag.
+      const gezien={};
+      SEM.extractor=await tf.pipeline("feature-extraction",SEM.meta.model,{
+        progress_callback:pr=>{
+          if(pr.status!=="progress"||!pr.total)return;
+          gezien[pr.file]=pr.loaded;
+          const klaar=Object.values(gezien).reduce((a,b)=>a+b,0);
+          SEM.pct=Math.min(99,Math.round(klaar/SEM_MODEL_BYTES*100));
+          setSearchStatus("semantisch model laden… "+SEM.pct+"%");
+        },
+      });
+      SEM.ready=true;SEM.pct=100;setSearchStatus("semantisch zoeken ✓");
     })().catch(e=>{SEM.ready=false;setSearchStatus("trefwoord-zoeken (semantisch niet geladen)");});
   }catch(e){SEM.ready=false;setSearchStatus("trefwoord-zoeken");}
 }
 async function semanticRank(q,limit){
-  await SEM.modelPromise;
-  if(!SEM.ready)return rank(q,limit);
+  if(!SEM.ready){
+    // Wacht kort — is het model bijna binnen, dan is het die anderhalve seconde waard.
+    // Anders val terug op trefwoorden; het model laadt op de achtergrond gewoon door.
+    await Promise.race([SEM.modelPromise,new Promise(r=>setTimeout(r,SEM_WACHT_MS))]);
+    if(!SEM.ready)return rank(q,limit);
+  }
   const out=await SEM.extractor([SEM.meta.query_prefix+q],{pooling:"mean",normalize:true});
   const qv=out.data,dim=SEM.meta.dim,v=SEM.vecs,owner=SEM.owner;
   let scored;
@@ -1759,7 +1801,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 88";
+const APP_VERSION="build 89";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1861,6 +1903,7 @@ async function prepareQuery(rawQ){
 }
 // Combineer meerdere semantische zoekteksten (vraag + alternatieve formuleringen + HyDE)
 // met trefwoord (BM25), via RRF; categorie-boost en landherkenning erbovenop.
+const uniek=a=>[...new Set(a.filter(Boolean).map(t=>(""+t).trim()).filter(Boolean))];
 async function fuseRetrieval(semTexts,kwText,category,limit){
   const lists=[];
   for(const t of semTexts){if(t&&SEM.meta){try{lists.push(await semanticRank(t,Math.max(limit,12)));}catch(e){}}}
@@ -1898,6 +1941,7 @@ async function runQuestion(rawQ,gesproken){
   const key=keyInput.value.trim();const ai=aiKlaar();
   const lokaal=geenSleutelNodig();
   if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
+  stapStart();
   let q,cands;
   if(lokaal){
     // LOKAAL: de zoekstap zelf heeft het taalmodel niet nodig. BM25 + het semantische model
@@ -1905,13 +1949,17 @@ async function runQuestion(rawQ,gesproken){
     // alternatieve formuleringen, zoektermen) levert daar bovenop weinig op, terwijl hij een
     // lokaal model ~1.200 tokens extra laat doorrekenen. We slaan die stap dus over en laten
     // het model alleen doen wat het wél moet: kiezen en citeren.
+    stap(turn,"Pagina's zoeken");stapModel(turn);
     q=await condenseQuestion(rawQ);
-    const broad=hubCandidates(await fuseRetrieval([q,rawQ].filter(Boolean),[rawQ,q].join(" "),"",lokLimiet().kandidaten),[rawQ,q].join(" "));
+    const broad=hubCandidates(await fuseRetrieval(uniek([q,rawQ]),[rawQ,q].join(" "),"",lokLimiet().kandidaten),[rawQ,q].join(" "));
+    stap(turn,"Beste pagina's kiezen");
     const picked=await rerankCandidates(q,broad);
     cands=forceProduct(rawQ+" "+q,(picked&&picked.length?picked:broad.slice(0,TOPK)));
   }else if(ai){
     // Expansie+HyDE+multi-query -> breed ophalen (+hubs) -> AI kiest op intentie -> confidence-check.
+    stap(turn,"Vraag begrijpen");
     const pre=await prepareQuery(rawQ);q=pre.q;
+    stap(turn,"Pagina's zoeken");stapModel(turn);
     if(!pre.inScope){                                           // buiten het domein -> niet zoeken
       logMiss(rawQ,"buiten-domein");
       const nores={restated_question:q,citations:[],note:"Deze vraag valt buiten NederlandWereldwijd (Nederlandse overheidszaken voor burgers in of naar het buitenland). Verwijs de burger zo nodig naar de juiste instantie.",used:[],related:[],clarifications:[],followups:[]};
@@ -1929,9 +1977,13 @@ async function runQuestion(rawQ,gesproken){
     }else{
       // De ORIGINELE vraag gaat altijd mee: als de AI een vakterm herschrijft ("inreisvisum"
       // -> "Schengenvisum"), blijven de oorspronkelijke woorden toch meetellen in het zoeken.
-      const semTexts=[q,rawQ,...pre.queries,pre.hyde].filter(Boolean);
+      // ONTDUBBELEN: q en rawQ zijn vaak identiek (het model geeft de vraag ongewijzigd terug).
+      // Elke tekst kost een volledige modelbeurt plus een scan over 20.487 vectoren, dus
+      // dezelfde tekst twee keer embedden is puur verlies.
+      const semTexts=uniek([q,rawQ,...pre.queries,pre.hyde]);
       broad=hubCandidates(await fuseRetrieval(semTexts,[rawQ,q,...pre.terms].join(" "),pre.category,25),[rawQ,q].join(" "));
     }
+    stap(turn,"Beste pagina's kiezen");
     const picked=await rerankCandidates(q,broad);
     if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
     else if(picked.length===0){                                 // niets past echt -> lage confidence
@@ -1946,9 +1998,11 @@ async function runQuestion(rawQ,gesproken){
   }
   if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
   try{
+    stap(turn,"Antwoord opstellen");
     const result=ai?await askAI(q,cands,key):demoAnswer(q,cands);
+    const meting=stapKlaar(turn);
     renderResult(turn,result);
-    if(lokaal)toonMeting(turn);
+    if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
     recordTurn(rawQ,result);
     if(result.citations&&result.citations.length){
       const summary=(result.citations[0].text||"").slice(0,220);
@@ -2653,6 +2707,45 @@ function toonMeting(turn){
   else deel.push(`prompt ${m.inTok} tokens`+(m.gecacht?` (${m.gecacht} uit de cache)`:""));
   deel.push(`schrijven ${m.uitTok} tokens (${m.uitTps}/s)`);
   el.textContent=deel.join(" · ");
+  bubble.appendChild(el);
+}
+// ---- Wachten met uitleg, en meten waar de tijd blijft --------------------------------------
+// Eén statische regel "Bezig met opzoeken…" voor drie modelaanroepen plus een download van
+// 118 MB is geen wachttijd maar een zwart gat. Deze twee functies maken er een stappenlijst van
+// die meegroeit, en klokken meteen hoe lang elke stap duurde.
+let STAPPEN=null;
+function stapStart(){STAPPEN={t0:performance.now(),vorig:performance.now(),lijst:[]};}
+function stap(turn,tekst){
+  if(STAPPEN){
+    const nu=performance.now();
+    if(STAPPEN.lijst.length)STAPPEN.lijst[STAPPEN.lijst.length-1].ms=Math.round(nu-STAPPEN.vorig);
+    STAPPEN.vorig=nu;STAPPEN.lijst.push({naam:tekst,ms:0});
+  }
+  const el=turn&&turn.querySelector(".shimmer");
+  if(el)el.textContent=tekst+"…";
+}
+// Het model kan nog binnenkomen terwijl we wachten; laat dat percentage meelopen.
+function stapModel(turn){
+  if(!SEM.ready&&SEM.pct>0&&SEM.pct<100){
+    const el=turn&&turn.querySelector(".shimmer");
+    if(el)el.textContent="Zoekmodel binnenhalen… "+SEM.pct+"%";
+  }
+}
+function stapKlaar(turn){
+  if(!STAPPEN)return null;
+  const nu=performance.now();
+  if(STAPPEN.lijst.length)STAPPEN.lijst[STAPPEN.lijst.length-1].ms=Math.round(nu-STAPPEN.vorig);
+  const uit={totaal:Math.round(nu-STAPPEN.t0),lijst:STAPPEN.lijst.filter(x=>x.ms>=50)};
+  STAPPEN=null;return uit;
+}
+// Onder het antwoord: waar ging de tijd heen? Voor lokale modellen stond dit er al; nu ook voor
+// de cloudproviders, want zonder die regel is "traag" niet toe te wijzen aan een stap.
+function toonStappen(turn,m){
+  if(!m||!turn||!m.lijst.length)return;
+  const bubble=turn.querySelector(".bubble.antwoord");if(!bubble)return;
+  const el=document.createElement("div");el.className="meting";
+  const sec=x=>(x/1000).toFixed(1)+"s";
+  el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ");
   bubble.appendChild(el);
 }
 function renderResult(turn,r){
