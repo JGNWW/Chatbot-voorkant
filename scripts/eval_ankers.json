@@ -1,0 +1,863 @@
+[
+ {
+  "q": "wat zijn de eisen voor een pasfoto",
+  "url": "/paspoort-id-kaart/eisen-pasfoto",
+  "anker": "De pasfoto voor een Nederlands paspoort, ID-kaart of rijbewijs moet voldoen aan een aantal eisen.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "mijn visumaanvraag is afgewezen kan ik bezwaar maken",
+  "url": "/visum-nederland/bezwaar-afwijzing-aanvraag",
+  "anker": "Is uw visumaanvraag afgewezen, maar wilt u geen bezwaar maken?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "wat is een BSN en hoe krijg ik het in het buitenland",
+  "url": "/bsn",
+  "anker": "Een burgerservicenummer (BSN) is een persoonlijk nummer dat u gebruikt als u iets wilt regelen met de Nederlandse overheid. U kunt ook een BSN krijgen als u in het buitenland woont of niet de Nederlandse nationaliteit heeft.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "ik wil trouwen in het buitenland",
+  "url": "/trouwen",
+  "anker": "Wilt u als Nederlander trouwen buiten Nederland? Of woont u in het buitenland en wilt u in Nederland trouwen?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "trouwen in denemarken",
+  "url": "/trouwen/denemarken",
+  "anker": "Wilt u als Nederlander trouwen in Denemarken?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "scheiden in het buitenland",
+  "url": "/scheiden-buitenland",
+  "anker": "Bij een scheidingsprocedure in het buitenland heeft u mogelijk Nederlandse aktes en documenten nodig. Het kan zijn dat u deze geschikt moet maken voor gebruik in het land waar u wilt scheiden.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "buitenlands kind adopteren",
+  "url": "/adoptie-buitenlands-kind",
+  "anker": "Of u een kind kunt adopteren uit het buitenland hangt af van uw situatie.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "overledene terug naar nederland brengen",
+  "url": "/overlijden-buitenland/repatriering",
+  "anker": "De autoriteiten geven 2 documenten mee: de overlijdensakte en de laissez-passer (tijdelijk reisdocument). Deze documenten zijn nodig om de overledene terug te brengen naar Nederland.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "ik ben verkracht in het buitenland",
+  "url": "/slachtoffer-geweld/slachtoffer-van-seksueel-geweld-of-misbruik",
+  "anker": "Heeft u in het buitenland een nare seksuele ervaring gehad? Zoals seksueel geweld, verkrachting of ander grensoverschrijdend gedrag?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "ik ben slachtoffer van geweld in het buitenland",
+  "url": "/slachtoffer-geweld/slachtoffer-van-geweld",
+  "anker": "Bent u slachtoffer van geweld in het buitenland?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "ik heb geen stempapieren ontvangen",
+  "url": "/stemmen-buitenland/geen-stempapieren",
+  "anker": "U vindt de kandidatenlijst vlak voor de komende verkiezingen op de website van de gemeente Den Haag. Ik heb helemaal geen stempapieren ontvangen",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "basisexamen inburgering doen in het buitenland",
+  "url": "/basisexamen-inburgering",
+  "anker": "Kies het land of gebied waar u het basisexamen inburgering wilt doen. En bekijk of u daar het basisexamen inburgering buitenland kunt afleggen en wat u verder moet doen.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "afstand doen van de nederlandse nationaliteit",
+  "url": "/nederlandse-nationaliteit/hoe-afstand-doen",
+  "anker": "U kunt alleen afstand doen van uw Nederlandse nationaliteit als u 18 jaar of ouder bent en nog een andere nationaliteit heeft.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "mijn kind is geboren wat nu",
+  "url": "/geboorte-aangeven-buiten-nederland",
+  "anker": "Wordt uw kind buiten Nederland geboren?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "verklaring van woonplaats nodig",
+  "url": "/verklaring/woonplaats",
+  "anker": "Wanneer u in het buitenland woont, heeft u soms een verklaring van woonplaats nodig.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "nederlands document laten legaliseren voor gebruik in het buitenland",
+  "url": "/legaliseren",
+  "anker": "Of een buitenlands document gebruiken in Nederland? Vaak moet u het document dan laten legaliseren.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "basisexamen inburgering in het buitenland doen",
+  "url": "/basisexamen-inburgering",
+  "anker": "Kies het land of gebied waar u het basisexamen inburgering wilt doen. En bekijk of u daar het basisexamen inburgering buitenland kunt afleggen en wat u verder moet doen.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "mijn kind erkennen in het buitenland",
+  "url": "/geboorte-aangeven-buiten-nederland",
+  "anker": "Een kind erkennen kan meestal in het geboorteland, maar ook in Nederland. Lees meer over het aangeven van een geboorte en het erkennen van een kind in het buitenland door een land of gebied te kiezen.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "mijn partner is overleden in het buitenland",
+  "url": "/overlijden-buitenland",
+  "anker": "Is uw partner, familielid of vriend in het buitenland overleden?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "nabestaandenuitkering anw in het buitenland",
+  "url": "/anw-uitkering-buiten-nederland",
+  "anker": "Dan kunt u buiten Nederland misschien een nabestaandenuitkering krijgen volgens de Algemene nabestaandenwet (Anw).",
+  "score": 0.9,
+  "zeker": true
+ },
+ {
+  "q": "ik kan niet inloggen met digid",
+  "url": "/digid-buiten-nederland",
+  "anker": "Daarnaast kunt u met DigiD inloggen bij overheidsorganisaties in andere Europese landen.",
+  "score": 0.885,
+  "zeker": true
+ },
+ {
+  "q": "kind geboren in het buitenland aangeven",
+  "url": "/geboorte-aangeven-buiten-nederland",
+  "anker": "Wordt uw kind buiten Nederland geboren? Dan moet u de geboorte aangeven in het geboorteland.",
+  "score": 0.883,
+  "zeker": true
+ },
+ {
+  "q": "studiefinanciering voor studeren in het buitenland",
+  "url": "/studiefinanciering-buitenland",
+  "anker": "Of komt u in Nederland studeren? Kijk dan of u studiefinanciering van DUO kunt krijgen of behouden.",
+  "score": 0.883,
+  "zeker": true
+ },
+ {
+  "q": "is mijn nederlandse rijbewijs geldig in het buitenland",
+  "url": "/rijbewijs-buitenland/geldig",
+  "anker": "Heeft u een Nederlands rijbewijs en gaat u in het buitenland autorijden? Controleer of uw rijbewijs geldig is in uw situatie.",
+  "score": 0.882,
+  "zeker": true
+ },
+ {
+  "q": "ik wil trouwen en heb een verklaring van huwelijksbevoegdheid nodig",
+  "url": "/verklaring/huwelijksbevoegdheid",
+  "anker": "Bent u Nederlander en wilt u trouwen in het buitenland? Als u nooit in Nederland gewoond heeft, kan de Nederlandse ambassade of het consulaat een verklaring van huwelijksbevoegdheid opstellen.",
+  "score": 0.872,
+  "zeker": true
+ },
+ {
+  "q": "ziektewetuitkering ontvangen in het buitenland",
+  "url": "/ziektewetuitkering-buiten-nederland",
+  "anker": "Ik ontvang al een ziektewetuitkering van UWV",
+  "score": 0.832,
+  "zeker": true
+ },
+ {
+  "q": "rijbewijs gestolen in het buitenland",
+  "url": "/rijbewijs-buitenland/kwijt-gestolen",
+  "anker": "Bent u buiten Nederland en is uw Nederlandse rijbewijs kwijt of gestolen?",
+  "score": 0.818,
+  "zeker": true
+ },
+ {
+  "q": "ik wil me uitschrijven uit nederland",
+  "url": "/brp/hoe-uitschrijven-brp",
+  "anker": "Vraag uw gemeente bij het uitschrijven om een internationaal bewijs van uitschrijving. U heeft dit bewijs mogelijk nodig om u in te schrijven buiten Nederland.",
+  "score": 0.812,
+  "zeker": true
+ },
+ {
+  "q": "arbeidsongeschiktheidsuitkering in het buitenland",
+  "url": "/uitkering-arbeidsongeschiktheid-buitenland",
+  "anker": "Ik ontvang nog geen arbeidsongeschiktheidsuitkering",
+  "score": 0.804,
+  "zeker": true
+ },
+ {
+  "q": "verklaring van nederlanderschap aanvragen",
+  "url": "/verklaring/kan-ik-een-verklaring-van-nederlanderschap-aanvragen",
+  "anker": "Bent u een meerderjarige Nederlander, heeft u een dubbele nationaliteit en woont u langer dan 13 jaar buiten Nederland, Aruba, Curaçao, Sint Maarten of de EU? Dan kunt u een verklaring van Nederlanderschap (VBN) nodig hebben om te zorgen dat u uw Nederlandse nationaliteit niet kwijt raakt.",
+  "score": 0.802,
+  "zeker": true
+ },
+ {
+  "q": "zorgtoeslag in het buitenland",
+  "url": "/zorgtoeslag-buiten-nederland",
+  "anker": "Zorgtoeslag is een bijdrage in de kosten voor uw zorgverzekering.",
+  "score": 0.802,
+  "zeker": true
+ },
+ {
+  "q": "kindgebonden budget buiten nederland",
+  "url": "/kindgebonden-budget-buiten-nederland",
+  "anker": "Kindgebonden budget is een bijdrage in de kosten voor uw kinderen tot 18 jaar.",
+  "score": 0.801,
+  "zeker": true
+ },
+ {
+  "q": "mijn rijbewijs is bijna verlopen en ik woon in het buitenland",
+  "url": "/rijbewijs-buitenland",
+  "anker": "Mijn rijbewijs is (bijna) verlopen in het buitenland.",
+  "score": 0.762,
+  "zeker": true
+ },
+ {
+  "q": "ik ben bestolen op reis",
+  "url": "/bestolen-buitenland",
+  "anker": "Bent u bestolen in het buitenland?",
+  "score": 0.748,
+  "zeker": true
+ },
+ {
+  "q": "wat kost een consulaire dienst",
+  "url": "/consulaire-tarieven",
+  "anker": "Bij ambassades en consulaten kunt u terecht voor verschillende diensten. Bijvoorbeeld een paspoort, ID-kaart of een consulaire verklaring aanvragen.",
+  "score": 0.741,
+  "zeker": true
+ },
+ {
+  "q": "wat kosten consulaire diensten",
+  "url": "/consulaire-tarieven",
+  "anker": "Bij ambassades en consulaten kunt u terecht voor verschillende diensten. Bijvoorbeeld een paspoort, ID-kaart of een consulaire verklaring aanvragen.",
+  "score": 0.741,
+  "zeker": true
+ },
+ {
+  "q": "verhuizen naar het buitenland checklist",
+  "url": "/checklist-verhuizen-buitenland-emigreren",
+  "anker": "En verandert uw telefoonnummer bij uw verhuizing naar het buitenland?",
+  "score": 0.727,
+  "zeker": true
+ },
+ {
+  "q": "wat is een apostille en wanneer heb ik die nodig",
+  "url": "/legaliseren/apostille",
+  "anker": "Een apostille is een stempel of sticker op een openbaar document, zoals een geboorteakte of diploma.",
+  "score": 0.726,
+  "zeker": true
+ },
+ {
+  "q": "vog nodig voor werk in het buitenland",
+  "url": "/verklaring/vog",
+  "anker": "Woont u in het buitenland en heeft u een VOG nodig?",
+  "score": 0.72,
+  "zeker": true
+ },
+ {
+  "q": "kind krijgen in het buitenland wat moet ik regelen",
+  "url": "/kind-krijgen-buiten-nederland",
+  "anker": "Krijgt u een kind in het buitenland? Dan zijn er veel zaken die u moet of kan regelen.",
+  "score": 0.715,
+  "zeker": true
+ },
+ {
+  "q": "aangifte inkomstenbelasting doen vanuit het buitenland",
+  "url": "/belastingaangifte-buiten-nederland",
+  "anker": "Woont u buiten Nederland en heeft u inkomsten uit Nederland? Dan moet u meestal in Nederland aangifte inkomstenbelasting doen.",
+  "score": 0.687,
+  "zeker": true
+ },
+ {
+  "q": "nederlandse pasfoto laten maken in het buitenland",
+  "url": "/paspoort-id-kaart/eisen-pasfoto",
+  "anker": "Bij voorkeur niet, en de foto mag niet ouder zijn dan 6 maanden Wilt u buiten Nederland een pasfoto laten maken?",
+  "score": 0.675,
+  "zeker": true
+ },
+ {
+  "q": "is mijn nederlandse diploma geldig in het buitenland",
+  "url": "/nederlands-diploma-buitenland",
+  "anker": "Om uw Nederlandse diploma buiten Nederland te gebruiken, moet u verschillende zaken regelen.",
+  "score": 0.663,
+  "zeker": true
+ },
+ {
+  "q": "gedwongen uitgehuwelijkt en achtergelaten in het buitenland",
+  "url": "/huwelijksdwang-achterlating",
+  "anker": "Kent u iemand die wordt achtergelaten in het buitenland? Of iemand die wordt gedwongen om te trouwen?",
+  "score": 0.66,
+  "zeker": true
+ },
+ {
+  "q": "post van de overheid digitaal ontvangen in het buitenland",
+  "url": "/mijnoverheid-buiten-nederland",
+  "anker": "U kunt deze gegevens ook bekijken met de MijnGegevens app. In de Berichtenbox van MijnOverheid ontvangt u digitaal post van de Nederlandse overheid.",
+  "score": 0.654,
+  "zeker": true
+ },
+ {
+  "q": "mijn paspoort is kwijt",
+  "url": "/paspoort-id-kaart/kwijt-gestolen",
+  "anker": "Blokkeer de inlogfunctie van uw ID-kaart Is uw ID-kaart kwijt of gestolen?",
+  "score": 0.649,
+  "zeker": true
+ },
+ {
+  "q": "vog aanvragen vanuit het buitenland",
+  "url": "/verklaring/vog",
+  "anker": "Woont u in het buitenland en heeft u een VOG nodig?",
+  "score": 0.646,
+  "zeker": true
+ },
+ {
+  "q": "ww-uitkering meenemen naar het buitenland",
+  "url": "/ww-uitkering-buiten-nederland",
+  "anker": "En woont of werkt u buiten Nederland of bent u dat van plan? Of u in het buitenland een werkloosheidsuitkering (WW-uitkering) kunt krijgen, hangt af van uw situatie.",
+  "score": 0.633,
+  "zeker": true
+ },
+ {
+  "q": "hoe lang duurt het voor ik mijn paspoort heb",
+  "url": "/paspoort-id-kaart/tijdsduur-aanvragen",
+  "anker": "We kunnen niet precies zeggen hoelang de aanvraag van uw nieuwe paspoort of ID-kaart duurt.",
+  "score": 0.615,
+  "zeker": true
+ },
+ {
+  "q": "wat kost het aanvragen van een paspoort",
+  "url": "/naamswijziging/paspoort-id-kaart",
+  "anker": "Woont u buiten Nederland en is uw naam officieel gewijzigd? Dan kunt u een nieuw paspoort aanvragen.",
+  "score": 0.59,
+  "zeker": true
+ },
+ {
+  "q": "arbeidsongeschiktheidsuitkering meenemen naar het buitenland",
+  "url": "/uitkering-arbeidsongeschiktheid-buitenland",
+  "anker": "Ik ontvang nog geen arbeidsongeschiktheidsuitkering",
+  "score": 0.564,
+  "zeker": true
+ },
+ {
+  "q": "nederlands diploma geldig maken voor het buitenland",
+  "url": "/nederlands-diploma-buitenland",
+  "anker": "Om uw Nederlandse diploma buiten Nederland te gebruiken, moet u verschillende zaken regelen.",
+  "score": 0.561,
+  "zeker": true
+ },
+ {
+  "q": "hoe lang mag ik met een schengenvisum in nederland blijven",
+  "url": "/visum-nederland",
+  "anker": "Mijn verblijfsvergunning verloopt bijna. Mag ik langer in Nederland blijven?",
+  "score": 0.561,
+  "zeker": true
+ },
+ {
+  "q": "met welk document mag ik naar nederland reizen",
+  "url": "/reizen-paspoort-id-kaart",
+  "anker": "Misschien heeft u een visum nodig om naar uw land van bestemming te reizen. Dit hangt af van naar welk land u reist.",
+  "score": 0.557,
+  "zeker": true
+ },
+ {
+  "q": "studiefinanciering meenemen naar het buitenland",
+  "url": "/studiefinanciering-buitenland",
+  "anker": "Of komt u in Nederland studeren? Kijk dan of u studiefinanciering van DUO kunt krijgen of behouden.",
+  "score": 0.555,
+  "zeker": true
+ },
+ {
+  "q": "kan ik vanuit het buitenland stemmen",
+  "url": "/stemmen-buitenland",
+  "anker": "En wilt u stemmen tijdens verkiezingen?",
+  "score": 0.548,
+  "zeker": true
+ },
+ {
+  "q": "waar vind ik het aanvraagformulier voor een paspoort",
+  "url": "/paspoort-id-kaart/aanvraagformulier",
+  "anker": "Wilt u in het buitenland een Nederlands paspoort of ID-kaart aanvragen of vernieuwen? Lees waar u het aanvraagformulier vindt.",
+  "score": 0.545,
+  "zeker": true
+ },
+ {
+  "q": "kinderopvangtoeslag als ik in het buitenland woon",
+  "url": "/kinderopvangtoeslag-buiten-nederland",
+  "anker": "Kinderopvangtoeslag is een bijdrage in uw kosten voor de kinderopvang.",
+  "score": 0.539,
+  "zeker": true
+ },
+ {
+  "q": "buitenlandse geboorteakte legaliseren voor gebruik in nederland",
+  "url": "/legaliseren",
+  "anker": "Of een buitenlands document gebruiken in Nederland? Vaak moet u het document dan laten legaliseren.",
+  "score": 0.535,
+  "zeker": true
+ },
+ {
+  "q": "kinderbijslag als ik in het buitenland woon",
+  "url": "/kinderbijslag-buiten-nederland",
+  "anker": "Kinderbijslag is een bedrag waarmee u een deel van de kosten voor uw kind(eren) tot 18 jaar kunt betalen.",
+  "score": 0.529,
+  "zeker": true
+ },
+ {
+  "q": "rijbewijs omwisselen in het buitenland",
+  "url": "/rijbewijs-buitenland",
+  "anker": "Heeft u een Nederlands rijbewijs? Controleer altijd of uw rijbewijs geldig is in het buitenland.",
+  "score": 0.529,
+  "zeker": true
+ },
+ {
+  "q": "verklaring van in leven zijn nodig voor mijn pensioen",
+  "url": "/verklaring/in-leven-zijn",
+  "anker": "Voor sommige instanties moet u kunnen aantonen dat u in leven bent. Hiervoor heeft u een verklaring van in leven zijn (attestatie de vita) nodig.",
+  "score": 0.521,
+  "zeker": true
+ },
+ {
+  "q": "mijn gegevens in de basisregistratie kloppen niet",
+  "url": "/brp",
+  "anker": "In de Basisregistratie Personen (BRP) staan persoonsgegevens van personen die in Nederland wonen, gewoond hebben of tijdelijk verblijven. Uw gegevens kunnen ook in de BRP staan als u buiten Nederland woont of niet de Nederlandse nationaliteit heeft.",
+  "score": 0.483,
+  "zeker": false
+ },
+ {
+  "q": "schengenvisum aanvragen voor familiebezoek",
+  "url": "/visum-nederland/aanvragen-schengenvisum-orange-carpet",
+  "anker": "Neemt uw bedrijf of organisatie deel aan het Orange Carpet Visumprogramma? Dan kunt u makkelijker een Schengenvisum aanvragen.",
+  "score": 0.477,
+  "zeker": false
+ },
+ {
+  "q": "aow ontvangen in het buitenland",
+  "url": "/aow-buiten-nederland",
+  "anker": "AOW is een basispensioen van de Nederlandse overheid.",
+  "score": 0.477,
+  "zeker": false
+ },
+ {
+  "q": "wanneer krijg ik bericht over mijn visumaanvraag",
+  "url": "/visum-nederland/wanneer-bericht-over-visumaanvraag",
+  "anker": "Bekijk hoelang het duurt voordat u een beslissing over uw visumaanvraag ontvangt als u vanuit het buitenland een aanvraag indient.",
+  "score": 0.475,
+  "zeker": false
+ },
+ {
+  "q": "belastingaangifte doen vanuit het buitenland",
+  "url": "/belastingaangifte-buiten-nederland",
+  "anker": "Ik ontvang pensioen uit Nederland. Wat betekent dit voor mijn belastingaangifte?",
+  "score": 0.463,
+  "zeker": false
+ },
+ {
+  "q": "mijn schengenvisum staat in mijn verloren paspoort",
+  "url": "/visum-nederland/schengenvisum-kwijt",
+  "anker": "Vraag een Schengenvisum aan met uw nieuwe paspoort.",
+  "score": 0.457,
+  "zeker": false
+ },
+ {
+  "q": "auto importeren in nederland",
+  "url": "/auto-importeren",
+  "anker": "Verhuist u (tijdelijk) naar Nederland en neemt u een auto met buitenlands kenteken mee?",
+  "score": 0.456,
+  "zeker": false
+ },
+ {
+  "q": "ik heb dringend hulp nodig in het buitenland",
+  "url": "/hulp-bij-nood",
+  "anker": "Bent u in het buitenland in de problemen? Lees waar u hulp krijgt en wat u kunt doen.",
+  "score": 0.444,
+  "zeker": false
+ },
+ {
+  "q": "auto invoeren in nederland",
+  "url": "/auto-importeren",
+  "anker": "Verhuist u (tijdelijk) naar Nederland en neemt u een auto met buitenlands kenteken mee?",
+  "score": 0.442,
+  "zeker": false
+ },
+ {
+  "q": "paspoort aanvragen als ik in thailand woon",
+  "url": "/advocaten-thailand",
+  "anker": "De volgende lijst met Engels- en Nederlandssprekende advocaten is opgesteld door de Nederlandse ambassade in Bangkok voor Nederlandse staatsburgers die juridisch advies en hulp in Thailand nodig hebben.",
+  "score": 0.424,
+  "zeker": false
+ },
+ {
+  "q": "schengenvisum aanvragen voor kort verblijf in nederland",
+  "url": "/visum-nederland/aanvragen-schengenvisum-orange-carpet",
+  "anker": "Neemt uw bedrijf of organisatie deel aan het Orange Carpet Visumprogramma? Dan kunt u makkelijker een Schengenvisum aanvragen.",
+  "score": 0.408,
+  "zeker": false
+ },
+ {
+  "q": "ik ga emigreren wat moet ik doorgeven",
+  "url": "/checklist-verhuizen-buitenland-emigreren",
+  "anker": "Nieuw woonadres in het buitenland doorgeven",
+  "score": 0.401,
+  "zeker": false
+ },
+ {
+  "q": "mijn visum is verlopen wat nu",
+  "url": "/caribisch-visum",
+  "anker": "Wilt u Aruba, Bonaire, Curaçao, Saba, Sint Eustatius of Sint Maarten bezoeken? Of u een Caribisch visum nodig heeft, en welk visum, hangt onder andere af van uw nationaliteit.",
+  "score": 0.399,
+  "zeker": false
+ },
+ {
+  "q": "waar moet ik zijn voor een pasfoto die voldoet",
+  "url": "/paspoort-id-kaart/eisen-pasfoto",
+  "anker": "De pasfoto voor een Nederlands paspoort, ID-kaart of rijbewijs moet voldoen aan een aantal eisen.",
+  "score": 0.392,
+  "zeker": false
+ },
+ {
+  "q": "ik ben mijn paspoort verloren in het buitenland wat moet ik nu doen",
+  "url": "/paspoort-id-kaart/kwijt-gestolen",
+  "anker": "Bent u in het buitenland en is uw Nederlandse paspoort of ID-kaart gestolen?",
+  "score": 0.391,
+  "zeker": false
+ },
+ {
+  "q": "auto meenemen naar het buitenland exporteren",
+  "url": "/auto-exporteren",
+  "anker": "Gaat u (tijdelijk) in het buitenland wonen en neemt u uw auto mee?",
+  "score": 0.389,
+  "zeker": false
+ },
+ {
+  "q": "digid aanvragen als ik in het buitenland woon",
+  "url": "/digid-buiten-nederland",
+  "anker": "Met uw DigiD regelt u online zaken met de Nederlandse overheid, zorginstellingen, onderwijsinstellingen en pensioenfondsen.",
+  "score": 0.377,
+  "zeker": false
+ },
+ {
+  "q": "trouwen met iemand met een andere nationaliteit",
+  "url": "/trouwen",
+  "anker": "Wilt u als Nederlander trouwen buiten Nederland?",
+  "score": 0.377,
+  "zeker": false
+ },
+ {
+  "q": "aow aanvragen vanuit het buitenland",
+  "url": "/aow-buiten-nederland",
+  "anker": "AOW is een basispensioen van de Nederlandse overheid.",
+  "score": 0.367,
+  "zeker": false
+ },
+ {
+  "q": "werken in het buitenland en verzekerd blijven",
+  "url": "/uitkering-arbeidsongeschiktheid-buitenland/werken-buitenland",
+  "anker": "Dan heeft u meestal recht op een arbeidsongeschiktheidsuitkering. Hoe u deze uitkering regelt, hangt af van het land waar u bent verzekerd.",
+  "score": 0.361,
+  "zeker": false
+ },
+ {
+  "q": "buitenlands diploma laten waarderen in nederland",
+  "url": "/buitenlands-diploma-in-nederland",
+  "anker": "Om uw buitenlandse diploma in Nederland te gebruiken, moet u verschillende zaken regelen.",
+  "score": 0.355,
+  "zeker": false
+ },
+ {
+  "q": "zorgverzekering als ik emigreer",
+  "url": "/zorgverzekering-buitenland",
+  "anker": "Of woont u al in het buitenland en verandert uw situatie? Vaak heeft dat gevolgen voor uw zorgverzekering.",
+  "score": 0.348,
+  "zeker": false
+ },
+ {
+  "q": "consulaire verklaring aanvragen",
+  "url": "/verklaring",
+  "anker": "Kies de verklaring die u nodig heeft en vul als het kan het land waar u woont in.",
+  "score": 0.347,
+  "zeker": false
+ },
+ {
+  "q": "er is iemand overleden tijdens vakantie",
+  "url": "/overlijden-buitenland",
+  "anker": "Is uw partner, familielid of vriend in het buitenland overleden?",
+  "score": 0.342,
+  "zeker": false
+ },
+ {
+  "q": "auto meenemen bij emigratie",
+  "url": "/auto-exporteren",
+  "anker": "Gaat u (tijdelijk) in het buitenland wonen en neemt u uw auto mee?",
+  "score": 0.304,
+  "zeker": false
+ },
+ {
+  "q": "begrafenis in het buitenland regelen",
+  "url": "/overlijden-buitenland/begrafenis-crematie-buitenland",
+  "anker": "Regelt u voor iemand die is overleden een uitvaart in het buitenland? Wat u moet regelen, hangt af van waar de overledene woonde.",
+  "score": 0.303,
+  "zeker": false
+ },
+ {
+  "q": "ik kom terug naar nederland wat moet ik regelen",
+  "url": "/terug-naar-nederland",
+  "anker": "Check of u met uw rijbewijs in Nederland mag rijden Komt u terug naar Nederland met een buitenlands rijbewijs?",
+  "score": 0.29,
+  "zeker": false
+ },
+ {
+  "q": "hoe verleng ik mijn paspoort",
+  "url": "/naamswijziging/paspoort-id-kaart",
+  "anker": "Woont u buiten Nederland en is uw naam officieel gewijzigd? Dan kunt u een nieuw paspoort aanvragen.",
+  "score": 0.289,
+  "zeker": false
+ },
+ {
+  "q": "kan ik de status van mijn paspoortaanvraag volgen",
+  "url": "/paspoort-id-kaart/status-aanvraag",
+  "anker": "U volgt de status van uw aanvraag voor een nieuw Nederlands paspoort of ID-kaart online.",
+  "score": 0.281,
+  "zeker": false
+ },
+ {
+  "q": "ik verhuis naar spanje wat moet ik regelen met paspoort en zorgverzekering",
+  "url": "/checklist-verhuizen-buitenland-emigreren",
+  "anker": "Uw verhuizing naar het buitenland kan gevolgen hebben voor uw zorgverzekering.",
+  "score": 0.274,
+  "zeker": false
+ },
+ {
+  "q": "kan ik nederlander worden als ik in het buitenland woon",
+  "url": "/kind-krijgen-buiten-nederland/nederlandse-nationaliteit-aanvragen-kind",
+  "anker": "Ook na de geboorte kunt u uw kind nog erkennen. Door uw kind te erkennen kan uw kind mogelijk toch Nederlander worden.",
+  "score": 0.271,
+  "zeker": false
+ },
+ {
+  "q": "digid activeren met een activeringscode",
+  "url": "/digid-buiten-nederland",
+  "anker": "Met uw DigiD regelt u online zaken met de Nederlandse overheid, zorginstellingen, onderwijsinstellingen en pensioenfondsen.",
+  "score": 0.269,
+  "zeker": false
+ },
+ {
+  "q": "afspraak maken bij de ambassade",
+  "url": "/afspraak-maken",
+  "anker": "Wilt u buiten Nederland iets regelen bij de Nederlandse overheid? U kunt op verschillende plekken terecht, bijvoorbeeld bij een Nederlandse ambassade of VFS Global.",
+  "score": 0.268,
+  "zeker": false
+ },
+ {
+  "q": "berichten van de overheid bekijken vanuit het buitenland",
+  "url": "/mijnoverheid-buiten-nederland",
+  "anker": "U kunt deze gegevens ook bekijken met de MijnGegevens app. In de Berichtenbox van MijnOverheid ontvangt u digitaal post van de Nederlandse overheid.",
+  "score": 0.242,
+  "zeker": false
+ },
+ {
+  "q": "zorgverzekering opzeggen bij emigratie",
+  "url": "/zorgverzekering-buitenland",
+  "anker": "Of woont u al in het buitenland en verandert uw situatie? Vaak heeft dat gevolgen voor uw zorgverzekering.",
+  "score": 0.238,
+  "zeker": false
+ },
+ {
+  "q": "hoe weet ik of mijn aanvraag klaar is",
+  "url": "/paspoort-id-kaart/status-aanvraag",
+  "anker": "U volgt de status van uw aanvraag voor een nieuw Nederlands paspoort of ID-kaart online.",
+  "score": 0.232,
+  "zeker": false
+ },
+ {
+  "q": "inschrijven in de registratie niet-ingezetenen",
+  "url": "/rni",
+  "anker": "In de RNI staan gegevens van mensen die in het buitenland wonen en een relatie hebben met de Nederlandse overheid. U kunt zich ook in de RNI inschrijven als u korter dan 4 maanden in Nederland verblijft (bijvoorbeeld voor werk, studie of stage).",
+  "score": 0.229,
+  "zeker": false
+ },
+ {
+  "q": "hoe word ik nederlander",
+  "url": "/nederlandse-nationaliteit/hoe-naturalisatie-aanvragen-buitenland",
+  "anker": "Voldoet u aan de voorwaarden om in het buitenland Nederlander te worden via naturalisatie?",
+  "score": 0.227,
+  "zeker": false
+ },
+ {
+  "q": "werken in het buitenland wat moet ik regelen",
+  "url": "/uitkering-arbeidsongeschiktheid-buitenland/werken-buitenland",
+  "anker": "Ook kunt u nagaan of er andere regelingen zijn in uw huidige woonland waarvan u gebruik kunt maken.",
+  "score": 0.225,
+  "zeker": false
+ },
+ {
+  "q": "heb ik een visum nodig voor curacao",
+  "url": "/caribisch-visum",
+  "anker": "Wilt u Aruba, Bonaire, Curaçao, Saba, Sint Eustatius of Sint Maarten bezoeken? Of u een Caribisch visum nodig heeft, en welk visum, hangt onder andere af van uw nationaliteit.",
+  "score": 0.22,
+  "zeker": false
+ },
+ {
+  "q": "waar blijft mijn paspoort",
+  "url": "/paspoort-id-kaart/tijdsduur-aanvragen",
+  "anker": "We kunnen niet precies zeggen hoelang de aanvraag van uw nieuwe paspoort of ID-kaart duurt.",
+  "score": 0.208,
+  "zeker": false
+ },
+ {
+  "q": "ik ga voor mijn werk lang naar het buitenland",
+  "url": "/uitkering-arbeidsongeschiktheid-buitenland/werken-buitenland",
+  "anker": "Werkt u in het buitenland en raakt u (gedeeltelijk of volledig) arbeidsongeschikt?",
+  "score": 0.206,
+  "zeker": false
+ },
+ {
+  "q": "ik moet morgen reizen maar mijn paspoort is verlopen",
+  "url": "/paspoort-id-kaart/nooddocument",
+  "anker": "Bent u in het buitenland en is uw Nederlandse paspoort of ID-kaart kwijt of gestolen? En wilt u een nooddocument aanvragen om te kunnen reizen?",
+  "score": 0.2,
+  "zeker": false
+ },
+ {
+  "q": "bewijs nodig dat ik ongehuwd ben",
+  "url": "/verklaring/burgerlijke-staat",
+  "anker": "Bent u Nederlands, woont u in het buitenland en wilt u trouwen in het land waar u woont? Dan kan het zijn dat u een verklaring over uw burgerlijke staat nodig heeft.",
+  "score": 0.195,
+  "zeker": false
+ },
+ {
+  "q": "hoe vraag ik een ID-kaart aan vanuit het buitenland",
+  "url": "/naamswijziging/paspoort-id-kaart",
+  "anker": "Heeft u uw achternaam officieel laten wijzigen? Dan kunt u ook een nieuw paspoort of ID-kaart aanvragen.",
+  "score": 0.18,
+  "zeker": false
+ },
+ {
+  "q": "kan iemand anders mijn paspoort ophalen",
+  "url": "/naamswijziging/paspoort-id-kaart",
+  "anker": "Woont u buiten Nederland en is uw naam officieel gewijzigd? Dan kunt u een nieuw paspoort aanvragen.",
+  "score": 0.176,
+  "zeker": false
+ },
+ {
+  "q": "terugkeren naar nederland na jaren in het buitenland",
+  "url": "/terug-naar-nederland",
+  "anker": "Woont u in het buitenland en wilt u terugverhuizen naar Nederland?",
+  "score": 0.143,
+  "zeker": false
+ },
+ {
+  "q": "afspraak maken bij de ambassade in duitsland",
+  "url": "/afspraak-maken",
+  "anker": "Wilt u buiten Nederland iets regelen bij de Nederlandse overheid? U kunt op verschillende plekken terecht, bijvoorbeeld bij een Nederlandse ambassade of VFS Global.",
+  "score": 0.135,
+  "zeker": false
+ },
+ {
+  "q": "verlies ik mijn nederlandse nationaliteit als ik een andere aanneem",
+  "url": "/kind-krijgen-buiten-nederland/nederlandse-nationaliteit-aanvragen-kind",
+  "anker": "Heeft uw kind bij de geboorte niet automatisch de Nederlandse nationaliteit gekregen?",
+  "score": 0.127,
+  "zeker": false
+ },
+ {
+  "q": "visum voor langer verblijf in nederland aanvragen",
+  "url": "/visum-nederland/hoelang-mvv-geldig",
+  "anker": "Een mvv-visumsticker voor Nederland is 90 dagen geldig.",
+  "score": 0.126,
+  "zeker": false
+ },
+ {
+  "q": "kan ik met spoed een paspoort krijgen",
+  "url": "/paspoort-id-kaart/nooddocument",
+  "anker": "Bent u in het buitenland en is uw Nederlandse paspoort of ID-kaart kwijt of gestolen?",
+  "score": 0.116,
+  "zeker": false
+ },
+ {
+  "q": "visum voor de cariben aanvragen",
+  "url": "/caribisch-visum",
+  "anker": "Wilt u Aruba, Bonaire, Curaçao, Saba, Sint Eustatius of Sint Maarten bezoeken? Of u een Caribisch visum nodig heeft, en welk visum, hangt onder andere af van uw nationaliteit.",
+  "score": 0.113,
+  "zeker": false
+ },
+ {
+  "q": "paspoort kwijgeraakt wat moet ik doen",
+  "url": "/paspoort-id-kaart/kwijt-gestolen",
+  "anker": "Wat u moet doen hangt af van waar u woont: in Nederland of buiten Nederland.",
+  "score": 0.106,
+  "zeker": false
+ },
+ {
+  "q": "wie kan mij uitnodigen voor een visum",
+  "url": "/visum-nederland",
+  "anker": "Controleer altijd voor uw reis of u een visum nodig heeft en zo ja, welk visum.",
+  "score": 0.094,
+  "zeker": false
+ },
+ {
+  "q": "spullen meenemen naar nederland douane",
+  "url": "/reizen-naar-nederland",
+  "anker": "Woont u in Nederland en reist u terug naar Nederland?",
+  "score": 0.055,
+  "zeker": false
+ },
+ {
+  "q": "wat is een apostille",
+  "url": "/legaliseren",
+  "anker": "Wilt u een Nederlands document gebruiken in een ander land?",
+  "score": 0,
+  "zeker": false
+ },
+ {
+  "q": "wat is de rni",
+  "url": "/paspoort-id-kaart/paspoort-id-kaart-vernieuwen",
+  "anker": "En is uw Nederlandse paspoort of ID-kaart bijna verlopen?",
+  "score": 0,
+  "zeker": false
+ },
+ {
+  "q": "is het veilig om naar marokko te reizen",
+  "url": "/reisadvies",
+  "anker": "Bekijk het reisadvies voor een land of gebied.",
+  "score": 0,
+  "zeker": false
+ },
+ {
+  "q": "hoe stem ik als ik in het buitenland woon",
+  "url": "/stemmen-buitenland",
+  "anker": "En wilt u stemmen tijdens verkiezingen?",
+  "score": 0,
+  "zeker": false
+ },
+ {
+  "q": "bewijs dat ik nog leef voor mijn pensioenfonds",
+  "url": "/verklaring/in-leven-zijn",
+  "anker": "Voor sommige instanties moet u kunnen aantonen dat u in leven bent.",
+  "score": 0,
+  "zeker": false
+ },
+ {
+  "q": "wat moet ik meenemen naar mijn afspraak",
+  "url": "/paspoort-id-kaart/welke-documenten",
+  "anker": "En wilt u een Nederlands paspoort of ID-kaart aanvragen of vernieuwen?",
+  "score": 0,
+  "zeker": false
+ }
+]

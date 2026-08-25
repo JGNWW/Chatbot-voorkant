@@ -1801,7 +1801,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 90";
+const APP_VERSION="build 91";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1942,7 +1942,7 @@ async function runQuestion(rawQ,gesproken){
   const lokaal=geenSleutelNodig();
   if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
   stapStart();
-  let q,cands;
+  let q,cands,deelvragen=[];
   if(lokaal){
     // LOKAAL: de zoekstap zelf heeft het taalmodel niet nodig. BM25 + het semantische model
     // draaien op de processor en halen op de testset 95% recall@6 — de AI-expansie (HyDE,
@@ -1966,6 +1966,7 @@ async function runQuestion(rawQ,gesproken){
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }
     let broad;
+    deelvragen=pre.subs||[];
     if(pre.subs.length>=2){
       // Samengestelde vraag: haal per deelvraag op en verdeel de plekken round-robin,
       // zodat ALLE aspecten gedekt zijn (RRF zou één dominant aspect laten winnen).
@@ -1999,7 +2000,7 @@ async function runQuestion(rawQ,gesproken){
   if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
   try{
     stap(turn,"Antwoord opstellen");
-    const result=ai?await askAI(q,cands,key):demoAnswer(q,cands);
+    const result=ai?await askAI(q,cands,key,deelvragen):demoAnswer(q,cands);
     const meting=stapKlaar(turn);
     renderResult(turn,result);
     if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
@@ -2483,7 +2484,68 @@ function demoAnswer(q,cands){
     used:[srcOf(cands[0])],related:cands.slice(1).map(srcOf)};
 }
 
-async function askAI(q,cands,key){
+// ---- Vervolgvragen die nergens heen leiden eruit filteren -----------------------------------
+// Het model verzint 2 tot 4 vervolgvragen zonder ooit te kijken of NederlandWereldwijd ze kán
+// beantwoorden. Een voorlichter die er een aanklikt en niets krijgt, is slechter af dan zonder.
+// De zoeklaag kost 13 ms per vraag, dus vier extra zoekopdrachten zijn gratis.
+//
+// SIGNAAL: welk deel van de onderscheidende woorden uit de vervolgvraag komt terug in de
+// gevonden pagina's? Vraagt de vervolgvraag naar "spoedprocedure" en kent geen enkele
+// toppagina dat woord, dan levert doorklikken niets op.
+//
+// WAAROM DEZE DREMPEL EN NIET STRENGER: gemeten over de 126 vragen uit eval_set.json haalt de
+// slechtste 50% dekking en de mediaan 100%. Op 60% valt één van de 126 echte vragen af (0,8%).
+// Strenger afstellen kost meteen goede vragen: op 70% sneuvelen er zes. Dit is dus een filter
+// tegen duidelijke missers, GEEN kwaliteitsoordeel — een plausibele maar nutteloze
+// vervolgvraag glipt er nog steeds doorheen.
+const VERVOLG_DEKKING=0.6;
+function vraagDekking(v){
+  const qt=[...new Set(tokenize(v))];
+  if(!qt.length)return 0;
+  const top=rank(v,6);
+  if(!top.length)return 0;
+  const gezien=new Set();
+  for(const i of top)for(const t of qt)if(PTOKENS[i].has(t))gezien.add(t);
+  return gezien.size/qt.length;
+}
+function bruikbareVervolgvragen(lijst){
+  if(!lijst.length||!CORPUS.length)return lijst;
+  const uit=[];
+  for(const v of lijst){
+    const d=vraagDekking(v);
+    if(d>=VERVOLG_DEKKING)uit.push(v);
+    else console.warn("vervolgvraag levert niets op ("+Math.round(d*100)+"% dekking), valt af:",v);
+  }
+  return uit;
+}
+// ---- Dekking bij een samengestelde vraag ----------------------------------------------------
+// "Wat kost het en hoe lang duurt het" wordt opgesplitst in deelvragen, en per deelvraag worden
+// pagina's opgehaald. Daarna controleert niets meer of de GEKOZEN citaten elk deel ook raken:
+// je kunt dus twee citaten over kosten terugkrijgen en niets over de doorlooptijd.
+//
+// De toets is bewust grof: strenger kan niet zonder een tweede modelaanroep, en dit gebeurt
+// juist in het geval dat toch al het traagst is.
+//
+// Wel WEGEN we op zeldzaamheid. Zonder dat telde "wat kost een rijbewijs" als beantwoord door
+// een citaat over paspoortkosten, puur omdat ze het woord "kost" delen. Een zeldzaam woord
+// ("rijbewijs") zegt veel meer over waar een deelvraag om draait dan een woord dat overal staat.
+function ongedekteDelen(subs,citations){
+  if(!DF)buildDF();
+  const inBron=new Set(tokenize(citations.map(c=>c.text||"").join(" ")));
+  const open=[];
+  for(const sq of subs){
+    const qt=[...new Set(tokenize(sq))];
+    if(qt.length<2)continue;                      // te weinig houvast om iets over te zeggen
+    const totaal=qt.reduce((a,t)=>a+bm25idf(t),0);
+    if(totaal<=0)continue;
+    const raak=qt.filter(t=>inBron.has(t)).reduce((a,t)=>a+bm25idf(t),0);
+    if(raak/totaal<0.5)open.push(sq);
+  }
+  // Alles onbeantwoord betekent meestal dat de OPSPLITSING niet deugde, niet dat het antwoord
+  // faalde. Dan liever niets zeggen dan de voorlichter op een dwaalspoor zetten.
+  return open.length>=subs.length?[]:open;
+}
+async function askAI(q,cands,key,subs){
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
   // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
@@ -2530,6 +2592,7 @@ async function askAI(q,cands,key){
   let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[])
     .map(c=>maakVerduidelijking(c.question,c.prefill)).filter(Boolean).slice(0,3);
   let followups=(Array.isArray(r.followups)?r.followups:[]).map(f=>(f||"").trim()).filter(Boolean);
+  followups=bruikbareVervolgvragen(followups);
   if(r.__partial&&citations.length)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
   if(!citations.length){
     // Zonder onderbouwend citaat tonen we GEEN vrije AI-tekst (geen note),
@@ -2546,6 +2609,16 @@ async function askAI(q,cands,key){
   }
   // Intro: korte herformulering van de informatiebehoefte; alleen tonen als er een citaat is.
   const intro=citations.length?((r.intro||"").toString().trim().replace(/\s+/g," ").slice(0,200)):"";
+  // Samengestelde vraag: dekken de citaten ALLE delen? Zo niet, zeg dat en bied het ontbrekende
+  // deel aan als eerste vervolgvraag.
+  if(citations.length&&subs&&subs.length>=2){
+    const open=ongedekteDelen(subs,citations);
+    if(open.length){
+      followups=[...open,...followups.filter(f=>!open.includes(f))].slice(0,4);
+      const staart=open.length===1?"één onderdeel":open.length+" onderdelen";
+      note=(note?note+" ":"")+"Let op: van deze samengestelde vraag is "+staart+" niet beantwoord — zie de vervolgvragen.";
+    }
+  }
   const uit={restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
   if(GENERATIEF&&citations.length)uit.generatief=await schrijfAntwoord(q,citations,key);
   return uit;
