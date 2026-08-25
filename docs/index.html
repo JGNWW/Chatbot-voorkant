@@ -1581,6 +1581,52 @@ function buildCitation(text,span,heads,anchors,opts){
 // Ook weg: vragen die in dit domein voor vrijwel iedereen gelden. NederlandWereldwijd gáát over
 // Nederlanders in of naar het buitenland, dus daarnaar vragen splitst niets.
 const LOZE_VRAAG=/^(woont|verblijft|bent) u (in|buiten|momenteel in) het buitenland|^woont u niet in nederland/i;
+// Het model zet een vraag die aan de BELLER gericht is ("Bent u ingeschreven in de RNI?") soms
+// bij de vervolgvragen in plaats van bij de uitvraag. Klikken stelde die vraag dan letterlijk
+// aan de zoeker — nutteloos, want de zoekmachine weet niet of jij ingeschreven staat.
+// Zulke vragen horen een PREFILL te krijgen, zodat de voorlichter het antwoord van de burger
+// ter plekke invult. Die prefill is mechanisch af te leiden uit de aanhef.
+const UITVRAAG_AANHEF=[
+  [/^bent u\b/i,      "Ik ben "],
+  [/^is uw (\S+)/i,   "Mijn $1 is "],
+  [/^heeft u\b/i,     "Ik heb "],
+  [/^hebt u\b/i,      "Ik heb "],
+  [/^woont u\b/i,     "Ik woon "],
+  [/^verblijft u\b/i, "Ik verblijf "],
+  [/^gaat u\b/i,      "Ik ga "],
+  [/^wilt u\b/i,      "Ik wil "],
+  [/^wil u\b/i,       "Ik wil "],
+  [/^kunt u\b/i,      "Ik kan "],
+  [/^staat u\b/i,     "Ik sta "],
+  [/^krijgt u\b/i,    "Ik krijg "],
+  [/^doet u\b/i,      "Ik doe "],
+  [/^reist u\b/i,     "Ik reis "],
+  [/^betreft het\b/i, "Het betreft "],
+  [/^gaat het om\b/i, "Het gaat om "],
+  [/^is het\b/i,      "Het is "],
+  [/^voor wie\b/i,    "Het is voor "],
+  [/^in welk land\b/i,"Ik woon in "],
+  [/^welk land\b/i,   "Het gaat om "],
+  [/^sinds wanneer\b/i,"Sinds "],
+  [/^hoeveel\b/i,     "Het gaat om "],
+];
+// Retour: een uitvraag-object met prefill, of null als het gewoon een zoekbare vervolgvraag is.
+// De prefill is ALLEEN de aanhef in de ik-vorm — nooit de rest van de vraag erachteraan, want
+// dan zou de app het antwoord van de burger al invullen ("Ik ben ingeschreven in de RNI").
+function alsUitvraag(vraag){
+  const q=(vraag||"").toString().trim().replace(/\s+/g," ");
+  if(!q)return null;
+  for(const [re,sjabloon] of UITVRAAG_AANHEF){
+    const m=re.exec(q);
+    if(!m)continue;
+    const pre=sjabloon.replace(/\$1/g,(m[1]||"")).replace(/\s+/g," ").trim();
+    // "weg" betekent: wel aan de beller gericht, maar er valt niets zinnigs mee te doen
+    // (bv. "Woont u in het buitenland?" — dat geldt voor vrijwel elke beller). Zo'n vraag mag
+    // ook geen vervolgvraag blijven, want dan wordt hij alsnog aan de zoeker gesteld.
+    return maakVerduidelijking(q,pre)||"weg";
+  }
+  return null;
+}
 function maakVerduidelijking(vraag,prefill){
   const q=(vraag||"").toString().trim().replace(/\s+/g," ");
   let p=(prefill||"").toString().trim().replace(/\s+/g," ");
@@ -1801,7 +1847,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 91";
+const APP_VERSION="build 92";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2592,7 +2638,16 @@ async function askAI(q,cands,key,subs){
   let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[])
     .map(c=>maakVerduidelijking(c.question,c.prefill)).filter(Boolean).slice(0,3);
   let followups=(Array.isArray(r.followups)?r.followups:[]).map(f=>(f||"").trim()).filter(Boolean);
-  followups=bruikbareVervolgvragen(followups);
+  // Eerst de vragen eruit die aan de BELLER gericht zijn: die horen bij de uitvraag, met een
+  // prefill, en niet bij de vragen die aan de zoeker gesteld worden.
+  const rest=[];
+  for(const fu of followups){
+    const u=alsUitvraag(fu);
+    if(u===null)rest.push(fu);                                  // gewone, zoekbare vervolgvraag
+    else if(u!=="weg"&&clarifications.length<3&&!clarifications.some(c=>c.question===u.question))
+      clarifications.push(u);
+  }
+  followups=bruikbareVervolgvragen(rest);
   if(r.__partial&&citations.length)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
   if(!citations.length){
     // Zonder onderbouwend citaat tonen we GEEN vrije AI-tekst (geen note),
