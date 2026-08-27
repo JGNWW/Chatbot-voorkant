@@ -200,6 +200,7 @@ body.is-welcome .empty{margin-top:0;}
 .src-live:hover{color:var(--rijk-licht);}
 ol.srclist{margin:4px 0 0;padding-left:20px;}
 ol.srclist li{margin:2px 0;}
+.genweg{font-size:.82rem;color:var(--ink-licht);background:var(--grijs);border-radius:8px;padding:8px 11px;margin:10px 0;}
 .note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
 .no-answer{color:#666;margin-bottom:12px;}
 .section{margin-top:16px;font-size:.9rem;}
@@ -2155,7 +2156,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 105";
+const APP_VERSION="build 106";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3097,6 +3098,7 @@ async function askAI(q,cands,key,subs,opGeneratief){
   if(GENERATIEF&&uit.citations.length){
     const live=(STREAM&&kanStreamen()&&opGeneratief)?(alineas)=>opGeneratief(uit,alineas):null;
     uit.generatief=await schrijfAntwoord(q,uit.citations,key,live);
+    if(!uit.generatief)uit.genReden=GEN_REDEN||"onbekende reden";
   }
   return uit;
 }
@@ -3116,7 +3118,13 @@ function getallenIn(t){return (String(t).match(/\d[\d.,]*/g)||[]).map(x=>x.repla
 function alineaKlopt(tekst,passages){
   const bron=passages.join(" ").toLowerCase();
   for(const g of getallenIn(tekst))if(!bron.includes(g.toLowerCase()))return false;
-  if(/€|euro/i.test(tekst)&&!/€|euro/i.test(bron))return false;
+  // Een BEDRAG verzinnen mag niet. Het woord "euro" gebruiken zonder bedrag verzint niets, en
+  // die oude regel sloeg juist bij kostenvragen toe: staat er in de bron "Wat u betaalt, hangt af
+  // van waar u de aanvraag doet", dan is "wat u in euro's betaalt hangt af van het land" een
+  // getrouwe herformulering — maar hij werd afgekeurd omdat het woord euro niet in de bron stond.
+  // Met één citaat betekende dat: hele generatieve antwoord weg, zonder zichtbare reden.
+  const bedrag=/(?:€\s*\d|\d[\d.,]*\s*euro)/i.test(tekst);
+  if(bedrag&&!/€|euro/i.test(bron))return false;
   return true;
 }
 // Haalt de alinea's uit een NOG NIET AFGEMAAKTE JSON-stroom. tryRepairJSON knipt terug tot het
@@ -3144,7 +3152,12 @@ function alineasUitStroom(heel){
   }
   return uit;
 }
+// Waarom een generatief antwoord niet is getoond. Stond dit alleen in de console, dan zag een
+// voorlichter een gewoon letterlijk antwoord en had geen idee dat er iets was afgekeurd — precies
+// de verwarring die "hij doet het niet altijd" oplevert.
+let GEN_REDEN="";
 async function schrijfAntwoord(q,citations,key,onAlineas){
+  GEN_REDEN="";
   const lijst=citations.map((c,i)=>"["+(i+1)+"] "+c.text).join("\n\n");
   let j;
   try{
@@ -3165,7 +3178,11 @@ async function schrijfAntwoord(q,citations,key,onAlineas){
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,GENERATIEF_SYSTEM,
       "Vraag:\n"+q+"\n\nPassages:\n"+lijst,onDelta);
     j=parseModelJSON(text);
-  }catch(e){console.warn("generatief antwoord:",e);return null;}
+  }catch(e){
+    console.warn("generatief antwoord:",e);
+    GEN_REDEN="het model gaf geen bruikbaar antwoord ("+((e&&e.message)||e).toString().slice(0,120)+")";
+    return null;
+  }
   const ruw=Array.isArray(j&&j.alineas)?j.alineas:[];
   const alineas=[];const afgevallen=[];
   for(const a of ruw){
@@ -3188,13 +3205,20 @@ async function schrijfAntwoord(q,citations,key,onAlineas){
     alineas.push({tekst,bronnen});
   }
   if(!alineas.length){
-    if(afgevallen.length)console.warn("generatief antwoord volledig afgekeurd ("+afgevallen.length+" alinea's)");
+    if(!ruw.length)GEN_REDEN="het model leverde geen alinea's";
+    else{
+      const redenen=[...new Set(afgevallen.map(x=>x.reden))].join(" en ");
+      GEN_REDEN="alle "+afgevallen.length+" alinea's afgekeurd ("+redenen+")";
+    }
+    console.warn("generatief antwoord volledig afgekeurd:",GEN_REDEN);
     return null;
   }
   // Meer dan de helft weggevallen: het model hield zich niet aan de opdracht. Dan is de rest
   // ook verdacht, en bovendien blijft er tekst over die naar weggehaalde alinea's verwijst.
   if(afgevallen.length>alineas.length){
-    console.warn("generatief antwoord afgekeurd: "+afgevallen.length+" van de "+(afgevallen.length+alineas.length)+" alinea's sneuvelden");
+    GEN_REDEN=afgevallen.length+" van de "+(afgevallen.length+alineas.length)+" alinea's afgekeurd ("
+      +[...new Set(afgevallen.map(x=>x.reden))].join(" en ")+")";
+    console.warn("generatief antwoord afgekeurd: "+GEN_REDEN);
     return null;
   }
   // Wat er afviel blijft beschikbaar, zodat het later ook te tonen is.
@@ -3536,6 +3560,9 @@ function renderResult(turn,r,voorlopig){
     // in andere woorden.
     h+=`<div class="no-answer">${escapeHtml(r.note||GEEN_INFO)}</div>`;
   }
+  // Is het generatieve antwoord afgekeurd, zeg dat dan ook. Anders lijkt het alsof de modus
+  // gewoon niet aanstond.
+  if(r.genReden&&hasCites)h+=`<div class="genweg">Volledig generatief antwoord niet getoond: ${escapeHtml(r.genReden)}. Hieronder staat het letterlijke antwoord.</div>`;
   // De losse melding blijft alleen bestaan naast een echt antwoord (bv. "dit antwoord was
   // mogelijk niet volledig" of een onbeantwoord deel van een samengestelde vraag).
   if(hasCites&&r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;

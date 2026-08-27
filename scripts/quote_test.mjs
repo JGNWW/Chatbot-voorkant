@@ -228,6 +228,12 @@ console.log("\nGENERATIEF ANTWOORD\n");
   test("bedrag dat NIET in de bron staat valt af", () => {
     waar(!G.alineaKlopt("Een paspoort kost \u20ac 83,85.", ["U betaalt alleen de kosten die nodig zijn."]));
     waar(G.alineaKlopt("Een paspoort kost \u20ac 83,85.", ["Een paspoort kost \u20ac 83,85 voor volwassenen."]), "bedrag stond wel in de bron");
+    // Het WOORD euro zonder bedrag verzint niets. Deze regel sloeg juist bij kostenvragen toe en
+    // gooide daardoor het hele generatieve antwoord weg.
+    waar(G.alineaKlopt("Wat u in euro's betaalt, hangt af van het land waar u de aanvraag doet.",
+      ["Wat u betaalt, hangt af van waar u de aanvraag doet."]), "euro zonder bedrag mag");
+    waar(!G.alineaKlopt("Een paspoort kost 83,85 euro.", ["Wat u betaalt, hangt af van waar u de aanvraag doet."]),
+      "bedrag in woorden-vorm zonder dekking valt af");
   });
   test("alinea zonder getallen is altijd in orde", () =>
     waar(G.alineaKlopt("U doet aangifte bij de lokale politie.", ["Doe aangifte bij de lokale politie."])));
