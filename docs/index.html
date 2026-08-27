@@ -386,6 +386,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <button type="button" id="lokaal-dl" class="lokaal-btn" hidden></button>
       <label class="spraak-optie lokaal-optie" id="kernen-optie" hidden title="Laat het processor-model alle kernen gebruiken. Hiervoor moet de pagina eenmalig herladen worden."><input type="checkbox" id="meer-kernen"> meerdere kernen gebruiken</label>
       <span id="lokaal-status" class="lokaal-status" hidden></span>
+      <label class="spraak-optie" title="EXPERIMENTEEL. Zet een aantal versnellingen aan die nog niet bewezen zijn. Staat dit uit, dan werkt de app precies zoals altijd. Vereist herladen."><input type="checkbox" id="turbo"> turbomodus (experimenteel)</label>
       <label class="spraak-optie" title="Laat het volledig generatieve antwoord zin voor zin verschijnen in plaats van in één keer. Versnelt niets. Werkt alleen met 'volledig generatief antwoord' aan, en niet bij de twee lokale modellen."><input type="checkbox" id="streamen"> generatief antwoord al schrijvend tonen</label>
       <label class="spraak-optie" title="De AI schrijft het antwoord zelf op basis van de gevonden passages, in plaats van ze letterlijk te tonen"><input type="checkbox" id="generatief"> volledig generatief antwoord</label>
       <label class="spraak-optie">spraakmodel
@@ -1131,6 +1132,51 @@ function anchorSet(i){
 const RRF_K=14, W_SEM=1.0, W_KW=0.75;
 const FW_TITLE=4, FW_DESC=1, FW_URL=3, FW_TEXT=1;
 let CORPUS=[],PTOKENS=[],DF=null,NDOCS=0;
+// ===== TURBOMODUS =============================================================================
+// Alles wat hieraan hangt is EXPERIMENTEEL en staat standaard uit. Staat het vinkje uit, dan
+// draait de app langs precies dezelfde weg als voordat turbo bestond — geen enkele codepad-
+// wijziging. Dat is de afspraak: blijkt turbo niet te deugen, dan gaat hij er in één keer uit.
+let TURBO=false;
+try{TURBO=localStorage.getItem("vk_turbo")==="1";}catch(e){}
+// De voorgebouwde zoekindex (docs/data/bm25.bin). Zie scripts/build_index.mjs voor het formaat
+// en scripts/index_test.mjs voor het bewijs dat hij exact hetzelfde rangschikt.
+let TIDX=null;
+async function laadTurboIndex(){
+  try{
+    const r=await fetch("data/bm25.bin");
+    if(!r.ok)return false;
+    const buf=await r.arrayBuffer();
+    const dv=new DataView(buf);
+    if(String.fromCharCode(dv.getUint8(0),dv.getUint8(1),dv.getUint8(2),dv.getUint8(3))!=="LEOB")return false;
+    if(dv.getUint16(4,true)!==1)return false;
+    const pages=dv.getUint32(6,true),terms=dv.getUint32(10,true),pos=dv.getUint32(14,true);
+    // VANGNET: hoort deze index bij DIT corpus? Zo niet, dan wijzen de paginanummers naar de
+    // verkeerde pagina's en zouden citaten uit een andere bron komen. Dan liever de gewone weg.
+    if(pages!==CORPUS.length){console.warn("bm25.bin hoort bij een ander corpus ("+pages+" tegen "+CORPUS.length+")");return false;}
+    let o=18;
+    const lees=(T,n)=>{const a=new T(buf.slice(o,o+n*T.BYTES_PER_ELEMENT));o+=n*T.BYTES_PER_ELEMENT;return a;};
+    const vocabOff=lees(Uint32Array,terms+1);
+    // De offsets zijn BYTE-posities; termen met een accent zijn in UTF-8 twee bytes. Daarom op
+    // de buffer snijden en pas daarna decoderen.
+    const blob=new Uint8Array(buf,o,vocabOff[terms]);o+=vocabOff[terms];
+    const dec=new TextDecoder();
+    const dlen=lees(Uint32Array,pages);
+    const ptr=lees(Uint32Array,terms+1);
+    const postDoc=lees(Uint32Array,pos);
+    const postTf=lees(Uint16Array,pos);
+    const id=new Map();
+    for(let i=0;i<terms;i++)id.set(dec.decode(blob.subarray(vocabOff[i],vocabOff[i+1])),i);
+    // DF, DLEN, NDOCS en AVGDL vullen uit het bestand: dan werken bm25idf, buildVocab en
+    // fuzzyFix ongewijzigd verder en hoeft alleen rank() een andere weg te kennen.
+    DF=new Map();let tot=0;
+    for(const [t,i] of id)DF.set(t,ptr[i+1]-ptr[i]);
+    for(let i=0;i<pages;i++)tot+=dlen[i];
+    NDOCS=pages;DLEN=dlen;AVGDL=tot/Math.max(1,pages);VOCAB=null;
+    TIDX={pages,terms,id,ptr,postDoc,postTf,score:new Float64Array(pages)};
+    return true;
+  }catch(e){console.warn("turbo-index laden mislukt:",e);return false;}
+}
+// ===== <</TURBOMODUS-INDEX>> ==================================================================
 
 // Lichte Nederlandse stemmer: haalt veelvoorkomende uitgangen weg zodat varianten
 // op elkaar matchen ('verkracht'/'verkrachting', 'document'/'documenten').
@@ -1188,6 +1234,21 @@ function rank(q,limit){
   if(!DF)buildDF();
   const qt=[...new Set(tokenize(q).map(fuzzyFix))];if(!qt.length)return [];
   const k1=1.5,b=0.75,s=[];
+  if(TIDX){
+    // Zelfde formule, andere route: alleen de postings van de gevraagde termen doorlopen in
+    // plaats van alle 4431 pagina's. scripts/index_test.mjs bewijst dat de uitkomst gelijk is.
+    const sc=TIDX.score;sc.fill(0);
+    for(const t of qt){
+      const id=TIDX.id.get(t);if(id===undefined)continue;
+      const w=bm25idf(t);
+      for(let k=TIDX.ptr[id],e=TIDX.ptr[id+1];k<e;k++){
+        const d=TIDX.postDoc[k],tf=TIDX.postTf[k];
+        sc[d]+=w*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[d]/AVGDL));
+      }
+    }
+    for(let i=0;i<NDOCS;i++)if(sc[i]>0)s.push([sc[i],i]);
+    s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
+  }
   for(let i=0;i<NDOCS;i++){
     const m=PTOKENS[i];let sc=0;
     for(const t of qt){const tf=m.get(t);if(!tf)continue;sc+=bm25idf(t)*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[i]/AVGDL));}
@@ -1823,6 +1884,20 @@ function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)|
     };
   }
 }
+// Turbomodus. Die grijpt in op het LADEN van het corpus, dus hij gaat pas in na herladen —
+// vandaar de vraag in plaats van een stille wijziging.
+{
+  const tb=document.getElementById("turbo");
+  if(tb){
+    tb.checked=TURBO;
+    tb.onchange=()=>{
+      try{localStorage.setItem("vk_turbo",tb.checked?"1":"0");}catch(e){}
+      if(confirm(tb.checked
+        ? "Turbomodus gaat in na herladen. Nu herladen?"
+        : "Terug naar de gewone modus gaat in na herladen. Nu herladen?"))location.reload();
+    };
+  }
+}
 // Antwoord tonen terwijl het binnenkomt. Geldt vanaf de volgende vraag.
 {
   const st=document.getElementById("streamen");
@@ -1931,7 +2006,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 97";
+const APP_VERSION="build 98";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -1994,7 +2069,11 @@ document.getElementById("reset").addEventListener("click",newConversation);
   try{
     const r=await fetch("data/corpus.json");
     if(!r.ok)throw new Error("corpus.json niet gevonden ("+r.status+")");
-    CORPUS=await r.json();PTOKENS=CORPUS.map(tokensOf);
+    CORPUS=await r.json();
+    // Turbo: de index staat al klaar als bestand. Lukt dat niet (oud bestand, ander corpus,
+    // netwerkfout), dan bouwen we hem gewoon zelf op — de app werkt dan precies als altijd.
+    const turboIndex=TURBO?await laadTurboIndex():false;
+    if(!turboIndex)PTOKENS=CORPUS.map(tokensOf);
     const withSum=CORPUS.filter(p=>p.summary).length;
     document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
       +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Stel een vraag — bijvoorbeeld:</span>";
@@ -2631,13 +2710,25 @@ function demoAnswer(q,cands){
 // tegen duidelijke missers, GEEN kwaliteitsoordeel — een plausibele maar nutteloze
 // vervolgvraag glipt er nog steeds doorheen.
 const VERVOLG_DEKKING=0.6;
+// Komt term t voor op pagina i? In turbomodus staat dat niet in een Map per pagina maar in de
+// postings van de term; die staan op oplopend paginanummer, dus we kunnen vroeg stoppen.
+function paginaHeeftTerm(i,t){
+  if(!TIDX)return PTOKENS[i]?PTOKENS[i].has(t):false;
+  const id=TIDX.id.get(t);if(id===undefined)return false;
+  for(let k=TIDX.ptr[id],e=TIDX.ptr[id+1];k<e;k++){
+    const d=TIDX.postDoc[k];
+    if(d===i)return true;
+    if(d>i)return false;
+  }
+  return false;
+}
 function vraagDekking(v){
   const qt=[...new Set(tokenize(v))];
   if(!qt.length)return 0;
   const top=rank(v,6);
   if(!top.length)return 0;
   const gezien=new Set();
-  for(const i of top)for(const t of qt)if(PTOKENS[i].has(t))gezien.add(t);
+  for(const i of top)for(const t of qt)if(paginaHeeftTerm(i,t))gezien.add(t);
   return gezien.size/qt.length;
 }
 function bruikbareVervolgvragen(lijst){
