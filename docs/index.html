@@ -157,33 +157,15 @@ body.is-welcome .empty{margin-top:0;}
 .cite-p{margin:0 0 7px;line-height:1.6;}
 .cite-p:last-child{margin-bottom:0;}
 /* Bron-kaartje direct onder de passage (bron dicht bij de bewering) */
-.src-card{display:inline-flex;align-items:center;gap:8px;margin:9px 0 2px 15px;padding:6px 10px 6px 7px;border:1px solid var(--rand);border-radius:12px;background:#fff;cursor:pointer;max-width:100%;transition:background .12s,border-color .12s;}
-.src-card:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
-.src-badge{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--rijk-licht);color:#fff;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
-.passage.unverified .src-badge{background:var(--oranje);}
-.src-info{display:inline-flex;align-items:center;gap:5px;min-width:0;color:var(--rijk-blauw);}
-.src-title{font-weight:600;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;}
-.src-go{font-size:.78rem;color:var(--ink-licht);white-space:nowrap;}
-.src-live{flex:0 0 auto;margin-left:2px;color:var(--ink-licht);text-decoration:none;font-size:.95rem;padding:0 3px;border-radius:6px;}
-.src-live:hover{color:var(--rijk-licht);}
-/* ---- Bronnen als genummerde tegels met een kaart bij het zweven ---- */
-.bronblok{margin-top:20px;}
-.bronblok .label{display:block;margin-bottom:9px;}
-.bronrij{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-@media (max-width:620px){.bronrij{grid-template-columns:1fr;}}
-.bronvak{position:relative;}
-.brontegel{position:relative;display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;
-  background:#fff;border:1px solid var(--rand);border-radius:9px;font:inherit;font-size:.87rem;
-  color:var(--rijk-licht);text-decoration:none;transition:border-color .12s,background .12s,box-shadow .12s;}
-.brontegel:hover,.brontegel:focus-visible,.brontegel.actief{border-color:var(--rijk-licht);background:var(--blauw-bg);outline:none;}
-.brontegel.actief{box-shadow:0 0 0 1px var(--rijk-licht);}
-.brontegel .nr{flex:0 0 auto;width:21px;height:21px;border-radius:5px;display:inline-flex;align-items:center;
-  justify-content:center;background:var(--blauw-bg);color:var(--rijk-blauw);font-size:.74rem;font-weight:700;
-  font-variant-numeric:tabular-nums;}
-.brontegel.gebruikt .nr{background:var(--rijk-licht);color:#fff;}
-.brontegel:hover .nr,.brontegel.actief .nr{background:var(--rijk-licht);color:#fff;}
-.brontegel .tt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.bronkaart{position:absolute;z-index:40;width:min(400px,calc(100vw - 40px));background:#fff;
+/* max-width op de VAKje-breedte en een krimpende titel: de kaart liep eerder buiten de bel
+   omdat "Lees verder op de pagina →" niet mocht afbreken en de titel niet kromp. */
+.bronvak{position:relative;max-width:100%;}
+.src-card{display:inline-flex;align-items:center;gap:8px;margin:9px 0 2px 15px;padding:6px 11px 6px 7px;border:1px solid var(--rand);border-radius:12px;background:#fff;cursor:pointer;max-width:calc(100% - 15px);min-width:0;transition:background .12s,border-color .12s,box-shadow .12s;}
+/* Een vaste bovengrens in tekens in plaats van een percentage: dan is de tegel even breed als de
+   titel nodig heeft, tot een leesbare grens, en klapt hij niet dicht tot dertig tekens. */
+.src-card .src-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:52ch;color:var(--rijk-blauw);font-weight:600;font-size:.86rem;}
+.src-card.actief{border-color:var(--rijk-licht);box-shadow:0 0 0 1px var(--rijk-licht);}
+.bronkaart{position:absolute;z-index:40;left:15px;top:100%;width:min(400px,calc(100vw - 48px));background:#fff;
   border:1px solid var(--rand);border-radius:11px;padding:14px 16px 12px;
   box-shadow:0 1px 2px rgba(21,66,115,.06),0 12px 30px -14px rgba(21,66,115,.35);
   opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .12s,transform .12s;}
@@ -191,13 +173,18 @@ body.is-welcome .empty{margin-top:0;}
 @media (prefers-reduced-motion:reduce){.bronkaart{transition:none;}}
 .bronkaart h4{margin:0 0 8px;font-size:.94rem;font-weight:700;line-height:1.35;color:var(--rijk-blauw);}
 .bronkaart .pas{margin:0;font-size:.87rem;line-height:1.55;color:var(--ink-licht);
-  display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}
-.bronkaart .voet{display:flex;align-items:center;gap:10px;margin-top:11px;padding-top:10px;border-top:1px solid var(--rand);}
+  display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;}
+.bronkaart .voet{margin-top:11px;padding-top:10px;border-top:1px solid var(--rand);}
 .relscore{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;
   border-radius:5px;background:rgba(57,135,12,.12);color:var(--groen);font-variant-numeric:tabular-nums;white-space:nowrap;}
 .relscore.midden{background:rgba(225,112,0,.13);color:var(--oranje);}
 .relscore.laag{background:rgba(100,116,132,.16);color:var(--ink-licht);}
-.bronkaart .isbron{font-size:.74rem;color:var(--ink-licht);}
+.src-card:hover{background:var(--blauw-bg);border-color:var(--blauw-licht);}
+.src-badge{flex:0 0 auto;width:20px;height:20px;border-radius:50%;background:var(--rijk-licht);color:#fff;font-size:.72rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+.passage.unverified .src-badge{background:var(--oranje);}
+.src-info{display:inline-flex;align-items:center;gap:5px;min-width:0;color:var(--rijk-blauw);}
+.src-live{flex:0 0 auto;margin-left:2px;color:var(--ink-licht);text-decoration:none;font-size:.95rem;padding:0 3px;border-radius:6px;}
+.src-live:hover{color:var(--rijk-licht);}
 ol.srclist{margin:4px 0 0;padding-left:20px;}
 ol.srclist li{margin:2px 0;}
 .note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
@@ -2155,7 +2142,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 103";
+const APP_VERSION="build 104";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2279,6 +2266,11 @@ async function fuseRetrieval(semTexts,kwText,category,limit){
   lists.push(rank([kwText,...scopeTerms()].join(" "),Math.max(limit,12)));
   const score=new Map();
   lists.forEach((list,li)=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+(li<lists.length-1?W_SEM:W_KW)/(RRF_K+r))));
+  // Het haalbare maximum hangt af van hoeveel lijsten er MEEDEDEN. Is het semantische model nog
+  // niet geladen, dan is er alleen de trefwoordlijst en ligt het plafond op 0,75/14 in plaats van
+  // 1,75/14. Zonder deze correctie zou elke bron dan rond de 43% uitkomen in plaats van rond de
+  // 100% — een lager cijfer dat niets zegt over de bron maar alles over het laadmoment.
+  LAATSTE_MAX=((lists.length-1)*W_SEM+W_KW)/RRF_K;
   if(category){const cat=fold(category);if(cat.length>=3)for(const idx of score.keys())if(fold(CORPUS[idx].url).includes(cat))score.set(idx,score.get(idx)+0.02);}
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   LAATSTE_SCORES=score;
@@ -2294,13 +2286,12 @@ async function fuseRetrieval(semTexts,kwText,category,limit){
 // WAT HET GETAL BETEKENT, en dat is minder dan het lijkt: het is een RANGSCHIKKINGSscore, geen
 // kans dat het antwoord klopt. 93% zegt "van alles wat deze zoeker kan opleveren scoort deze
 // pagina hoog", niet "93% kans dat dit het juiste antwoord is".
-let LAATSTE_SCORES=null;
-const RELEVANTIE_MAX=W_SEM/RRF_K+W_KW/RRF_K;
+let LAATSTE_SCORES=null,LAATSTE_MAX=(W_SEM+W_KW)/RRF_K;
 function relevantieVan(idx){
   if(!LAATSTE_SCORES)return null;
   const s=LAATSTE_SCORES.get(idx);
   if(s===undefined)return null;                      // pagina kwam via een hub binnen, niet via de fusie
-  return Math.max(0,Math.min(100,Math.round(s/RELEVANTIE_MAX*100)));
+  return Math.max(0,Math.min(100,Math.round(s/LAATSTE_MAX*100)));
 }
 // De eerste echte zin van een pagina, voor in de hover-kaart. Navigatie en linkteksten vallen af,
 // net als bij het citeren: een menu-item is geen antwoord.
@@ -3016,7 +3007,7 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
     if(citations.some(x=>quotesOverlap(x.text,quote)))continue; // dubbel/overlappend -> overslaan
     let bridge=(c.bridge||"").toString().trim().replace(/\s+/g," ").slice(0,180);
     if(!bridgeIsSafe(bridge,quote))bridge="";     // brug voegt eigen feiten toe -> weglaten
-    citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,bridge});usedSet.add(gi);
+    citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,bridge,relevantie:relevantieVan(gi)});usedSet.add(gi);
     if(citations.length>=MAX_CITES)break;
   }
   const used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
@@ -3062,17 +3053,7 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
     }
   }
   if(voorlopig&&!citations.length)return null;
-  // De pagina's die de app heeft geraadpleegd, met hun relevantie en een passage om te tonen.
-  // Geciteerde pagina's krijgen de passage die ook echt in het antwoord staat; de rest de eerste
-  // echte zin van de pagina, zodat de kaart altijd iets laat zien dat er werkelijk staat.
-  const geciteerd=new Map(citations.map(c=>[c.srcIdx,c.text]));
-  const bronkaarten=(cands||[]).slice(0,TOPK).map(i=>({
-    title:CORPUS[i].title,url:CORPUS[i].url,idx:i,
-    relevantie:relevantieVan(i),
-    gebruikt:geciteerd.has(i),
-    passage:geciteerd.get(i)||eersteProza(i),
-  })).filter(b=>b.passage);
-  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups,bronnen:bronkaarten};
+  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
 }
 async function askAI(q,cands,key,subs,opGeneratief){
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
@@ -3222,54 +3203,53 @@ function addTurn(q,gesproken){
   conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
 }
 function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
-// De geraadpleegde pagina's als genummerde tegels. De kaart verschijnt bij zweven en toont de
-// paginatitel, de passage en de relevantie. Geen icoontje en geen herkomst: dat is altijd
-// NederlandWereldwijd.
-function relKlasse(p){return p>=85?"":p>=72?"midden":"laag";}
-function bronBlok(bronnen){
-  const tegels=bronnen.map((b,i)=>{
-    const rel=b.relevantie===null||b.relevantie===undefined?""
-      :`<span class="relscore ${relKlasse(b.relevantie)}">Relevantie ${b.relevantie}%</span>`;
-    const gebruikt=b.gebruikt?`<span class="isbron">geciteerd in dit antwoord</span>`:"";
-    return `<div class="bronvak">`
-      +`<a class="brontegel${b.gebruikt?" gebruikt":""}" href="${b.url}" target="_blank" rel="noreferrer" aria-describedby="bk${i}">`
-      +`<span class="nr">${i+1}</span><span class="tt">${escapeHtml(cleanTitle(b.title))}</span></a>`
-      +`<div class="bronkaart" id="bk${i}" role="tooltip">`
-      +`<h4>${escapeHtml(cleanTitle(b.title))}</h4>`
-      +`<p class="pas">${escapeHtml(b.passage)}</p>`
-      +`<div class="voet">${rel}${gebruikt}</div></div></div>`;
-  }).join("");
-  return `<div class="bronblok"><span class="label">Bronnen</span><div class="bronrij">${tegels}</div></div>`;
-}
-// De kaart tonen bij zweven en bij Tab. Op een aanraakscherm is er geen zweven: dan toont de
-// eerste tik de kaart en opent de tweede de pagina.
+// De kaart tonen bij zweven en bij Tab. Klikken op de tegel opent de bronweergave (dat regelt de
+// bestaande klikafhandeling van .src-card); op een aanraakscherm toont de eerste tik de kaart.
 function koppelBronkaarten(root){
-  const rij=root.querySelector(".bronrij");if(!rij)return;
+  if(!root.querySelector(".bronvak"))return;
   let open=null;
   const verberg=()=>{if(!open)return;open.dataset.open="false";
     const t=open.previousElementSibling;if(t)t.classList.remove("actief");open=null;};
   const toon=(tegel,kaart)=>{
+    if(!kaart||!kaart.classList.contains("bronkaart"))return;
     if(open&&open!==kaart)verberg();
     tegel.classList.add("actief");kaart.dataset.open="true";open=kaart;
     // Binnen het scherm houden: naar links schuiven als hij rechts uitsteekt, naar boven als
     // hij onderaan niet past.
-    kaart.style.left="0px";kaart.style.top=(tegel.offsetHeight+7)+"px";
+    kaart.style.left="15px";kaart.style.top=(tegel.offsetTop+tegel.offsetHeight+6)+"px";
     const r=kaart.getBoundingClientRect();
     const teveel=r.right-(window.innerWidth-14);
-    if(teveel>0)kaart.style.left=(-teveel)+"px";
+    if(teveel>0)kaart.style.left=(15-teveel)+"px";
     if(r.bottom>window.innerHeight-14&&tegel.getBoundingClientRect().top>r.height+22)
-      kaart.style.top=(-kaart.offsetHeight-7)+"px";
+      kaart.style.top=(tegel.offsetTop-kaart.offsetHeight-6)+"px";
   };
-  rij.addEventListener("pointerover",e=>{const t=e.target.closest(".brontegel");if(t)toon(t,t.nextElementSibling);});
-  rij.addEventListener("pointerout",e=>{const n=e.relatedTarget;
-    if(n&&n.closest&&n.closest(".brontegel, .bronkaart"))return;verberg();});
-  rij.addEventListener("focusin",e=>{const t=e.target.closest(".brontegel");if(t)toon(t,t.nextElementSibling);});
-  rij.addEventListener("click",e=>{
-    const t=e.target.closest(".brontegel");if(!t||!matchMedia("(hover: none)").matches)return;
+  root.addEventListener("pointerover",e=>{const t=e.target.closest(".src-card");if(t)toon(t,t.nextElementSibling);});
+  root.addEventListener("pointerout",e=>{const n=e.relatedTarget;
+    if(n&&n.closest&&n.closest(".src-card, .bronkaart"))return;verberg();});
+  root.addEventListener("focusin",e=>{const t=e.target.closest(".src-card");if(t)toon(t,t.nextElementSibling);});
+  root.addEventListener("click",e=>{
+    const t=e.target.closest(".src-card");if(!t||!matchMedia("(hover: none)").matches)return;
     const k=t.nextElementSibling;
-    if(k.dataset.open!=="true"){e.preventDefault();toon(t,k);}
-  });
+    if(k&&k.dataset.open!=="true"){e.stopPropagation();toon(t,k);}
+  },true);
   root.addEventListener("keydown",e=>{if(e.key==="Escape")verberg();});
+}
+// De brontegel onder een citaat: nummer, paginatitel, en bij zweven een kaart met de passage en
+// de relevantie. "Lees verder op de pagina" is weg — de tegel is zelf aanklikbaar en opent de
+// bronweergave. Geen icoontje en geen herkomst: dat is altijd NederlandWereldwijd.
+function relKlasse(p){return p>=85?"":p>=72?"midden":"laag";}
+function brontegel(cit,nummer,i){
+  const rel=(cit.relevantie===null||cit.relevantie===undefined)?""
+    :`<span class="relscore ${relKlasse(cit.relevantie)}">Relevantie ${cit.relevantie}%</span>`;
+  const titel=escapeHtml(cleanTitle((cit.src&&cit.src.title)||"Bron"));
+  return `<div class="bronvak">`
+    +`<div class="src-card" data-ci="${i}" role="button" tabindex="0" aria-describedby="bk${i}" title="Bekijk dit stuk op de bronpagina">`
+      +`<span class="src-badge">${nummer}</span><span class="src-title">${titel}</span>`
+    +`</div>`
+    +`<div class="bronkaart" id="bk${i}" role="tooltip">`
+      +`<h4>${titel}</h4><p class="pas">${escapeHtml(cit.text||"")}</p>`
+      +(rel?`<div class="voet">${rel}</div>`:"")
+    +`</div></div>`;
 }
 function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ol>`;}
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
@@ -3524,22 +3504,14 @@ function renderResult(turn,r,voorlopig){
       if(blok.alleenBron){
         // Generatieve modus: alleen de bronkaart, genummerd zoals in de tekst.
         h+=`<div class="passage bron-only" data-ci="${i}"><span class="ans-lab"></span><div class="cite-col">`
-          +`<div class="src-card" data-ci="${i}" role="button" tabindex="0" title="Bekijk dit stuk op de bronpagina">`
-            +`<span class="src-badge">${i+1}</span>`
-            +`<span class="src-info">${ICON_DOC}<span class="src-title">${escapeHtml(blok.sourceTitle||"Bron")}</span></span>`
-            +`<span class="src-go">Lees verder op de pagina →</span>`
-          +`</div></div></div>`;
+          +brontegel(r.citations[i]||{},i+1,i)+`</div></div>`;
         continue;
       }
       h+=`<div class="passage ${blok.verified?'verified':'unverified'}" data-ci="${i}">`
         +`<span class="ans-lab">${lab}</span><div class="cite-col">`
         +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
         +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(r.citations[i])}</div>`
-        +`<div class="src-card" data-ci="${i}" role="button" tabindex="0" title="Bekijk dit stuk op de bronpagina">`
-          +`<span class="src-badge">${n}</span>`
-          +`<span class="src-info">${ICON_DOC}<span class="src-title">${escapeHtml(blok.sourceTitle||"Bron")}</span></span>`
-          +`<span class="src-go">Lees verder op de pagina →</span>`
-        +`</div></div></div>`;
+        +brontegel(r.citations[i]||{},n,i)+`</div></div>`;
     }
   }else{
     h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
@@ -3564,9 +3536,6 @@ function renderResult(turn,r,voorlopig){
     fups.forEach(fu=>{f+=`<li><button class="fup-row" data-q="${escapeHtml(fu)}"><span class="fup-q">${escapeHtml(fu)}</span><span class="fup-plus">${ICON_ARROW}</span></button></li>`;});
     f+=`</ul></div>`;
   }
-  // Alleen tonen als er ook echt geciteerd is. Bij "wij hebben geen informatie" zou een rij
-  // bronnen suggereren dat er tóch iets ligt.
-  if(hasCites&&r.bronnen&&r.bronnen.length)f+=bronBlok(r.bronnen);
   if(!hasCites&&r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   if(hasCites)f+=`<div class="consulted">Bron geraadpleegd op ${consultDate()}</div>`;
   // Bij een tussenstand nog geen kopieerknop en geen duimpjes: het antwoord is niet af, dus
