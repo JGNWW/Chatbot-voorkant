@@ -2093,7 +2093,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 100";
+const APP_VERSION="build 101";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2336,6 +2336,9 @@ async function runQuestion(rawQ,gesproken){
       ?await askAI(q,cands,key,deelvragen,(uit,alineas)=>schrijfLive(turn,uit,alineas))
       :demoAnswer(q,cands);
     const meting=stapKlaar(turn);
+    // Laat de typemachine eerst uitschrijven; anders overschrijft de eindrender de laatste zin
+    // terwijl die nog aan het verschijnen is, en dan springt het toch.
+    await typKlaar();stopTypen();
     renderResult(turn,result);
     if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
     recordTurn(rawQ,result);
@@ -3017,6 +3020,31 @@ function alineaKlopt(tekst,passages){
   if(/€|euro/i.test(tekst)&&!/€|euro/i.test(bron))return false;
   return true;
 }
+// Haalt de alinea's uit een NOG NIET AFGEMAAKTE JSON-stroom. tryRepairJSON knipt terug tot het
+// laatste gesloten haakje, en daardoor verschijnt een alinea pas als hij helemaal af is — dat
+// leest als tekst die in blokken op je scherm springt. Hier lezen we de string-waarde achter
+// elke "tekst" uit, ook als het aanhalingsteken aan het eind nog moet komen.
+function alineasUitStroom(heel){
+  const uit=[];const re=/"tekst"\s*:\s*"/g;let m;
+  while((m=re.exec(heel))){
+    let i=m.index+m[0].length,esc=false,ruw="";
+    for(;i<heel.length;i++){
+      const ch=heel[i];
+      if(esc){ruw+=ch;esc=false;continue;}
+      if(ch==="\\"){ruw+=ch;esc=true;continue;}
+      if(ch==='"')break;
+      ruw+=ch;
+    }
+    // Een halve escape aan het eind ("\" of "\u00e") maakt JSON.parse stuk; die knippen we weg
+    // tot het volgende brokje hem afmaakt.
+    let t=ruw.replace(/\\$/,"").replace(/\\u[0-9a-fA-F]{0,3}$/,"");
+    try{t=JSON.parse('"'+t+'"');}catch(e){/* laat de ruwe tekst staan */}
+    const schoon=t.trim();
+    if(schoon)uit.push(schoon);
+    re.lastIndex=i;
+  }
+  return uit;
+}
 async function schrijfAntwoord(q,citations,key,onAlineas){
   const lijst=citations.map((c,i)=>"["+(i+1)+"] "+c.text).join("\n\n");
   let j;
@@ -3029,9 +3057,7 @@ async function schrijfAntwoord(q,citations,key,onAlineas){
     if(onAlineas){
       let vorig="";
       onDelta=(heel)=>{
-        const half=tryRepairJSON(heel);
-        const rij=(half&&Array.isArray(half.alineas)?half.alineas:[])
-          .map(a=>((a&&a.tekst)||"").toString().trim()).filter(Boolean);
+        const rij=alineasUitStroom(heel);
         const nu=rij.join("\u0000");
         if(nu===vorig)return;
         vorig=nu;onAlineas(rij);
@@ -3239,6 +3265,50 @@ function toonStappen(turn,m){
 // ---- Het generatieve antwoord zien ontstaan --------------------------------------------------
 // Eén keer het hele blok neerzetten (mét de citaten eronder), daarna alleen nog de alinea's in
 // .ans-gen bijwerken. Niet opnieuw renderen: dan springt alles wat eronder staat elke keer mee.
+// De tekst komt in brokjes van het netwerk — soms tientallen tekens tegelijk. Die meteen
+// neerzetten geeft schokken. Deze typemachine houdt bij wat er BINNEN is en onthult dat met een
+// vaste hand, sneller naarmate er meer klaarstaat, zodat hij nooit ver achterloopt.
+let TYPER=null;
+const TYP_MIN=2;        // minstens zoveel tekens per beeldopbouw, anders kruipt het
+const TYP_DEEL=10;      // en verder een tiende van de achterstand: haalt hem in ~10 frames in
+function stopTypen(){if(TYPER&&TYPER.raf)cancelAnimationFrame(TYPER.raf);TYPER=null;}
+function typRonde(){
+  if(!TYPER)return;
+  const {vak,doel}=TYPER;
+  if(!vak.isConnected){stopTypen();return;}
+  let achter=0;
+  for(let i=0;i<doel.length;i++){
+    const p=TYPER.pp[i]||(TYPER.pp[i]=(()=>{const e=document.createElement("p");e.className="gen-p";vak.appendChild(e);return e;})());
+    const heel=doel[i],nu=TYPER.getoond[i]||0;
+    if(nu>=heel.length){if(p.textContent!==heel)p.textContent=heel;continue;}
+    const stap=Math.max(TYP_MIN,Math.ceil((heel.length-nu)/TYP_DEEL));
+    const tot=Math.min(heel.length,nu+stap);
+    TYPER.getoond[i]=tot;p.textContent=heel.slice(0,tot);
+    achter+=heel.length-tot;
+  }
+  // Alinea's die zijn weggevallen (het model herschreef) hier ook weghalen.
+  for(let i=doel.length;i<TYPER.pp.length;i++)if(TYPER.pp[i]){TYPER.pp[i].remove();TYPER.pp[i]=null;}
+  TYPER.pp.length=doel.length;
+  if(achter||!TYPER.klaar)TYPER.raf=requestAnimationFrame(typRonde);
+  else TYPER.raf=null;
+}
+// Wachten tot de typemachine de achterstand heeft ingelopen. Zonder dit vervangt de eindrender
+// het blok terwijl de laatste zin nog aan het verschijnen is, en dan springt het tóch.
+// Met een harde grens van vier seconden: liever een sprongetje dan een scherm dat blijft hangen.
+function typKlaar(){
+  if(!TYPER)return Promise.resolve();
+  TYPER.klaar=true;
+  if(!TYPER.raf)TYPER.raf=requestAnimationFrame(typRonde);
+  return new Promise(res=>{
+    const t0=performance.now();
+    const kijk=()=>{
+      if(!TYPER||performance.now()-t0>4000)return res();
+      if(!TYPER.doel.some((t,i)=>(TYPER.getoond[i]||0)<t.length))return res();
+      requestAnimationFrame(kijk);
+    };
+    requestAnimationFrame(kijk);
+  });
+}
 function schrijfLive(turn,uit,alineas){
   let vak=turn.querySelector(".ans-gen");
   if(!vak){
@@ -3247,14 +3317,20 @@ function schrijfLive(turn,uit,alineas){
     renderResult(turn,Object.assign({},uit,{generatief:[{tekst:"",bronnen:[]}]}),true);
     vak=turn.querySelector(".ans-gen");
     if(!vak)return;
+    stopTypen();
   }
-  const oud=vak.querySelectorAll(".gen-p");
-  // Bestaande alinea's bijwerken, nieuwe erbij. Zo blijft de tekst staan waar hij staat.
-  alineas.forEach((t,i)=>{
-    if(oud[i]){if(oud[i].textContent!==t)oud[i].textContent=t;return;}
-    const p=document.createElement("p");p.className="gen-p";p.textContent=t;vak.appendChild(p);
-  });
-  for(let i=alineas.length;i<oud.length;i++)oud[i].remove();
+  if(!TYPER||TYPER.vak!==vak){
+    stopTypen();
+    TYPER={vak,doel:[],getoond:[],pp:[...vak.querySelectorAll(".gen-p")],klaar:false,raf:null};
+    // De lege plaatshouder uit de eerste render hergebruiken in plaats van er een naast te zetten.
+    TYPER.pp.forEach(p=>{p.textContent="";});
+  }
+  TYPER.doel=alineas;
+  // Wie beweging op het scherm vermijdt, krijgt de tekst gewoon in een keer.
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches){
+    TYPER.getoond=alineas.map(t=>t.length);
+  }
+  if(!TYPER.raf)TYPER.raf=requestAnimationFrame(typRonde);
 }
 function renderResult(turn,r,voorlopig){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
