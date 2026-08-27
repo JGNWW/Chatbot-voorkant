@@ -467,7 +467,7 @@ Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
 
 GEEN ANTWOORD OP DE PAGINA'S? Dat is een geldige uitkomst en geen mislukking. Verzin dan NIETS: laat "citations", "clarifications" en "followups" LEEG en zet in "note" exact deze zin, zonder er iets aan te veranderen:
 "Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner."
-Je mag daar hoogstens één korte zin aan toevoegen die zegt WAAROM (bijvoorbeeld dat het onderwerp bij een andere instantie hoort). Schrijf nooit een eigen antwoord uit je eigen kennis, en verwijs niet naar een pagina die de vraag niet beantwoordt. Dit geldt ook als je er BIJNA iets over vindt: half passende informatie is voor een voorlichter aan de telefoon erger dan geen informatie.`;
+Zet er NIETS bij: geen toelichting, geen uitleg waarom, geen verwijzing naar een pagina die de vraag niet beantwoordt. Alleen die ene zin. Schrijf ook nooit een eigen antwoord uit je eigen kennis. Dit geldt ook als je er BIJNA iets over vindt: half passende informatie is voor een voorlichter aan de telefoon erger dan geen informatie.`;
 
 // Dezelfde opdracht, maar kort. Een lokaal model in de browser moet elk woord van de prompt eerst
 // dóórrekenen voordat het één letter schrijft; de uitgebreide versie hierboven is alleen al 2.950
@@ -1860,7 +1860,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 93";
+const APP_VERSION="build 94";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2021,7 +2021,7 @@ async function runQuestion(rawQ,gesproken){
     stap(turn,"Pagina's zoeken");stapModel(turn);
     if(!pre.inScope){                                           // buiten het domein -> niet zoeken
       logMiss(rawQ,"buiten-domein");
-      const nores={restated_question:q,citations:[],note:GEEN_INFO+" Deze vraag valt buiten NederlandWereldwijd, dat gaat over Nederlandse overheidszaken voor burgers in of naar het buitenland.",used:[],related:[],clarifications:[],followups:[]};
+      const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[],clarifications:[],followups:[]};
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }
     let broad;
@@ -2048,7 +2048,7 @@ async function runQuestion(rawQ,gesproken){
     if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
     else if(picked.length===0){                                 // niets past echt -> lage confidence
       logMiss(rawQ,"geen-passende-pagina");
-      const nores={restated_question:q,citations:[],note:GEEN_INFO+" Controleer eventueel zelf op nederlandwereldwijd.nl, of stel de vraag specifieker.",used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],followups:[]};
+      const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],followups:[]};
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }else cands=picked;
     cands=forceProduct(rawQ+" "+q,cands);   // genoemde vakterm hoort bovenaan
