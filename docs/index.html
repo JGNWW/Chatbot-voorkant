@@ -133,10 +133,23 @@ body.is-welcome .empty{margin-top:0;}
 .intro{font-size:.95rem;color:var(--ink);margin:0;line-height:1.55;}
 /* Volledig generatief antwoord: oker streepje, want dit is GEEN letterlijke tekst. De
    nummertjes openen dezelfde bronviewer als een citaat, met de passage gemarkeerd. */
-.ans-gen{border-left:3px solid #d9bd6a;padding:3px 0 3px 15px;min-width:0;}
+/* Geen streepje en geen linkergoot in de generatieve modus: het label erboven zegt al dat de
+   tekst door AI is geschreven, en zonder die 34px + 18px houdt de tekst ruim vijftig pixels
+   meer breedte over. */
+.ans-row.gen{grid-template-columns:1fr;}
+.ans-row.gen .ans-lab{display:none;}
+.ans-gen{padding:3px 0;min-width:0;}
 .gen-label{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a6d15;background:#fdf8ec;border:1px solid #ecdcae;border-radius:5px;padding:2px 7px;margin:0 0 8px;}
 .gen-p{font-size:.97rem;line-height:1.62;margin:0 0 10px;}
 .gen-p:last-child{margin-bottom:2px;}
+/* Bronnen onder een generatief antwoord: twee per regel, zodat vier bronnen twee regels beslaan
+   in plaats van vier. Onder de 560px past er maar een naast elkaar. */
+.bronrooster{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:12px;}
+@media (max-width:560px){.bronrooster{grid-template-columns:1fr;}}
+.bronrooster .bronvak{min-width:0;}
+.bronrooster .src-card{margin:0;max-width:100%;width:100%;}
+.bronrooster .src-card .src-title{max-width:none;}
+.bronrooster .bronkaart{left:0;}
 .cite-chip{font-size:.68rem;font-weight:700;vertical-align:super;line-height:1;background:var(--blauw-bg);color:var(--rijk-licht);border:1px solid var(--blauw-licht);border-radius:5px;padding:1px 5px;margin:0 1px;cursor:pointer;font-family:inherit;transition:background .12s,color .12s;}
 .cite-chip:hover{background:var(--rijk-licht);color:#fff;border-color:var(--rijk-licht);}
 .passage.bron-only{margin-top:2px;}
@@ -2142,7 +2155,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 104";
+const APP_VERSION="build 105";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3479,6 +3492,7 @@ function renderResult(turn,r,voorlopig){
     // alleen de eerste keer een label (AI / NWW). Zo lees je van boven naar beneden af wie
     // wat zegt, zonder dat het uiteenvalt in losse blokken.
     let eersteAI=true,eersteCit=true;
+    const bronTegels=[];
     // Demo-modus levert geen AI-tekst; toon dan de vraag als context, anders begint het
     // antwoord zonder aanloop.
     if(!r.intro&&!r.citations.some(c=>c.bridge))h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
@@ -3489,7 +3503,7 @@ function renderResult(turn,r,voorlopig){
           const chips=a.bronnen.map(n=>`<button type="button" class="cite-chip" data-ci="${n-1}" title="Bekijk de passage op de bronpagina">${n}</button>`).join("");
           return `<p class="gen-p">${escapeHtml(a.tekst)} ${chips}</p>`;
         }).join("");
-        h+=`<div class="ans-row"><span class="ans-lab">${lab}</span><div class="ans-gen">`
+        h+=`<div class="ans-row gen"><span class="ans-lab">${lab}</span><div class="ans-gen">`
           +`<span class="gen-label">door AI geschreven op basis van de bronnen hieronder</span>${alineas}</div></div>`;
         continue;
       }
@@ -3502,9 +3516,10 @@ function renderResult(turn,r,voorlopig){
       const i=blok.ci,n=num[blok.sourceUrl]||(i+1);
       const lab=eersteCit?"NWW":"";eersteCit=false;
       if(blok.alleenBron){
-        // Generatieve modus: alleen de bronkaart, genummerd zoals in de tekst.
-        h+=`<div class="passage bron-only" data-ci="${i}"><span class="ans-lab"></span><div class="cite-col">`
-          +brontegel(r.citations[i]||{},i+1,i)+`</div></div>`;
+        // Generatieve modus: de bronnen in één rooster van twee kolommen, genummerd zoals de
+        // cijfers in de tekst. Ze worden hier verzameld en na de lus in één keer neergezet;
+        // los onder elkaar kost vier bronnen vier regels in plaats van twee.
+        bronTegels.push(brontegel(r.citations[i]||{},i+1,i));
         continue;
       }
       h+=`<div class="passage ${blok.verified?'verified':'unverified'}" data-ci="${i}">`
@@ -3513,6 +3528,7 @@ function renderResult(turn,r,voorlopig){
         +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(r.citations[i])}</div>`
         +brontegel(r.citations[i]||{},n,i)+`</div></div>`;
     }
+    if(bronTegels.length)h+=`<div class="bronrooster">${bronTegels.join("")}</div>`;
   }else{
     h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
     // Zonder citaat is de melding HET antwoord, dus die staat hier — niet ook nog eens in een
