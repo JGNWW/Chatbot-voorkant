@@ -465,7 +465,9 @@ Stel een antwoord samen dat bestaat uit:
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
 {"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"bridge":"<korte overbruggende zin naar dit citaat>","quote":"<de passage letterlijk>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat de voorlichter uitvraagt>","prefill":"<begin van het antwoord in de ik-vorm, eindigend op een spatie>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
 
-Als geen van de pagina's de vraag beantwoordt: laat "citations" leeg en leg dat uit in "note".`;
+GEEN ANTWOORD OP DE PAGINA'S? Dat is een geldige uitkomst en geen mislukking. Verzin dan NIETS: laat "citations", "clarifications" en "followups" LEEG en zet in "note" exact deze zin, zonder er iets aan te veranderen:
+"Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner."
+Je mag daar hoogstens één korte zin aan toevoegen die zegt WAAROM (bijvoorbeeld dat het onderwerp bij een andere instantie hoort). Schrijf nooit een eigen antwoord uit je eigen kennis, en verwijs niet naar een pagina die de vraag niet beantwoordt. Dit geldt ook als je er BIJNA iets over vindt: half passende informatie is voor een voorlichter aan de telefoon erger dan geen informatie.`;
 
 // Dezelfde opdracht, maar kort. Een lokaal model in de browser moet elk woord van de prompt eerst
 // dóórrekenen voordat het één letter schrijft; de uitgebreide versie hierboven is alleen al 2.950
@@ -490,7 +492,9 @@ Regels:
 Antwoord UITSLUITEND met JSON:
 {"restated_question":"","intro":"","citations":[{"source_index":0,"bridge":"","quote":"","start":"","end":""}],"clarifications":[{"question":"","prefill":""}],"followups":[""],"related_indices":[],"note":""}
 
-Beantwoordt geen enkele pagina de vraag, laat "citations" dan leeg en leg dat uit in "note".`;
+Beantwoordt geen enkele pagina de vraag, laat "citations" dan leeg en zet in "note" exact deze zin:
+"Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner."
+Verzin dan geen antwoord uit je eigen kennis.`;
 
 // Herschrijft een (mogelijk elliptische) vervolgvraag tot een zelfstandige vraag, met gesprekscontext.
 const CONDENSE_SYSTEM=`Je krijgt de samenvatting van een lopend gesprek tussen een voorlichter en een AI over overheidsvragen, plus een nieuwe vraag. Herschrijf de NIEUWE vraag tot één zelfstandige, op zichzelf staande vraag die ook zonder de context te begrijpen is (vul ontbrekend onderwerp aan uit de context). Betreft de nieuwe vraag duidelijk een nieuw onderwerp, geef hem dan vrijwel ongewijzigd terug. Antwoord UITSLUITEND met JSON: {"standalone_question":"<de zelfstandige vraag>"}`;
@@ -537,6 +541,10 @@ Regels:
 - Begin niet met een herhaling van de vraag; begin met het antwoord.
 - Neem VAKTERMEN letterlijk over ("inreisvisum" is iets anders dan "Schengenvisum").
 - Hangt het antwoord af van de situatie (land, eerste aanvraag of verlenging, volwassene of kind), zeg dat dan met zoveel woorden in plaats van één situatie te kiezen.
+
+- Staat het antwoord NIET in de passages, schrijf dan geen antwoord bij elkaar. Geef in dat geval precies één alinea met exact deze tekst, zonder bronnen:
+"Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner."
+  Dat geldt ook als de passages er in de buurt komen: liever geen antwoord dan een antwoord dat net naast de vraag zit.
 
 Antwoord UITSLUITEND met JSON: {"alineas":[{"tekst":"<alinea>","bronnen":[<passagenummers>]}]}`;
 const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). NOEMT de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille", "attestatie de vita", "laissez-passer"), kies dan ALTIJD de pagina die over JUIST dat product gaat — ook als de vraag uit één woord bestaat. Een losse vakterm is een SPECIFIEKE vraag, geen brede vraag; kies dan dus NIET de algemene overzichtspagina van de rubriek. Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
@@ -1580,6 +1588,11 @@ function buildCitation(text,span,heads,anchors,opts){
 // maar "Woont u in " op en kun je er niets mee; die vraag valt dan af.
 // Ook weg: vragen die in dit domein voor vrijwel iedereen gelden. NederlandWereldwijd gáát over
 // Nederlanders in of naar het buitenland, dus daarnaar vragen splitst niets.
+// De vaste tekst als NederlandWereldwijd het antwoord niet heeft. Eén formulering op één plek,
+// zodat de voorlichter altijd hetzelfde leest — of de vraag nu buiten het domein viel, de
+// zoeker niets vond, of het model op de gevonden pagina's niets bruikbaars zag. De prompts
+// vragen het model dezelfde zin te gebruiken; deze constante is de garantie dat hij er staat.
+const GEEN_INFO="Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner.";
 const LOZE_VRAAG=/^(woont|verblijft|bent) u (in|buiten|momenteel in) het buitenland|^woont u niet in nederland/i;
 // Het model zet een vraag die aan de BELLER gericht is ("Bent u ingeschreven in de RNI?") soms
 // bij de vervolgvragen in plaats van bij de uitvraag. Klikken stelde die vraag dan letterlijk
@@ -1847,7 +1860,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 92";
+const APP_VERSION="build 93";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2008,7 +2021,7 @@ async function runQuestion(rawQ,gesproken){
     stap(turn,"Pagina's zoeken");stapModel(turn);
     if(!pre.inScope){                                           // buiten het domein -> niet zoeken
       logMiss(rawQ,"buiten-domein");
-      const nores={restated_question:q,citations:[],note:"Deze vraag valt buiten NederlandWereldwijd (Nederlandse overheidszaken voor burgers in of naar het buitenland). Verwijs de burger zo nodig naar de juiste instantie.",used:[],related:[],clarifications:[],followups:[]};
+      const nores={restated_question:q,citations:[],note:GEEN_INFO+" Deze vraag valt buiten NederlandWereldwijd, dat gaat over Nederlandse overheidszaken voor burgers in of naar het buitenland.",used:[],related:[],clarifications:[],followups:[]};
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }
     let broad;
@@ -2035,7 +2048,7 @@ async function runQuestion(rawQ,gesproken){
     if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
     else if(picked.length===0){                                 // niets past echt -> lage confidence
       logMiss(rawQ,"geen-passende-pagina");
-      const nores={restated_question:q,citations:[],note:"Ik vond geen pagina die deze vraag duidelijk beantwoordt. Controleer op nederlandwereldwijd.nl of stel de vraag specifieker.",used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],followups:[]};
+      const nores={restated_question:q,citations:[],note:GEEN_INFO+" Controleer eventueel zelf op nederlandwereldwijd.nl, of stel de vraag specifieker.",used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],followups:[]};
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }else cands=picked;
     cands=forceProduct(rawQ+" "+q,cands);   // genoemde vakterm hoort bovenaan
@@ -2043,7 +2056,7 @@ async function runQuestion(rawQ,gesproken){
     q=await condenseQuestion(rawQ);
     cands=await rankFor(q);
   }
-  if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:"Geen passende pagina gevonden voor deze vraag.",used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
+  if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
   try{
     stap(turn,"Antwoord opstellen");
     const result=ai?await askAI(q,cands,key,deelvragen):demoAnswer(q,cands);
@@ -2659,7 +2672,7 @@ async function askAI(q,cands,key,subs){
       note="De passage kon niet exact op de bronpagina worden teruggevonden. Bekijk de bron hieronder.";
     }else{
       // Het model vond niets relevants op de pagina's: alleen 'Geen antwoord gevonden'.
-      related=[];clarifications=[];followups=[];note="";
+      related=[];clarifications=[];followups=[];note=GEEN_INFO;
     }
   }
   // Intro: korte herformulering van de informatiebehoefte; alleen tonen als er een citaat is.
@@ -2712,6 +2725,10 @@ async function schrijfAntwoord(q,citations,key){
     if(!tekst)continue;
     const bronnen=[...new Set((Array.isArray(a.bronnen)?a.bronnen:[])
       .map(n=>parseInt(n,10)).filter(n=>n>=1&&n<=citations.length))];
+    // "Wij hebben geen informatie" is het ENIGE wat zonder bron mag: dat is nu juist een uitspraak
+    // over het ONTBREKEN van een bron. Zonder deze uitzondering gooit de vangrail hem weg en
+    // valt de app terug op de letterlijke citaten die het model net onvoldoende vond.
+    if(tekst===GEEN_INFO)return [{tekst,bronnen:[]}];
     if(!bronnen.length){
       afgevallen.push({reden:"geen bron",tekst});
       console.warn("alinea zonder bron, valt af:",tekst.slice(0,60));continue;
