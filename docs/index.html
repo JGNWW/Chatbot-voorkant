@@ -208,6 +208,7 @@ body.is-welcome .empty{margin-top:0;}
 .src-live:hover{color:var(--rijk-licht);}
 ol.srclist{margin:4px 0 0;padding-left:20px;}
 ol.srclist li{margin:2px 0;}
+.genherstel{font-size:.8rem;color:var(--ink-licht);margin:8px 0 0;}
 .genweg{font-size:.82rem;color:var(--ink-licht);background:var(--grijs);border-radius:8px;padding:8px 11px;margin:10px 0;}
 .note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
 .no-answer{color:#666;margin-bottom:12px;}
@@ -588,7 +589,7 @@ const GENERATIEF_SYSTEM=`Je krijgt de vraag van een voorlichter van NederlandWer
 Regels:
 - Gebruik UITSLUITEND wat in de passages staat. Voeg geen kennis van buitenaf toe, ook niet als je het zeker weet.
 - Elke alinea MOET verwijzen naar minstens één passage. Een alinea zonder bron wordt weggegooid.
-- Neem bedragen, termijnen, jaartallen en aantallen exact over uit de passage waarnaar je verwijst. Noem geen getal dat daar niet in staat.
+- Neem bedragen, termijnen, jaartallen en aantallen TEKEN VOOR TEKEN over uit de passage waarnaar je verwijst: dezelfde cijfers, dezelfde komma of punt, dezelfde schrijfwijze. Reken niets om en rond niets af. Staat het getal dat je nodig hebt niet in de passage, noem dan geen getal.
 - Schrijf 1 tot 4 korte alinea's, in de volgorde die de vraag het beste beantwoordt. Geen kopjes, geen opsommingstekens.
 - Begin niet met een herhaling van de vraag; begin met het antwoord.
 - Neem VAKTERMEN letterlijk over ("inreisvisum" is iets anders dan "Schengenvisum").
@@ -2167,7 +2168,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 108";
+const APP_VERSION="build 109";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3168,6 +3169,10 @@ async function askAI(q,cands,key,subs,opGeneratief){
     const live=(STREAM&&kanStreamen()&&opGeneratief)?(alineas)=>opGeneratief(uit,alineas):null;
     uit.generatief=await schrijfAntwoord(q,uit.citations,key,live);
     if(!uit.generatief)uit.genReden=GEN_REDEN||"onbekende reden";
+    else{
+      const echt=(uit.generatief.hersteld||[]).filter(x=>!x.zelfdeWaarde);
+      if(echt.length)uit.genHersteld=echt;
+    }
   }
   return uit;
 }
@@ -3183,10 +3188,92 @@ async function askAI(q,cands,key,subs,opGeneratief){
 // letterlijke weergave: als er niets overblijft, en als de MEERDERHEID sneuvelt — dan volgde het
 // model de opdracht kennelijk niet, en is wat er wel doorkomt ook niet te vertrouwen.
 // Liever een saai antwoord dan een vloeiend antwoord dat niet klopt.
-function getallenIn(t){return (String(t).match(/\d[\d.,]*/g)||[]).map(x=>x.replace(/[.,]$/,""));}
+// Zelfde getal, andere schrijfwijze? "1.234,50" en "1234,50" en "1 234,50" zijn hetzelfde bedrag.
+// Duizendtallen eruit, decimaalteken op een punt: wat overblijft is te vergelijken.
+function getalCanon(g){
+  let s=String(g).replace(/\s/g,"");
+  if(/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s))s=s.replace(/\./g,"");        // 1.234,50
+  else if(/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s))s=s.replace(/,/g,"");    // 1,234.50
+  s=s.replace(",",".").replace(/\.$/,"");
+  return /^\d+(\.\d+)?$/.test(s)?String(parseFloat(s)):s;
+}
+// Waar slaat een getal op? Een bedrag, een aantal dagen, een jaartal. Zonder die eenheid mag een
+// getal nooit vervangen worden: "75 euro" en "10 jaar" zijn allebei getallen, maar niet elkaars
+// tegenhanger, en zomaar ruilen zou van een geldigheidsduur een prijs maken.
+const EENHEDEN={jaar:"jaar",jaren:"jaar",maand:"maand",maanden:"maand",week:"week",weken:"week",
+  dag:"dag",dagen:"dag",werkdag:"dag",werkdagen:"dag",kalenderdagen:"dag",uur:"uur",uren:"uur",
+  minuut:"minuut",minuten:"minuut",keer:"keer",maal:"keer",procent:"procent",pagina:"pagina",
+  pagina_s:"pagina",maanden_:"maand"};
+function eenheidVan(t,i,ruw){
+  const voor=t.slice(Math.max(0,i-8),i);
+  const na=t.slice(i+ruw.length,i+ruw.length+16);
+  if(/[€]\s*$/.test(voor)||/^\s*(euro|eur\b)/i.test(na))return "euro";
+  if(/^\s*%/.test(na))return "procent";
+  const w=(na.toLowerCase().match(/^[\s.,-]*([a-zà-ÿ]+)/)||[])[1];
+  if(w&&EENHEDEN[w])return EENHEDEN[w];
+  // Een los viercijferig getal in een geloofwaardig bereik is een jaartal. Dat is de tweede
+  // categorie die een model uit zichzelf verkeerd opschrijft ("sinds 2024" terwijl er 2023 staat).
+  if(/^\d{4}$/.test(ruw)&&+ruw>=1900&&+ruw<=2100)return "jaartal";
+  return null;
+}
+function getalPlekken(t){
+  const uit=[];const re=/\d[\d.,]*/g;let m;
+  while((m=re.exec(t))){
+    const ruw=m[0].replace(/[.,]+$/,"");
+    if(ruw)uit.push({ruw,i:m.index,eenheid:eenheidVan(t,m.index,ruw)});
+  }
+  return uit;
+}
+// Getallen LETTERLIJK maken in plaats van de alinea weggooien.
+//
+// Een heel geslaagd antwoord sneuvelde op één getal dat het model net anders opschreef. Dat is
+// zonde, en meestal niet eens een inhoudelijke fout: "83.85" tegenover "83,85", of een bedrag dat
+// het model omrekende. In plaats van afkeuren zetten we het getal terug op de schrijfwijze van de
+// bron. Twee gevallen, allebei met dezelfde garantie — wat op het scherm komt STAAT in de bron:
+//   1. hetzelfde getal, andere notatie -> overschrijven met de notatie van de bron;
+//   2. het getal heeft een eenheid (euro, dagen, jaartal, ...) en de aangehaalde passage bevat
+//      precies ÉÉN getal met diezelfde eenheid -> dat is het getal dat bedoeld werd.
+// Staan er meerdere kandidaten met dezelfde eenheid, of is er geen eenheid, dan is het gokken:
+// dan blijft het bij afkeuren, want een verkeerd bedrag tonen is erger dan geen bedrag tonen.
+function herstelGetallen(tekst,passages){
+  const bronGet=getalPlekken(passages.join(" "));
+  let uit="",laatst=0;const hersteld=[];
+  for(const g of getalPlekken(tekst)){
+    // Staat het getal er teken voor teken zo in? Dan is er niets te doen.
+    if(bronGet.some(x=>x.ruw===g.ruw))continue;
+    let naar=null;
+    const zelfde=bronGet.find(x=>getalCanon(x.ruw)===getalCanon(g.ruw));
+    if(zelfde)naar=zelfde.ruw;
+    if(!naar&&g.eenheid){
+      const kand=[...new Set(bronGet.filter(x=>x.eenheid===g.eenheid).map(x=>x.ruw))];
+      if(kand.length===1)naar=kand[0];
+    }
+    if(!naar||naar===g.ruw)continue;
+    uit+=tekst.slice(laatst,g.i)+naar;laatst=g.i+g.ruw.length;
+    // Alleen een andere schrijfwijze (83.85 tegenover 83,85) verandert niets aan de inhoud en
+    // hoeft de voorlichter dus ook niet gemeld te worden; een ander GETAL wel.
+    hersteld.push({van:g.ruw,naar,zelfdeWaarde:getalCanon(g.ruw)===getalCanon(naar)});
+  }
+  return {tekst:uit+tekst.slice(laatst),hersteld};
+}
+// Welk getal klopt er niet? alineaKlopt geeft alleen ja/nee; voor de melding op het scherm wil je
+// weten WELK getal het model erbij verzon — dan kan de voorlichter het zelf natrekken.
+// Staat dit getal in de bron? Niet als losse tekenreeks — dan telt de "5" uit "55,45" mee en
+// glipt een verzonnen "5 jaar" er zo doorheen — maar als GETAL, los van de schrijfwijze.
+function getalInBron(g,bronGet){
+  const c=getalCanon(g);
+  return bronGet.some(x=>getalCanon(x.ruw)===c);
+}
+function vreemdGetal(tekst,passages){
+  const bron=passages.join(" ").toLowerCase(),bronGet=getalPlekken(passages.join(" "));
+  for(const g of getalPlekken(tekst))if(!getalInBron(g.ruw,bronGet))return g.ruw;
+  const bedrag=/(?:€\s*\d[\d.,]*|\d[\d.,]*\s*euro)/i.exec(tekst);
+  if(bedrag&&!/€|euro/i.test(bron))return bedrag[0].trim();
+  return null;
+}
 function alineaKlopt(tekst,passages){
-  const bron=passages.join(" ").toLowerCase();
-  for(const g of getallenIn(tekst))if(!bron.includes(g.toLowerCase()))return false;
+  const bron=passages.join(" ").toLowerCase(),bronGet=getalPlekken(passages.join(" "));
+  for(const g of getalPlekken(tekst))if(!getalInBron(g.ruw,bronGet))return false;
   // Een BEDRAG verzinnen mag niet. Het woord "euro" gebruiken zonder bedrag verzint niets, en
   // die oude regel sloeg juist bij kostenvragen toe: staat er in de bron "Wat u betaalt, hangt af
   // van waar u de aanvraag doet", dan is "wat u in euro's betaalt hangt af van het land" een
@@ -3225,6 +3312,26 @@ function alineasUitStroom(heel){
 // voorlichter een gewoon letterlijk antwoord en had geen idee dat er iets was afgekeurd — precies
 // de verwarring die "hij doet het niet altijd" oplevert.
 let GEN_REDEN="";
+// Eén leesbare zin van alle afkeuringen samen, in plaats van dezelfde reden drie keer herhaald.
+function redenTekst(afgevallen){
+  const getallen=[...new Set(afgevallen.filter(x=>x.soort==="getal"&&x.waarde).map(x=>x.waarde))];
+  const zonderGetal=afgevallen.some(x=>x.soort==="getal"&&!x.waarde);
+  const zonderBron=afgevallen.some(x=>x.soort==="geenbron");
+  const delen=[];
+  if(getallen.length)delen.push("de AI noemde "+(getallen.length===1?"het getal ":"de getallen ")
+    +(getallen.length>1?getallen.slice(0,-1).join(", ")+" en "+getallen[getallen.length-1]:getallen[0])
+    +", die niet in de aangehaalde passage "+(getallen.length===1?"staat":"staan"));
+  else if(zonderGetal)delen.push("de AI noemde een getal dat niet in de aangehaalde passage staat");
+  if(zonderBron)delen.push("een alinea had geen bronverwijzing");
+  return delen.join("; ")||"onbekende reden";
+}
+// Wat er is rechtgezet, in één regel. De voorlichter hoort te zien dat het getal op zijn scherm
+// niet is wat de AI schreef, maar wat er in de bron staat — anders is het stille correctie.
+function herstelTekst(hersteld){
+  const uniek=[...new Map(hersteld.map(x=>[x.van+"|"+x.naar,x])).values()];
+  return (uniek.length===1?"Eén getal is ":uniek.length+" getallen zijn ")
+    +"gelijkgetrokken met de bron: "+uniek.map(x=>x.van+" \u2192 "+x.naar).join(", ")+".";
+}
 async function schrijfAntwoord(q,citations,key,onAlineas){
   GEN_REDEN="";
   const lijst=citations.map((c,i)=>"["+(i+1)+"] "+c.text).join("\n\n");
@@ -3253,7 +3360,7 @@ async function schrijfAntwoord(q,citations,key,onAlineas){
     return null;
   }
   const ruw=Array.isArray(j&&j.alineas)?j.alineas:[];
-  const alineas=[];const afgevallen=[];
+  const alineas=[];const afgevallen=[];const hersteld=[];
   for(const a of ruw){
     const tekst=((a&&a.tekst)||"").toString().trim().replace(/\s+/g," ");
     if(!tekst)continue;
@@ -3264,34 +3371,38 @@ async function schrijfAntwoord(q,citations,key,onAlineas){
     // valt de app terug op de letterlijke citaten die het model net onvoldoende vond.
     if(tekst===GEEN_INFO)return [{tekst,bronnen:[]}];
     if(!bronnen.length){
-      afgevallen.push({reden:"geen bron",tekst});
+      afgevallen.push({soort:"geenbron",tekst});
       console.warn("alinea zonder bron, valt af:",tekst.slice(0,60));continue;
     }
-    if(!alineaKlopt(tekst,bronnen.map(n=>citations[n-1].text))){
-      afgevallen.push({reden:"getal niet in de bron",tekst});
-      console.warn("alinea noemt een getal dat niet in de bron staat:",tekst.slice(0,80));continue;
+    const passages=bronnen.map(n=>citations[n-1].text);
+    // Eerst herstellen, dan pas keuren. Een alinea weggooien om één getal is zonde; het getal
+    // terugzetten op wat er in de bron staat kost niets en houdt dezelfde garantie overeind.
+    const hs=herstelGetallen(tekst,passages);
+    let def=hs.tekst;
+    if(hs.hersteld.length)hersteld.push(...hs.hersteld);
+    // De vangrail blijft het laatste woord: wat niet te herstellen viel, gaat er alsnog uit.
+    if(!alineaKlopt(def,passages)){
+      const g=vreemdGetal(def,passages);
+      afgevallen.push({soort:"getal",waarde:g,tekst:def});
+      console.warn("alinea noemt een getal dat niet in de bron staat:",def.slice(0,80));continue;
     }
-    alineas.push({tekst,bronnen});
+    alineas.push({tekst:def,bronnen});
   }
   if(!alineas.length){
-    if(!ruw.length)GEN_REDEN="het model leverde geen alinea's";
-    else{
-      const redenen=[...new Set(afgevallen.map(x=>x.reden))].join(" en ");
-      GEN_REDEN="alle "+afgevallen.length+" alinea's afgekeurd ("+redenen+")";
-    }
+    GEN_REDEN=ruw.length?(afgevallen.length===1?"De enige alinea is afgekeurd: ":"Alle "+afgevallen.length+" alinea's zijn afgekeurd: ")+redenTekst(afgevallen)
+      :"het model leverde geen alinea's";
     console.warn("generatief antwoord volledig afgekeurd:",GEN_REDEN);
     return null;
   }
   // Meer dan de helft weggevallen: het model hield zich niet aan de opdracht. Dan is de rest
   // ook verdacht, en bovendien blijft er tekst over die naar weggehaalde alinea's verwijst.
   if(afgevallen.length>alineas.length){
-    GEN_REDEN=afgevallen.length+" van de "+(afgevallen.length+alineas.length)+" alinea's afgekeurd ("
-      +[...new Set(afgevallen.map(x=>x.reden))].join(" en ")+")";
+    GEN_REDEN=afgevallen.length+" van de "+(afgevallen.length+alineas.length)+" alinea's zijn afgekeurd: "+redenTekst(afgevallen);
     console.warn("generatief antwoord afgekeurd: "+GEN_REDEN);
     return null;
   }
   // Wat er afviel blijft beschikbaar, zodat het later ook te tonen is.
-  alineas.afgevallen=afgevallen;
+  alineas.afgevallen=afgevallen;alineas.hersteld=hersteld;
   return alineas;
 }
 
@@ -3617,7 +3728,7 @@ function renderResult(turn,r,voorlopig){
           return `<p class="gen-p">${escapeHtml(a.tekst)} ${chips}</p>`;
         }).join("");
         h+=`<div class="ans-row gen"><span class="ans-lab">${lab}</span><div class="ans-gen">`
-          +`<span class="gen-label">door AI geschreven op basis van de bronnen hieronder</span>${alineas}</div></div>`;
+          +`<span class="gen-label">door AI geschreven op basis van de bronnen hieronder</span>${alineas}`+(r.genHersteld&&r.genHersteld.length?`<p class="genherstel">${escapeHtml(herstelTekst(r.genHersteld))}</p>`:"")+`</div></div>`;
         continue;
       }
       if(blok.type==="bridge"){
@@ -3652,7 +3763,7 @@ function renderResult(turn,r,voorlopig){
   }
   // Is het generatieve antwoord afgekeurd, zeg dat dan ook. Anders lijkt het alsof de modus
   // gewoon niet aanstond.
-  if(r.genReden&&hasCites)h+=`<div class="genweg">Volledig generatief antwoord niet getoond: ${escapeHtml(r.genReden)}. Hieronder staat het letterlijke antwoord.</div>`;
+  if(r.genReden&&hasCites)h+=`<div class="genweg"><b>Het door AI geschreven antwoord is niet gebruikt.</b> ${escapeHtml(r.genReden)}. De app toont daarom de letterlijke tekst van de bron, hieronder.</div>`;
   // De losse melding blijft alleen bestaan naast een echt antwoord (bv. "dit antwoord was
   // mogelijk niet volledig" of een onbeantwoord deel van een samengestelde vraag).
   if(hasCites&&r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;

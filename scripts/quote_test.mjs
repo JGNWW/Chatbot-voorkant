@@ -219,8 +219,15 @@ console.log("\nGESPROKEN VRAAG\n");
 // --- volledig generatief antwoord: vangrails ---
 console.log("\nGENERATIEF ANTWOORD\n");
 {
-  const src = fn("getallenIn") + "\n" + fn("alineaKlopt");
-  const G = new Function(src + "\nreturn {alineaKlopt};")();
+  const eenheden = html.slice(html.indexOf("const EENHEDEN={"), html.indexOf("};", html.indexOf("const EENHEDEN={")) + 2);
+  const src = [eenheden, fn("getalCanon"), fn("eenheidVan"), fn("getalPlekken"), fn("getalInBron"),
+               fn("herstelGetallen"), fn("alineaKlopt"), fn("vreemdGetal")].join("\n");
+  const G = new Function(src + "\nreturn {alineaKlopt,herstelGetallen,getalCanon};")();
+  // De app herstelt eerst en keurt daarna; deze hulp doet precies wat schrijfAntwoord doet.
+  const keur = (tekst, passages) => {
+    const def = G.herstelGetallen(tekst, passages).tekst;
+    return G.alineaKlopt(def, passages) ? def : null;
+  };
   test("getal dat in de bron staat mag", () =>
     waar(G.alineaKlopt("De verwerkingstijd is 4 weken.", ["De reguliere verwerkingstijd is 4 weken."])));
   test("getal dat NIET in de bron staat valt af", () =>
@@ -237,6 +244,29 @@ console.log("\nGENERATIEF ANTWOORD\n");
   });
   test("alinea zonder getallen is altijd in orde", () =>
     waar(G.alineaKlopt("U doet aangifte bij de lokale politie.", ["Doe aangifte bij de lokale politie."])));
+  // Losse cijfers uit een groter getal telden vroeger mee als dekking: in "55,45" zit een "5",
+  // dus een verzonnen "5 jaar geldig" kwam er zo doorheen. Nu wordt er op GETAL vergeleken.
+  test("cijfer uit een ander getal dekt niets", () =>
+    waar(!G.alineaKlopt("Uw paspoort is 5 jaar geldig.", ["De spoedtoeslag is € 55,45."])));
+
+  const BRON = ["Een paspoort kost € 83,85. Uw paspoort is 10 jaar geldig. Dit tarief geldt sinds 2023."];
+  test("andere schrijfwijze wordt gelijkgetrokken, niet weggegooid", () => {
+    eq(keur("Een paspoort kost 83.85 euro.", BRON), "Een paspoort kost 83,85 euro.", "punt werd komma");
+    eq(G.getalCanon("1.234,50"), G.getalCanon("1234,50"), "duizendtallen tellen niet mee");
+  });
+  test("eenheid komt maar één keer voor: het getal van de bron wint", () => {
+    eq(keur("Uw paspoort is 5 jaar geldig.", BRON), "Uw paspoort is 10 jaar geldig.");
+    eq(keur("Dit tarief geldt sinds 2024.", BRON), "Dit tarief geldt sinds 2023.", "jaartal");
+  });
+  test("twee bedragen in de bron: niet gokken, wel afkeuren", () =>
+    eq(keur("Een paspoort kost € 90,00.", ["Een paspoort kost € 83,85. De spoedtoeslag is € 55,45."]), null));
+  test("getal zonder eenheid wordt niet vervangen", () =>
+    eq(keur("U heeft 7 nodig.", ["U heeft 3 nodig."]), null));
+  test("herstel raakt de rest van de zin niet", () => {
+    const r = G.herstelGetallen("U betaalt 83.85 en wacht 5 jaar.", BRON);
+    eq(r.tekst, "U betaalt 83,85 en wacht 10 jaar.");
+    eq(r.hersteld.length, 2);
+  });
 }
 
 // --- weergave ---
