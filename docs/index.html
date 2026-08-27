@@ -1143,7 +1143,7 @@ try{TURBO=localStorage.getItem("vk_turbo")==="1";}catch(e){}
 let TIDX=null;
 async function laadTurboIndex(){
   try{
-    const r=await fetch("data/bm25.bin");
+    const r=await haalData("data/bm25.bin");
     if(!r.ok)return false;
     const buf=await r.arrayBuffer();
     const dv=new DataView(buf);
@@ -1175,6 +1175,93 @@ async function laadTurboIndex(){
     TIDX={pages,terms,id,ptr,postDoc,postTf,score:new Float64Array(pages)};
     return true;
   }catch(e){console.warn("turbo-index laden mislukt:",e);return false;}
+}
+
+// ---- Turbo: gegevens uit de browsercache -----------------------------------------------------
+// GitHub Pages stuurt cache-control: max-age=600. Na tien minuten haalt de browser corpus en
+// embeddings dus opnieuw op — 6,6 MB, telkens weer. Die headers kunnen we niet aanpassen, maar
+// we kunnen de bestanden zelf bewaren in de Cache Storage van de browser.
+//
+// RISICO EN VANGNET: verouderde brontekst is bij een overheidsdienst een echt probleem — dan
+// leest een voorlichter een tarief voor dat niet meer klopt. Daarom cache-first voor de snelheid,
+// maar direct daarna een controle op de ETag. Is er een nieuwe versie, dan wordt die binnengehaald
+// en verschijnt er een melding dat herladen nodig is. Stil verouderen mag niet.
+const TURBO_CACHE="leo-data-v1";
+let NIEUWE_GEGEVENS=false;
+function meldNieuweGegevens(){
+  if(NIEUWE_GEGEVENS)return;NIEUWE_GEGEVENS=true;
+  const el=document.getElementById("semstatus");
+  if(el)el.textContent="nieuwe brongegevens beschikbaar — herlaad de pagina";
+  console.warn("brongegevens zijn vernieuwd op de server; herlaad de pagina");
+}
+async function vernieuwOpAchtergrond(c,url,oud){
+  try{
+    const kop=await fetch(url,{method:"HEAD",cache:"no-store"});
+    if(!kop.ok)return;
+    const nieuw=kop.headers.get("etag"),was=oud.headers.get("etag");
+    if(!nieuw||!was||nieuw===was)return;
+    const res=await fetch(url,{cache:"no-store"});
+    if(res.ok){await c.put(url,res.clone());meldNieuweGegevens();}
+  }catch(e){}
+}
+async function haalData(url){
+  if(!TURBO||!("caches" in window))return fetch(url);
+  try{
+    const c=await caches.open(TURBO_CACHE);
+    const hit=await c.match(url);
+    if(hit){vernieuwOpAchtergrond(c,url,hit.clone());return hit;}
+    const res=await fetch(url);
+    if(res.ok)await c.put(url,res.clone());
+    return res;
+  }catch(e){return fetch(url);}
+}
+
+// ---- Turbo: corpus in twee delen -------------------------------------------------------------
+// Bij het opstarten is de paginatekst niet nodig: zoeken gaat op de voorgebouwde index, de
+// typeahead op titels, landherkenning op URL's. De tekst (18,8 MB rauw) komt op de achtergrond
+// binnen terwijl de voorlichter zijn vraag typt. Wie sneller is dan de download, wacht er kort op.
+let TEKST_PROMISE=null;
+async function laadCorpusTurbo(){
+  const r=await haalData("data/corpus_lite.json");
+  if(!r.ok)return false;
+  const lite=await r.json();
+  if(!Array.isArray(lite)||!lite.length)return false;
+  CORPUS=lite;
+  return true;
+}
+// Het zware deel pas STARTEN als de app bruikbaar is. Meteen beginnen leek logisch, maar op een
+// bandbreedte-gebonden lijn (gemeten op 10 Mbit) vecht die download van 1,4 MB met de index om
+// dezelfde leiding, en dan duurt het juist LANGER voordat je kunt typen — turbo was zo 1,6
+// seconde trager dan de gewone modus.
+function startTekstDownload(){
+  if(TEKST_PROMISE)return;
+  TEKST_PROMISE=(async()=>{
+    const t=await haalData("data/corpus_text.json");
+    if(!t.ok)throw new Error("corpus_text.json niet gevonden");
+    const zwaar=await t.json();
+    if(zwaar.length!==CORPUS.length)throw new Error("corpus_text hoort niet bij corpus_lite");
+    for(let i=0;i<CORPUS.length;i++){
+      CORPUS[i].text=zwaar[i].text;CORPUS[i].links=zwaar[i].links;CORPUS[i].headings=zwaar[i].headings;
+    }
+  })();
+  // Mislukt het zware deel, dan halen we alsnog het volledige corpus op. Liever een trage app
+  // dan een app die citaten uit lege pagina's probeert te knippen.
+  TEKST_PROMISE=TEKST_PROMISE.catch(async(e)=>{
+    console.warn("corpus_text laden mislukt, val terug op corpus.json:",e);
+    const r2=await fetch("data/corpus.json");
+    if(!r2.ok)throw e;
+    const vol=await r2.json();
+    if(vol.length!==CORPUS.length)throw e;
+    for(let i=0;i<CORPUS.length;i++){
+      CORPUS[i].text=vol[i].text;CORPUS[i].links=vol[i].links;CORPUS[i].headings=vol[i].headings;
+    }
+  });
+}
+// Overal waar paginatekst nodig is: hier wachten. Buiten turbo is dit een lege handeling.
+async function tekstKlaar(){
+  if(TURBO&&!TEKST_PROMISE&&CORPUS.length&&!CORPUS[0].text)startTekstDownload();
+  if(!TEKST_PROMISE)return;
+  try{await TEKST_PROMISE;}catch(e){console.warn("paginatekst niet beschikbaar:",e);}
 }
 // ===== <</TURBOMODUS-INDEX>> ==================================================================
 
@@ -2006,7 +2093,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 98";
+const APP_VERSION="build 99";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2067,17 +2154,28 @@ document.getElementById("reset").addEventListener("click",newConversation);
 
 (async function load(){
   try{
-    const r=await fetch("data/corpus.json");
-    if(!r.ok)throw new Error("corpus.json niet gevonden ("+r.status+")");
-    CORPUS=await r.json();
+    // Turbo start met het lichte corpus (titel/url/desc) en haalt de tekst op de achtergrond.
+    // Lukt dat niet, dan gewoon het hele corpus, precies zoals altijd.
+    const licht=TURBO?await laadCorpusTurbo():false;
+    if(!licht){
+      const r=await haalData("data/corpus.json");
+      if(!r.ok)throw new Error("corpus.json niet gevonden ("+r.status+")");
+      CORPUS=await r.json();
+    }
     // Turbo: de index staat al klaar als bestand. Lukt dat niet (oud bestand, ander corpus,
     // netwerkfout), dan bouwen we hem gewoon zelf op — de app werkt dan precies als altijd.
     const turboIndex=TURBO?await laadTurboIndex():false;
-    if(!turboIndex)PTOKENS=CORPUS.map(tokensOf);
+    if(!turboIndex){
+      // Zonder tekst is er geen index te bouwen; dan moet het zware deel eerst binnen zijn.
+      if(licht)await tekstKlaar();
+      PTOKENS=CORPUS.map(tokensOf);
+    }
     const withSum=CORPUS.filter(p=>p.summary).length;
     document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
       +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Stel een vraag — bijvoorbeeld:</span>";
     corpusKlaar=true;refreshComposer();
+    // Nu pas de zware bestanden: de app is bruikbaar, de rest komt terwijl er getypt wordt.
+    if(licht)startTekstDownload();
     initFilters();
     initSemantic();
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
@@ -2147,6 +2245,9 @@ async function runQuestion(rawQ,gesproken){
   if(!corpusKlaar||!rawQ)return;
   const turn=addTurn(rawQ,gesproken);     // toon de vraag zoals gesteld
   gesprekLoopt=true;refreshComposer();    // vanaf nu: vervolgvragen bouwen voort op dit gesprek
+  // In turbomodus komt de paginatekst op de achtergrond binnen. Vanaf de herrangschikking is hij
+  // nodig; meestal is hij er dan allang, want de voorlichter heeft eerst zitten typen.
+  await tekstKlaar();
   const key=keyInput.value.trim();const ai=aiKlaar();
   const lokaal=geenSleutelNodig();
   if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
@@ -3341,7 +3442,8 @@ function textFragmentUrl(url,quote,headings){
   const frag=w.length<=10?encodeURIComponent(q):encodeURIComponent(w.slice(0,6).join(" "))+","+encodeURIComponent(w.slice(-6).join(" "));
   return url+"#:~:text="+frag;
 }
-function openViewer(srcIdx,quote,url,title){
+async function openViewer(srcIdx,quote,url,title){
+  await tekstKlaar();
   const page=Number.isInteger(srcIdx)?CORPUS[srcIdx]:null;
   const text=page?page.text:"";
   const built=buildSourceHTML(text,quote,page&&page.headings,page&&page.links);
