@@ -184,6 +184,14 @@ body.is-welcome .empty{margin-top:0;}
   opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .12s,transform .12s;}
 .bronkaart[data-open="true"]{opacity:1;transform:translateY(0);pointer-events:auto;}
 @media (prefers-reduced-motion:reduce){.bronkaart{transition:none;}}
+/* Klein en grijs: het is context bij het citaat, geen kop. De pijltjes staan los zodat een lang
+   kopjespad netjes over twee regels breekt. */
+/* 18px inspringing = de 3px linkerrand van het citaatblok plus zijn 15px padding, zodat de
+   kruimel precies boven de eerste letter van het citaat begint in plaats van ernaast te steken. */
+.sectiepad{margin:0 0 5px;padding-left:18px;font-size:.76rem;line-height:1.5;color:var(--ink-licht);display:flex;flex-wrap:wrap;gap:0 6px;align-items:baseline;}
+.sectiepad i{font-style:normal;opacity:.5;}
+.sectiepad span{font-weight:600;}
+.bronkaart .sectiepad{margin:-2px 0 8px;padding-left:0;}
 .bronkaart h4{margin:0 0 8px;font-size:.94rem;font-weight:700;line-height:1.35;color:var(--rijk-blauw);}
 .bronkaart .pas{margin:0;font-size:.87rem;line-height:1.55;color:var(--ink-licht);
   display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;}
@@ -2159,7 +2167,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 107";
+const APP_VERSION="build 108";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3335,6 +3343,20 @@ function koppelBronkaarten(root){
 // De brontegel onder een citaat: nummer, paginatitel, en bij zweven een kaart met de passage en
 // de relevantie. "Lees verder op de pagina" is weg — de tegel is zelf aanklikbaar en opent de
 // bronweergave. Geen icoontje en geen herkomst: dat is altijd NederlandWereldwijd.
+// Het kopjespad boven een citaat. Een passage die onder "Toeslag tijdelijke aanvraaglocatie
+// (pop-up ambassade)" staat, geldt alleen daar — maar dat kopje wordt met opzet NIET meegeciteerd
+// (het is een losse regel, geen antwoord). Zonder die regel leest een voorlichter een uitzondering
+// voor als algemene regel.
+//
+// Dit komt uit CORPUS[i].headings en niet uit het model: de app WEET onder welk kopje een passage
+// staat, dus dit staat er ook als het model de voorwaarde vergeet te noemen.
+// Boven het citaat, niet eronder: aan de telefoon lees je het citaat voor, en een voorwaarde die
+// er achteraan komt is te laat.
+function sectieKruimel(cit){
+  const pad=cit&&cit.sectie&&cit.sectie.pad;
+  if(!pad||!pad.length)return "";
+  return `<p class="sectiepad">`+pad.map(t=>`<span>${escapeHtml(t)}</span>`).join(`<i>›</i>`)+`</p>`;
+}
 function relKlasse(p){return p>=85?"":p>=72?"midden":"laag";}
 function brontegel(cit,nummer,i){
   const rel=(cit.relevantie===null||cit.relevantie===undefined)?""
@@ -3345,7 +3367,7 @@ function brontegel(cit,nummer,i){
       +`<span class="src-badge">${nummer}</span><span class="src-title">${titel}</span>`
     +`</div>`
     +`<div class="bronkaart" id="bk${i}" role="tooltip">`
-      +`<h4>${titel}</h4><p class="pas">${escapeHtml(cit.text||"")}</p>`
+      +`<h4>${titel}</h4>`+sectieKruimel(cit)+`<p class="pas">${escapeHtml(cit.text||"")}</p>`
       +(rel?`<div class="voet">${rel}</div>`:"")
     +`</div></div>`;
 }
@@ -3368,7 +3390,13 @@ function answerPlainText(r){
   const parts=[];
   for(const b of answerBlocks(r)){
     if(b.type==="bridge"||b.type==="generated")parts.push(b.text);
-    else parts.push("“"+b.text+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${b.sourceUrl})`:""));
+    else{
+      // Het kopjespad hoort MEE bij het kopiëren: plakt een voorlichter dit citaat in een mail,
+      // dan moet de voorwaarde waaronder het geldt er niet onderweg af vallen.
+      const c=r.citations&&r.citations[b.ci];
+      const pad=c&&c.sectie&&c.sectie.pad&&c.sectie.pad.length?"["+c.sectie.pad.join(" › ")+"] ":"";
+      parts.push(pad+"“"+b.text+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${b.sourceUrl})`:""));
+    }
   }
   return parts.join("\n\n");
 }
@@ -3610,6 +3638,7 @@ function renderResult(turn,r,voorlopig){
       h+=`<div class="passage ${blok.verified?'verified':'unverified'}" data-ci="${i}">`
         +`<span class="ans-lab">${lab}</span><div class="cite-col">`
         +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
+        +sectieKruimel(r.citations[i])
         +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(r.citations[i])}</div>`
         +brontegel(r.citations[i]||{},n,i)+`</div></div>`;
     }
