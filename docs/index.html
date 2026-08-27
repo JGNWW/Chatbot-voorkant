@@ -386,7 +386,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <button type="button" id="lokaal-dl" class="lokaal-btn" hidden></button>
       <label class="spraak-optie lokaal-optie" id="kernen-optie" hidden title="Laat het processor-model alle kernen gebruiken. Hiervoor moet de pagina eenmalig herladen worden."><input type="checkbox" id="meer-kernen"> meerdere kernen gebruiken</label>
       <span id="lokaal-status" class="lokaal-status" hidden></span>
-      <label class="spraak-optie" title="EXPERIMENTEEL. Zet een aantal versnellingen aan die nog niet bewezen zijn. Staat dit uit, dan werkt de app precies zoals altijd. Vereist herladen."><input type="checkbox" id="turbo"> turbomodus (experimenteel)</label>
+      <label class="spraak-optie" title="EXPERIMENTEEL. Sneller opstarten (bewezen, zelfde zoekresultaten) EN een vraag afhandelen met een modelaanroep in plaats van drie. Dat laatste raakt de antwoordkwaliteit: de AI kiest niet meer welke pagina het beste past. Staat dit uit, dan werkt de app precies zoals altijd. Vereist herladen."><input type="checkbox" id="turbo"> turbomodus (experimenteel)</label>
       <label class="spraak-optie" title="Laat het volledig generatieve antwoord zin voor zin verschijnen in plaats van in één keer. Versnelt niets. Werkt alleen met 'volledig generatief antwoord' aan, en niet bij de twee lokale modellen."><input type="checkbox" id="streamen"> generatief antwoord al schrijvend tonen</label>
       <label class="spraak-optie" title="De AI schrijft het antwoord zelf op basis van de gevonden passages, in plaats van ze letterlijk te tonen"><input type="checkbox" id="generatief"> volledig generatief antwoord</label>
       <label class="spraak-optie">spraakmodel
@@ -2093,7 +2093,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 99";
+const APP_VERSION="build 100";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2253,7 +2253,29 @@ async function runQuestion(rawQ,gesproken){
   if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
   stapStart();
   let q,cands,deelvragen=[];
-  if(lokaal){
+  if(TURBO&&ai){
+    // ===== TURBO, VRAAGKANT: ÉÉN modelaanroep in plaats van drie ==============================
+    // Weg: prepareQuery (de vraag herschrijven, zoektermen en HyDE verzinnen) en
+    // rerankCandidates (het model uit ~30 kandidaten laten kiezen). Wat overblijft is de
+    // zoeklaag zelf — die kost 1 ms met de voorgebouwde index — plus de antwoordstap.
+    //
+    // WAAROM DIT VERDEDIGBAAR IS: scripts/eval.mjs meet precies dit pad, ZONDER de AI-stappen,
+    // en haalt 95% recall@6 (handgemaakt) en 91% (gegenereerd). De juiste pagina zit dus in
+    // vrijwel alle gevallen al in de zes die naar het antwoordmodel gaan.
+    //
+    // WAT JE INLEVERT, en dat is NIET gemeten omdat daar een echte sleutel voor nodig is:
+    //  - de VOLGORDE binnen die zes wordt niet meer door het model bepaald, maar door de fusie;
+    //  - de "past er echt niets bij"-controle van de herrangschikking vervalt;
+    //  - vakterm-herkenning en spreektaal-uitleg uit de expansiestap vervallen (forceProduct en
+    //    de landherkenning doen dat deel nog wel, in code);
+    //  - samengestelde vragen worden niet meer opgesplitst, dus ook de dekkingscontrole vervalt.
+    stap(turn,"Pagina's zoeken");stapModel(turn);
+    // Alleen bij een vervolgvraag nog een tweede aanroep: zonder de context is "en wat kost dat?"
+    // niet te beantwoorden. Bij een eerste vraag blijft het dus echt bij één.
+    q=history.length?await condenseQuestion(rawQ):rawQ;
+    const broad=hubCandidates(await fuseRetrieval(uniek([q,rawQ]),[rawQ,q].join(" "),"",25),[rawQ,q].join(" "));
+    cands=forceProduct(rawQ+" "+q,broad.slice(0,TOPK));
+  }else if(lokaal){
     // LOKAAL: de zoekstap zelf heeft het taalmodel niet nodig. BM25 + het semantische model
     // draaien op de processor en halen op de testset 95% recall@6 — de AI-expansie (HyDE,
     // alternatieve formuleringen, zoektermen) levert daar bovenop weinig op, terwijl hij een
