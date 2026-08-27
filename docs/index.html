@@ -487,6 +487,7 @@ Stel een antwoord samen dat bestaat uit:
    - AANTAL: begin met ÉÉN kort kerncitaat (1 tot 4 zinnen) dat de vraag het meest direct beantwoordt. Voeg alleen een tweede of derde citaat toe als de vraag ECHT uit meerdere onderdelen bestaat (bv. "wat kost het én hoe lang duurt het", of een vraag die per situatie of per land anders wordt beantwoord). Elk extra citaat moet een ANDER onderdeel van de vraag beantwoorden — herhaal niet in andere woorden wat er al staat, en vul niet aan met wat de burger niet gevraagd heeft. Maximaal 3. Beantwoordt één citaat de hele vraag, geef er dan ook maar één; de voorlichter leest de rest van de pagina door op het citaat te klikken. Houd elk citaat kernachtig en op zichzelf staand; geen lange of samengestelde citaten.
    - RELEVANTIE & GEEN AANNAMES: kies citaten die de vraag DIRECT en ALGEMEEN beantwoorden. Neem NOOIT een situatie aan die de burger niet zelf heeft genoemd. Bij een algemene vraag als "Hoe vraag ik een ID-kaart of paspoort aan?" mag je er dus NIET van uitgaan dat het een EERSTE aanvraag is, een aanvraag VOOR EEN KIND, of een vervanging na verlies/diefstal. Citeer dan een passage die voor IEDEREEN geldt (de algemene aanvraag- of overzichtspagina). Het EERSTE citaat (kernantwoord) mag NOOIT openen met een situatie-aanname zoals "Heeft u of uw kind…", "Voor het eerst…" of "Bent u uw paspoort verloren…". Staan er zowel een algemene als een situatie-specifieke pagina ("Voor het eerst…", "voor uw kind", "verloren of gestolen", of een specifiek land) tussen de pagina's, kies dan ALTIJD de algemene — tenzij de vraag duidelijk over die specifieke situatie gaat. UITZONDERING: noemt de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille"), citeer dan van de pagina die over JUIST dat product gaat en NIET van de algemene rubriekspagina — ook niet als de vraag maar uit één woord bestaat.
    - BEKNOPT: houd elk citaat KORT en gefocust — kies één samenhangende alinea (liefst 2 tot 5 zinnen) die precies het betreffende punt beantwoordt. Citeer NOOIT een hele paginasectie met meerdere tussenkopjes, opsommingen van links, "Bekijk…"- of "Lees…"-knopteksten, of losse "Let op:"-blokken. Stopt de relevante alinea waar een nieuw kopje of navigatietekst begint, zet "end" dan vóór dat kopje.
+   - VOORWAARDE ERBIJ: op deze site staan vaak meerdere situaties op EEN pagina, elk onder een eigen tussenkopje (bijvoorbeeld "Nederlandse ambassade of consulaat-generaal", "VFS Global", "Nederlandse grensgemeente of Schiphol"). Een passage uit zo'n sectie geldt ALLEEN voor die situatie. Citeer je zo'n passage, noem de voorwaarde dan met zoveel woorden in de "bridge" of in "intro" — bijvoorbeeld "Vraagt u aan bij een tijdelijke aanvraaglocatie (pop-up ambassade)? Dan geldt:". Doe je dat niet, dan leest de voorlichter een uitzondering voor als algemene regel. Weet je niet welke situatie de burger bedoelt, zet die keuze dan in "clarifications" in plaats van er een te kiezen.
    - VOLGORDE: zet de citaten in de volgorde waarin je ze zou uitleggen — eerst het kernantwoord, dan waar of hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. De samenhang breng je aan met de "bridge"-zin vóór elk citaat, niet met tussenkopjes.
 2. "clarifications": hangt het juiste antwoord af van de situatie van de burger, neem dan geen aanname maar zet hier wat de voorlichter moet uitvragen. Geef per verduidelijking een "question" en een "prefill".
    - ONDERSCHEIDEND: stel alleen vragen waarvan het antwoord het antwoord ECHT verandert. Vraag NOOIT iets dat voor vrijwel elke beller geldt: NederlandWereldwijd gaat over Nederlanders in of naar het buitenland, dus "Woont u in het buitenland?" is geen zinnige vraag. Vraag in plaats daarvan naar WELK land, WELKE situatie of VOOR WIE.
@@ -526,6 +527,7 @@ Regels:
 - Citeer geen los kopje of navigatielabel.
 - Geef ÉÉN citaat, tenzij de vraag echt uit meerdere onderdelen bestaat (dan maximaal 3, elk over een ander onderdeel).
 - Neem geen situatie aan die de burger niet noemde; kies bij twijfel de algemene pagina.
+- Staat de passage onder een tussenkopje (bv. "VFS Global"), dan geldt hij ALLEEN voor die situatie. Noem die voorwaarde dan in "bridge".
 - "start" en "end": de eerste en laatste 4 tot 8 woorden van datzelfde citaat, exact.
 - "bridge": hooguit één korte zin die naar het citaat leidt, zonder nieuwe feiten. Mag leeg zijn.
 - "intro": één zin die de vraag herformuleert, zonder feiten en zonder aannames.
@@ -583,6 +585,7 @@ Regels:
 - Begin niet met een herhaling van de vraag; begin met het antwoord.
 - Neem VAKTERMEN letterlijk over ("inreisvisum" is iets anders dan "Schengenvisum").
 - Hangt het antwoord af van de situatie (land, eerste aanvraag of verlenging, volwassene of kind), zeg dat dan met zoveel woorden in plaats van één situatie te kiezen.
+- Passages komen vaak uit een sectie met een eigen tussenkopje, en gelden dan alleen voor DIE situatie (bijvoorbeeld een pop-up ambassade tegenover een gewone ambassade of VFS Global). Schrijf de voorwaarde er dan bij; presenteer een uitzondering nooit als de algemene regel.
 
 - Staat het antwoord NIET in de passages, schrijf dan geen antwoord bij elkaar. Geef in dat geval precies één alinea met exact deze tekst, zonder bronnen:
 "Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner."
@@ -2156,7 +2159,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 106";
+const APP_VERSION="build 107";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2306,6 +2309,55 @@ function relevantieVan(idx){
   const s=LAATSTE_SCORES.get(idx);
   if(s===undefined)return null;                      // pagina kwam via een hub binnen, niet via de fusie
   return Math.max(0,Math.min(100,Math.round(s/LAATSTE_MAX*100)));
+}
+// ---- In welke SECTIE van de pagina staat een citaat? -----------------------------------------
+// Een passage die onder een kopje staat, geldt vaak alleen bínnen die sectie. "Bij een pop-up
+// ambassade betaalt u ... plus een toeslag" is waar, maar alleen onder het kopje "Toeslag
+// tijdelijke aanvraaglocatie" — op dezelfde pagina staan ook VFS Global en de grensgemeente.
+// De app knipt kopjes met opzet uit een citaat (het zijn losse regels, geen antwoord), en
+// daarmee verdwijnt juist de voorwaarde. Hier halen we hem terug uit CORPUS[i].headings.
+//
+// Voor de VARIANTEN kijken we naar het BOVENSTE kopje van het pad, niet het diepste: op de
+// kostenpagina zijn de h2's de echte keuze (ambassade / VFS Global / grensgemeente), terwijl de
+// h3's eronder toelichtingen zijn ("Waarom betaal ik meer dan als ik in Nederland woon?").
+function sectieVan(idx,offset){
+  const p=CORPUS[idx]||{};
+  const hs=(p.headings||[]).map(h=>[h[0],(h[1]||"").trim()]).filter(h=>h[1]);
+  if(!hs.length||!p.text)return null;
+  const niveau=new Map(hs.map(h=>[h[1],h[0]]));
+  const set=new Set(hs.map(h=>h[1]));
+  let pos=0;const stapel=[];
+  for(const r of p.text.split("\n")){
+    const t=r.trim();
+    if(pos>=offset)break;
+    if(set.has(t)){
+      const lvl=niveau.get(t);
+      while(stapel.length&&stapel[stapel.length-1].lvl>=lvl)stapel.pop();
+      stapel.push({lvl,t});
+    }
+    pos+=r.length+1;
+  }
+  if(!stapel.length)return null;
+  const top=stapel[0];
+  return {pad:stapel.map(x=>x.t),top:top.t,
+    zusters:hs.filter(h=>h[0]===top.lvl&&h[1]!==top.t).map(h=>h[1])};
+}
+// Beschrijft de pagina meerdere situaties? Vraag dan uit welke geldt. De keuzes komen letterlijk
+// uit de kopjes van de pagina, dus de app verzint hier niets.
+const NAVKOP=/^(snel naar|onderwerpen|meer informatie|zie ook|contact|in het kort|let op)$/i;
+function variantVraag(idx,offset){
+  const s=sectieVan(idx,offset);
+  if(!s)return null;
+  // Kopjes die zelf een vraag zijn ("Waarom betaal ik meer...") zijn toelichtingen, geen
+  // situaties. Te lange kopjes lezen niet als keuze.
+  const opties=[s.top,...s.zusters]
+    .filter(t=>t.length<=58&&!/\?$/.test(t)&&!NAVKOP.test(t));
+  if(opties.length<2)return null;
+  const lijst=[...new Set(opties)].slice(0,4);
+  // Niet kleiner maken (het zijn namen: "VFS Global") en met een schuine streep scheiden — een
+  // kopje bevat vaak zelf al het woord "of" ("Nederlandse grensgemeente of Schiphol"), en dan
+  // leest een opsomming met "of" als een lijst zonder einde.
+  return maakVerduidelijking("Om welke situatie gaat het: "+lijst.join(" / ")+"?","Het gaat om ");
 }
 // De eerste echte zin van een pagina, voor in de hover-kaart. Navigatie en linkteksten vallen af,
 // net als bij het citeren: een menu-item is geen antwoord.
@@ -3021,7 +3073,8 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
     if(citations.some(x=>quotesOverlap(x.text,quote)))continue; // dubbel/overlappend -> overslaan
     let bridge=(c.bridge||"").toString().trim().replace(/\s+/g," ").slice(0,180);
     if(!bridgeIsSafe(bridge,quote))bridge="";     // brug voegt eigen feiten toe -> weglaten
-    citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,bridge,relevantie:relevantieVan(gi)});usedSet.add(gi);
+    citations.push({text:quote,verified:true,src:srcOf(gi),srcIdx:gi,bridge,relevantie:relevantieVan(gi),
+      start:cit.start,sectie:sectieVan(gi,cit.start)});usedSet.add(gi);
     if(citations.length>=MAX_CITES)break;
   }
   const used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
@@ -3040,6 +3093,14 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
       clarifications.push(u);
   }
   followups=bruikbareVervolgvragen(rest);
+  // Beschrijft de bronpagina meerdere situaties, dan is het citaat er één van. Vraag uit welke
+  // geldt, met de keuzes letterlijk uit de kopjes van die pagina.
+  for(const c of citations){
+    if(clarifications.length>=3)break;
+    const v=c.start!==undefined?variantVraag(c.srcIdx,c.start):null;
+    if(v&&!clarifications.some(x=>x.question===v.question))clarifications.unshift(v);
+  }
+  clarifications=clarifications.slice(0,3);
   if(r.__partial&&citations.length&&!voorlopig)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
   if(!citations.length&&!voorlopig){
     // Zonder onderbouwend citaat tonen we GEEN vrije AI-tekst (geen note),
