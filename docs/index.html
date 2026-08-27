@@ -386,7 +386,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <button type="button" id="lokaal-dl" class="lokaal-btn" hidden></button>
       <label class="spraak-optie lokaal-optie" id="kernen-optie" hidden title="Laat het processor-model alle kernen gebruiken. Hiervoor moet de pagina eenmalig herladen worden."><input type="checkbox" id="meer-kernen"> meerdere kernen gebruiken</label>
       <span id="lokaal-status" class="lokaal-status" hidden></span>
-      <label class="spraak-optie" title="Toon het eerste citaat zodra het binnen is, in plaats van te wachten tot het hele antwoord klaar is. Versnelt niets, maar je ziet eerder iets. Werkt niet bij de twee lokale modellen."><input type="checkbox" id="streamen"> antwoord tonen terwijl het binnenkomt</label>
+      <label class="spraak-optie" title="Laat het volledig generatieve antwoord zin voor zin verschijnen in plaats van in één keer. Versnelt niets. Werkt alleen met 'volledig generatief antwoord' aan, en niet bij de twee lokale modellen."><input type="checkbox" id="streamen"> generatief antwoord al schrijvend tonen</label>
       <label class="spraak-optie" title="De AI schrijft het antwoord zelf op basis van de gevonden passages, in plaats van ze letterlijk te tonen"><input type="checkbox" id="generatief"> volledig generatief antwoord</label>
       <label class="spraak-optie">spraakmodel
         <select id="spraak-motor" title="Groter model = nauwkeuriger, maar eenmalig meer downloaden">
@@ -1931,7 +1931,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 96";
+const APP_VERSION="build 97";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2131,7 +2131,7 @@ async function runQuestion(rawQ,gesproken){
   try{
     stap(turn,"Antwoord opstellen");
     const result=ai
-      ?await askAI(q,cands,key,deelvragen,(tussen)=>renderResult(turn,tussen,true))
+      ?await askAI(q,cands,key,deelvragen,(uit,alineas)=>schrijfLive(turn,uit,alineas))
       :demoAnswer(q,cands);
     const meting=stapKlaar(turn);
     renderResult(turn,result);
@@ -2752,7 +2752,7 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   if(voorlopig&&!citations.length)return null;
   return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
 }
-async function askAI(q,cands,key,subs,toonTussenstand){
+async function askAI(q,cands,key,subs,opGeneratief){
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
   // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
@@ -2770,28 +2770,18 @@ async function askAI(q,cands,key,subs,toonTussenstand){
   const bronnen=lokaal?cands.slice(0,lim.bronnen):cands;
   const listing=bronnen.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${knip(CORPUS[idx].text)}`).join("\n\n---\n\n");
   const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
-  // Streamen: bij elk binnengekomen brokje proberen we of er al een compleet citaat in staat.
-  // tryRepairJSON knipt de half geschreven JSON terug tot het laatste afgesloten haakje en sluit
-  // de rest zelf; die functie bestond al voor afgekapte antwoorden. Zodra er een citaat bij komt,
-  // tonen we de tussenstand. De EINDstand wordt daarna gewoon opnieuw opgebouwd, dus wat je ziet
-  // is nooit iets wat de eindcontrole niet zou doorstaan.
-  let onDelta=null;
-  if(STREAM&&kanStreamen()&&toonTussenstand){
-    let getoond=-1;
-    onDelta=(heel)=>{
-      const half=tryRepairJSON(heel);
-      if(!half)return;
-      const nu=(Array.isArray(half.citations)?half.citations.length:0)+((half.intro||"").trim()?0.5:0);
-      if(nu<=getoond)return;
-      const voorlopig=bouwAntwoord(half,q,bronnen,cands,subs,true);
-      if(!voorlopig)return;
-      getoond=nu;toonTussenstand(voorlopig);
-    };
-  }
-  const text=await PROVIDERS[provSel.value].call(key,modelSel.value,lokaal?SYSTEM_LOKAAL:SYSTEM,user,onDelta);
+  // Het HOOFDantwoord komt in één keer op het scherm. Het stukje bij beetje opbouwen van de
+  // citaatblokken is geprobeerd en weer weggehaald: elk nieuw citaat duwde de rest omlaag, en
+  // dat leest als een springend scherm in plaats van als een sneller antwoord.
+  const text=await PROVIDERS[provSel.value].call(key,modelSel.value,lokaal?SYSTEM_LOKAAL:SYSTEM,user);
   const r=parseModelJSON(text);
   const uit=bouwAntwoord(r,q,bronnen,cands,subs,false);
-  if(GENERATIEF&&uit.citations.length)uit.generatief=await schrijfAntwoord(q,uit.citations,key);
+  // WEL streamen: het volledig generatieve antwoord. Dat is één lopend verhaal dat van boven
+  // naar beneden groeit, dus er springt niets — precies waar streamen wél voor deugt.
+  if(GENERATIEF&&uit.citations.length){
+    const live=(STREAM&&kanStreamen()&&opGeneratief)?(alineas)=>opGeneratief(uit,alineas):null;
+    uit.generatief=await schrijfAntwoord(q,uit.citations,key,live);
+  }
   return uit;
 }
 
@@ -2813,12 +2803,28 @@ function alineaKlopt(tekst,passages){
   if(/€|euro/i.test(tekst)&&!/€|euro/i.test(bron))return false;
   return true;
 }
-async function schrijfAntwoord(q,citations,key){
+async function schrijfAntwoord(q,citations,key,onAlineas){
   const lijst=citations.map((c,i)=>"["+(i+1)+"] "+c.text).join("\n\n");
   let j;
   try{
+    // Tijdens het schrijven tonen we de alinea's zoals ze binnenkomen. Er wordt NIETS
+    // gecontroleerd op dat moment; de vangrails draaien pas over het complete antwoord, en een
+    // alinea die daar sneuvelt verdwijnt dus weer. Dat is bewust: half gecontroleerde tekst
+    // laten staan zou de garantie ondermijnen waar de hele app op rust.
+    let onDelta=null;
+    if(onAlineas){
+      let vorig="";
+      onDelta=(heel)=>{
+        const half=tryRepairJSON(heel);
+        const rij=(half&&Array.isArray(half.alineas)?half.alineas:[])
+          .map(a=>((a&&a.tekst)||"").toString().trim()).filter(Boolean);
+        const nu=rij.join("\u0000");
+        if(nu===vorig)return;
+        vorig=nu;onAlineas(rij);
+      };
+    }
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,GENERATIEF_SYSTEM,
-      "Vraag:\n"+q+"\n\nPassages:\n"+lijst);
+      "Vraag:\n"+q+"\n\nPassages:\n"+lijst,onDelta);
     j=parseModelJSON(text);
   }catch(e){console.warn("generatief antwoord:",e);return null;}
   const ruw=Array.isArray(j&&j.alineas)?j.alineas:[];
@@ -3015,6 +3021,26 @@ function toonStappen(turn,m){
   const sec=x=>(x/1000).toFixed(1)+"s";
   el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ");
   bubble.appendChild(el);
+}
+// ---- Het generatieve antwoord zien ontstaan --------------------------------------------------
+// Eén keer het hele blok neerzetten (mét de citaten eronder), daarna alleen nog de alinea's in
+// .ans-gen bijwerken. Niet opnieuw renderen: dan springt alles wat eronder staat elke keer mee.
+function schrijfLive(turn,uit,alineas){
+  let vak=turn.querySelector(".ans-gen");
+  if(!vak){
+    // Eerste keer: zet het antwoord neer met een leeg generatief blok, zodat er een plek is om
+    // in te schrijven. De rest van het antwoord staat er dan al en beweegt daarna niet meer.
+    renderResult(turn,Object.assign({},uit,{generatief:[{tekst:"",bronnen:[]}]}),true);
+    vak=turn.querySelector(".ans-gen");
+    if(!vak)return;
+  }
+  const oud=vak.querySelectorAll(".gen-p");
+  // Bestaande alinea's bijwerken, nieuwe erbij. Zo blijft de tekst staan waar hij staat.
+  alineas.forEach((t,i)=>{
+    if(oud[i]){if(oud[i].textContent!==t)oud[i].textContent=t;return;}
+    const p=document.createElement("p");p.className="gen-p";p.textContent=t;vak.appendChild(p);
+  });
+  for(let i=alineas.length;i<oud.length;i++)oud[i].remove();
 }
 function renderResult(turn,r,voorlopig){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
