@@ -218,6 +218,7 @@ a{color:var(--rijk-licht);}
 body.spraak-aan .spraak-el,body.spraak-laadt .spraak-el{display:inline-flex;}
 /* [hidden] moet het winnen van de display hierboven, anders vallen status en tekst over elkaar. */
 .spraak-el[hidden]{display:none !important;}
+.nog-bezig{font-size:.82rem;color:var(--ink-licht);font-style:italic;opacity:.85;}
 .meting{margin-top:10px;padding-top:8px;border-top:1px solid var(--lijn,#dde);font-size:.78rem;color:#667;font-variant-numeric:tabular-nums;}
 body.spraak-aan #input,body.spraak-laadt #input{display:none;}
 body.spraak-aan #send,body.spraak-laadt #send,body.spraak-laadt #reset{display:none;}
@@ -385,6 +386,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <button type="button" id="lokaal-dl" class="lokaal-btn" hidden></button>
       <label class="spraak-optie lokaal-optie" id="kernen-optie" hidden title="Laat het processor-model alle kernen gebruiken. Hiervoor moet de pagina eenmalig herladen worden."><input type="checkbox" id="meer-kernen"> meerdere kernen gebruiken</label>
       <span id="lokaal-status" class="lokaal-status" hidden></span>
+      <label class="spraak-optie" title="Toon het eerste citaat zodra het binnen is, in plaats van te wachten tot het hele antwoord klaar is. Versnelt niets, maar je ziet eerder iets. Werkt niet bij de twee lokale modellen."><input type="checkbox" id="streamen"> antwoord tonen terwijl het binnenkomt</label>
       <label class="spraak-optie" title="De AI schrijft het antwoord zelf op basis van de gevonden passages, in plaats van ze letterlijk te tonen"><input type="checkbox" id="generatief"> volledig generatief antwoord</label>
       <label class="spraak-optie">spraakmodel
         <select id="spraak-motor" title="Groter model = nauwkeuriger, maar eenmalig meer downloaden">
@@ -554,7 +556,51 @@ let history=[];
 
 // ---- AI-providers (allemaal rechtstreeks vanuit de browser, met je eigen sleutel) ----
 // Gedeelde aanroep voor OpenAI-compatibele providers (/v1/chat/completions met Bearer-sleutel).
-async function oaiChat(endpoint,key,model,system,user,name){
+// ---- Streamen ------------------------------------------------------------------------------
+// Streamen versnelt NIETS: het model schrijft even lang. Het haalt alleen het moment naar voren
+// waarop de voorlichter het eerste citaat ziet — gemeten op een representatief antwoord van 510
+// tekens was er bij 300 tekens al een geldig object met een compleet citaat.
+// Staat standaard uit; het vinkje in de instellingen zet het aan.
+let STREAM=false;
+try{STREAM=localStorage.getItem("vk_stream")==="1";}catch(e){}
+
+// Server-Sent Events uitlezen. Elke aanbieder verpakt zijn brokjes anders, dus `pluk` haalt uit
+// één gedecodeerd JSON-blokje de tekst die erbij gekomen is.
+async function leesSSE(res,pluk,onDelta){
+  const reader=res.body.getReader(),dec=new TextDecoder();
+  let buf="",heel="";
+  for(;;){
+    const {done,value}=await reader.read();
+    if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    // Gebeurtenissen zijn gescheiden door een lege regel; een half blok blijft in de buffer.
+    let i;
+    while((i=buf.indexOf("\n\n"))>=0){
+      const blok=buf.slice(0,i);buf=buf.slice(i+2);
+      for(const regel of blok.split("\n")){
+        if(!regel.startsWith("data:"))continue;
+        const ruw=regel.slice(5).trim();
+        if(!ruw||ruw==="[DONE]")continue;
+        let j;try{j=JSON.parse(ruw);}catch(e){continue;}
+        const stuk=pluk(j);
+        if(stuk){heel+=stuk;try{onDelta(heel);}catch(e){}}
+      }
+    }
+  }
+  return heel;
+}
+// Ondersteunt deze provider streamen? De twee lokale motoren nog niet.
+function kanStreamen(){const p=PROVIDERS[provSel.value];return !!(p&&p.stream);}
+
+async function oaiChat(endpoint,key,model,system,user,name,onDelta){
+  if(onDelta){
+    const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,stream:true,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
+    if(!r.ok)throw new Error(name+" "+r.status+": "+(await r.text()).slice(0,200));
+    return leesSSE(r,j=>j.choices?.[0]?.delta?.content||"",onDelta);
+  }
+  return oaiChatHeel(endpoint,key,model,system,user,name);
+}
+async function oaiChatHeel(endpoint,key,model,system,user,name){
   const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
   if(!r.ok)throw new Error(name+" "+r.status+": "+(await r.text()).slice(0,200));
   const d=await r.json();return d.choices?.[0]?.message?.content||"";
@@ -875,7 +921,7 @@ const PROVIDERS={
     keyHint:"Geen sleutel nodig — draait op de processor, ook zonder videokaart",
     modelLabel:m=>(WASM_MODELLEN[m]||{}).label||m,
     async call(key,model,system,user){return WASMAI.genereer(model,system,user);}},
-  gemini:{label:"Google Gemini (gratis)",keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
+  gemini:{stream:true,label:"Google Gemini (gratis)",keyUrl:"https://aistudio.google.com/apikey",keyHint:"Gratis sleutel via Google AI Studio",
     // Google zet modellen uit: gemini-2.0-flash ging op 1 juni 2026 op zwart en geeft sindsdien
     // een 404. Een handmatige lijst loopt daar altijd achteraan, dus we VRAGEN het aan Google
     // zelf. Zonder sleutel kan dat niet; dan valt hij terug op de lijst hieronder.
@@ -899,8 +945,9 @@ const PROVIDERS={
       uniek.sort((a,b)=>versie(b)-versie(a)||soort(a)-soort(b)||a.localeCompare(b));
       if(!uniek.length)throw new Error("geen bruikbare modellen");
       return uniek;},
-    async call(key,model,system,user){
-      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+    async call(key,model,system,user,onDelta){
+      const pad=onDelta?"streamGenerateContent?alt=sse&":"generateContent?";
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:${pad}key=${encodeURIComponent(key)}`;
       // Alle Gemini-modellen "denken" standaard, en die redeneer-tokens vullen de limiet zonder
       // dat er een letter antwoord uit komt. Bij 2.5 zet je dat uit met thinkingBudget, bij de
       // 3-serie met thinkingLevel. Werkt geen van beide, dan proberen we het gewoon zonder:
@@ -912,7 +959,14 @@ const PROVIDERS={
         const cfg=Object.assign({temperature:0,maxOutputTokens:8000,responseMimeType:"application/json"},extra);
         const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:cfg};
         const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
-        return {ok:r.ok,status:r.status,tekst:await r.text()};
+        if(!r.ok)return {ok:false,status:r.status,tekst:await r.text()};
+        if(onDelta){
+          // Bij streamen komt de tekst los binnen; de JSON-omhulling van één antwoord bouwen we
+          // zelf weer op, zodat de rest van deze functie niets hoeft te weten van streamen.
+          const heel=await leesSSE(r,j=>(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join(""),onDelta);
+          return {ok:true,status:200,tekst:JSON.stringify({candidates:[{content:{parts:[{text:heel}]}}]})};
+        }
+        return {ok:true,status:r.status,tekst:await r.text()};
       };
       let res=await doe(denk);
       if(!res.ok&&res.status===400&&/thinking/i.test(res.tekst))res=await doe({});
@@ -927,7 +981,7 @@ const PROVIDERS={
   // "Gratis" is hier bescheiden: een gratis account krijgt ongeveer $0,10 aan tegoed per maand.
   // Met het goedkoopste model is dat ruwweg 300 vragen — genoeg voor een testomgeving, niet
   // voor de balie. De prijs staat erbij zodat je die afweging zelf kunt maken.
-  huggingface:{label:"HuggingFace (veel modellen)",keyUrl:"https://huggingface.co/settings/tokens",
+  huggingface:{stream:true,label:"HuggingFace (veel modellen)",keyUrl:"https://huggingface.co/settings/tokens",
     keyHint:"Gratis token via huggingface.co (± $0,10 tegoed per maand)",
     fallbackModels:["Qwen/Qwen3-4B-Instruct-2507","meta-llama/Llama-3.1-8B-Instruct","openai/gpt-oss-20b","google/gemma-3-12b-it"],
     prijzen:{},
@@ -969,15 +1023,21 @@ const PROVIDERS={
       this.prijzen={};
       for(const m of uit)this.prijzen[m.id]=m.kosten>0?Math.round(0.10/m.kosten):null;
       return uit.map(m=>m.id);},
-    async call(key,model,system,user){
+    async call(key,model,system,user,onDelta){
       // Niet elke aanbieder achter HuggingFace kent response_format. Weigert er een, dan
       // proberen we het zonder — de app leest de JSON toch al tolerant uit de tekst.
       const doe=async json=>{
         const body={model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]};
+        if(onDelta)body.stream=true;
         if(json)body.response_format={type:"json_object"};
         const r=await fetch("https://router.huggingface.co/v1/chat/completions",{method:"POST",
           headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
-        return {ok:r.ok,status:r.status,tekst:await r.text()};
+        if(!r.ok)return {ok:false,status:r.status,tekst:await r.text()};
+        if(onDelta){
+          const heel=await leesSSE(r,j=>j.choices?.[0]?.delta?.content||"",onDelta);
+          return {ok:true,status:200,tekst:JSON.stringify({choices:[{message:{content:heel}}]})};
+        }
+        return {ok:true,status:r.status,tekst:await r.text()};
       };
       let res=await doe(true);
       if(!res.ok&&(res.status===400||res.status===422))res=await doe(false);
@@ -989,18 +1049,15 @@ const PROVIDERS={
       const d=JSON.parse(res.tekst);
       if(d.error)throw new Error("HuggingFace: "+((d.error.message||d.error)+"").slice(0,200));
       return d.choices?.[0]?.message?.content||"";}},
-  groq:{label:"Groq (gratis, snel)",models:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],keyUrl:"https://console.groq.com/keys",keyHint:"Gratis sleutel via console.groq.com",
-    call(key,model,system,user){return oaiChat("https://api.groq.com/openai/v1/chat/completions",key,model,system,user,"Groq");}},
-  cerebras:{label:"Cerebras (gratis, zeer snel)",models:["llama-3.3-70b","llama-3.1-8b"],keyUrl:"https://cloud.cerebras.ai/",keyHint:"Gratis sleutel via cloud.cerebras.ai",
-    call(key,model,system,user){return oaiChat("https://api.cerebras.ai/v1/chat/completions",key,model,system,user,"Cerebras");}},
-  mistral:{label:"Mistral (gratis, EU)",models:["mistral-small-latest","mistral-large-latest","open-mistral-nemo"],keyUrl:"https://console.mistral.ai/api-keys/",keyHint:"Gratis sleutel via console.mistral.ai",
-    call(key,model,system,user){return oaiChat("https://api.mistral.ai/v1/chat/completions",key,model,system,user,"Mistral");}},
-  openai:{label:"OpenAI (ChatGPT)",models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],keyUrl:"https://platform.openai.com/api-keys",keyHint:"Sleutel via platform.openai.com (betaald)",
-    async call(key,model,system,user){
-      const r=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
-      if(!r.ok)throw new Error("OpenAI "+r.status+": "+(await r.text()).slice(0,200));
-      const d=await r.json();return d.choices?.[0]?.message?.content||"";}},
-  anthropic:{label:"Anthropic (Claude)",models:["claude-sonnet-4-6","claude-haiku-4-5"],keyUrl:"https://console.anthropic.com/settings/keys",keyHint:"Sleutel via console.anthropic.com (betaald)",
+  groq:{stream:true,label:"Groq (gratis, snel)",models:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],keyUrl:"https://console.groq.com/keys",keyHint:"Gratis sleutel via console.groq.com",
+    call(key,model,system,user,onDelta){return oaiChat("https://api.groq.com/openai/v1/chat/completions",key,model,system,user,"Groq",onDelta);}},
+  cerebras:{stream:true,label:"Cerebras (gratis, zeer snel)",models:["llama-3.3-70b","llama-3.1-8b"],keyUrl:"https://cloud.cerebras.ai/",keyHint:"Gratis sleutel via cloud.cerebras.ai",
+    call(key,model,system,user,onDelta){return oaiChat("https://api.cerebras.ai/v1/chat/completions",key,model,system,user,"Cerebras",onDelta);}},
+  mistral:{stream:true,label:"Mistral (gratis, EU)",models:["mistral-small-latest","mistral-large-latest","open-mistral-nemo"],keyUrl:"https://console.mistral.ai/api-keys/",keyHint:"Gratis sleutel via console.mistral.ai",
+    call(key,model,system,user,onDelta){return oaiChat("https://api.mistral.ai/v1/chat/completions",key,model,system,user,"Mistral",onDelta);}},
+  openai:{stream:true,label:"OpenAI (ChatGPT)",models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],keyUrl:"https://platform.openai.com/api-keys",keyHint:"Sleutel via platform.openai.com (betaald)",
+    call(key,model,system,user,onDelta){return oaiChat("https://api.openai.com/v1/chat/completions",key,model,system,user,"OpenAI",onDelta);}},
+  anthropic:{stream:true,label:"Anthropic (Claude)",models:["claude-sonnet-4-6","claude-haiku-4-5"],keyUrl:"https://console.anthropic.com/settings/keys",keyHint:"Sleutel via console.anthropic.com (betaald)",
     // Onder welke promptlengte het cachen stilzwijgend niet gebeurt. Die drempel loopt niet
     // netjes op met de generatie: Haiku 4.5 vraagt 4.096 tokens, Sonnet 4.6 maar 1.024. Onze
     // systeemprompt is ~3.240 tokens, dus hij cachet wél bij Sonnet en NIET bij Haiku.
@@ -1010,7 +1067,7 @@ const PROVIDERS={
       if(/opus-5|fable-5|mythos-5/.test(m))return 512;
       return 1024;   // Sonnet 4.6/4.5/5, Opus 4.8, Opus 4/4.1
     },
-    async call(key,model,system,user){
+    async call(key,model,system,user,onDelta){
       // De systeemprompt is constant en staat vooraan; markeren is genoeg om hem te laten cachen.
       // Alleen markeren als hij de drempel haalt, anders betaal je de schrijfkosten voor niets.
       const tokens=system.length/3;
@@ -1020,10 +1077,13 @@ const PROVIDERS={
       // GEEN assistant-prefill meer. Dat trucje ("{" alvast neerzetten om JSON af te dwingen)
       // geeft op Sonnet 4.6 en alles daarna een 400 — deze provider was daardoor stuk. De
       // systeemprompt vraagt zelf al om uitsluitend JSON, en parseModelJSON is er tegen bestand.
-      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model,max_tokens:3000,system:sys,messages:[{role:"user",content:user}]})});
+      const body={model,max_tokens:3000,system:sys,messages:[{role:"user",content:user}]};
+      if(onDelta)body.stream=true;
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("Claude "+r.status+": "+(await r.text()).slice(0,200));
+      if(onDelta)return leesSSE(r,j=>(j.type==="content_block_delta"&&j.delta&&j.delta.text)||"",onDelta);
       const d=await r.json();return (d.content||[]).map(c=>c.text||"").join("");}},
-  openrouter:{label:"OpenRouter (veel modellen)",keyUrl:"https://openrouter.ai/keys",keyHint:"Sleutel via openrouter.ai (gratis modellen beschikbaar)",
+  openrouter:{stream:true,label:"OpenRouter (veel modellen)",keyUrl:"https://openrouter.ai/keys",keyHint:"Sleutel via openrouter.ai (gratis modellen beschikbaar)",
     fallbackModels:["deepseek/deepseek-chat-v3-0324:free","meta-llama/llama-3.3-70b-instruct:free","openai/gpt-4o-mini"],
     async loadModels(){
       const r=await fetch("https://openrouter.ai/api/v1/models");
@@ -1033,9 +1093,12 @@ const PROVIDERS={
       free.sort((a,b)=>{const ra=pref.findIndex(x=>a.includes(x)),rb=pref.findIndex(x=>b.includes(x));return (ra<0?99:ra)-(rb<0?99:rb)||a.localeCompare(b);});
       const popular=["openai/gpt-4o-mini","anthropic/claude-3.5-sonnet","google/gemini-2.5-flash"];
       return [...free,...popular];},
-    async call(key,model,system,user){
-      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]})});
+    async call(key,model,system,user,onDelta){
+      const body={model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]};
+      if(onDelta)body.stream=true;
+      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("OpenRouter "+r.status+": "+(await r.text()).slice(0,200));
+      if(onDelta)return leesSSE(r,j=>j.choices?.[0]?.delta?.content||"",onDelta);
       const d=await r.json();
       if(d.error)throw new Error("OpenRouter: "+(d.error.message||JSON.stringify(d.error)).slice(0,200));
       return d.choices?.[0]?.message?.content||"";}}
@@ -1760,6 +1823,14 @@ function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)|
     };
   }
 }
+// Antwoord tonen terwijl het binnenkomt. Geldt vanaf de volgende vraag.
+{
+  const st=document.getElementById("streamen");
+  if(st){
+    st.checked=STREAM;
+    st.onchange=()=>{STREAM=st.checked;try{localStorage.setItem("vk_stream",STREAM?"1":"0");}catch(e){}};
+  }
+}
 // Volledig generatief aan/uit. De keuze blijft bewaard; hij geldt pas bij de volgende vraag.
 {
   const g=document.getElementById("generatief");
@@ -1860,7 +1931,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 95";
+const APP_VERSION="build 96";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2059,7 +2130,9 @@ async function runQuestion(rawQ,gesproken){
   if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
   try{
     stap(turn,"Antwoord opstellen");
-    const result=ai?await askAI(q,cands,key,deelvragen):demoAnswer(q,cands);
+    const result=ai
+      ?await askAI(q,cands,key,deelvragen,(tussen)=>renderResult(turn,tussen,true))
+      :demoAnswer(q,cands);
     const meting=stapKlaar(turn);
     renderResult(turn,result);
     if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
@@ -2604,26 +2677,15 @@ function ongedekteDelen(subs,citations){
   // faalde. Dan liever niets zeggen dan de voorlichter op een dwaalspoor zetten.
   return open.length>=subs.length?[]:open;
 }
-async function askAI(q,cands,key,subs){
-  // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
-  // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
-  // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
-  const lokaal=!!(PROVIDERS[provSel.value]||{}).geenSleutel;
-  const lim=lokLimiet();
-  const perPagina=lokaal?lim.perPagina:Infinity;
-  const knip=t=>{
-    if(!lokaal||t.length<=perPagina)return t;
-    // Afkappen op een alineagrens, zodat er geen halve zin in de prompt belandt.
-    const kort=t.slice(0,perPagina);
-    const n=kort.lastIndexOf("\n");
-    return (n>perPagina*0.5?kort.slice(0,n):kort).trim();
-  };
-  // De pagina's staan al op volgorde van relevantie (na AI-herrangschikking).
-  const bronnen=lokaal?cands.slice(0,lim.bronnen):cands;
-  const listing=bronnen.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${knip(CORPUS[idx].text)}`).join("\n\n---\n\n");
-  const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
-  const text=await PROVIDERS[provSel.value].call(key,modelSel.value,lokaal?SYSTEM_LOKAAL:SYSTEM,user);
-  const r=parseModelJSON(text);
+// Van modelantwoord naar wat er op het scherm komt. Losgemaakt uit askAI omdat een HALF
+// binnengekomen antwoord (bij streamen) door precies dezelfde molen moet als een heel antwoord:
+// dezelfde offset-gebaseerde knip uit de bron, dezelfde vangrails. Zo kan er tijdens het
+// streamen niets op het scherm komen dat de eindcontrole niet zou hebben doorstaan.
+//
+// voorlopig=true betekent: dit is een tussenstand. Dan geen "geen informatie"-meldingen en geen
+// waarschuwing over een afgekapt antwoord — die horen pas bij de eindstand. Is er nog geen enkel
+// citaat, dan geeft de functie null terug en valt er dus nog niets te tonen.
+function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   const rawCites=Array.isArray(r.citations)?r.citations:[];
   const citations=[];const usedSet=new Set();let notFound=0;
   for(const c of rawCites){
@@ -2661,8 +2723,8 @@ async function askAI(q,cands,key,subs){
       clarifications.push(u);
   }
   followups=bruikbareVervolgvragen(rest);
-  if(r.__partial&&citations.length)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
-  if(!citations.length){
+  if(r.__partial&&citations.length&&!voorlopig)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
+  if(!citations.length&&!voorlopig){
     // Zonder onderbouwend citaat tonen we GEEN vrije AI-tekst (geen note),
     // zodat het model niet alsnog een eigen antwoord verzint.
     if(notFound){
@@ -2687,8 +2749,49 @@ async function askAI(q,cands,key,subs){
       note=(note?note+" ":"")+"Let op: van deze samengestelde vraag is "+staart+" niet beantwoord — zie de vervolgvragen.";
     }
   }
-  const uit={restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
-  if(GENERATIEF&&citations.length)uit.generatief=await schrijfAntwoord(q,citations,key);
+  if(voorlopig&&!citations.length)return null;
+  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
+}
+async function askAI(q,cands,key,subs,toonTussenstand){
+  // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
+  // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
+  // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
+  const lokaal=!!(PROVIDERS[provSel.value]||{}).geenSleutel;
+  const lim=lokLimiet();
+  const perPagina=lokaal?lim.perPagina:Infinity;
+  const knip=t=>{
+    if(!lokaal||t.length<=perPagina)return t;
+    // Afkappen op een alineagrens, zodat er geen halve zin in de prompt belandt.
+    const kort=t.slice(0,perPagina);
+    const n=kort.lastIndexOf("\n");
+    return (n>perPagina*0.5?kort.slice(0,n):kort).trim();
+  };
+  // De pagina's staan al op volgorde van relevantie (na AI-herrangschikking).
+  const bronnen=lokaal?cands.slice(0,lim.bronnen):cands;
+  const listing=bronnen.map((idx,n)=>`[${n}] TITEL: ${CORPUS[idx].title}\nURL: ${CORPUS[idx].url}\nTEKST:\n${knip(CORPUS[idx].text)}`).join("\n\n---\n\n");
+  const user=`Vraag van de voorlichter:\n${q}\n\nPagina's:\n${listing}`;
+  // Streamen: bij elk binnengekomen brokje proberen we of er al een compleet citaat in staat.
+  // tryRepairJSON knipt de half geschreven JSON terug tot het laatste afgesloten haakje en sluit
+  // de rest zelf; die functie bestond al voor afgekapte antwoorden. Zodra er een citaat bij komt,
+  // tonen we de tussenstand. De EINDstand wordt daarna gewoon opnieuw opgebouwd, dus wat je ziet
+  // is nooit iets wat de eindcontrole niet zou doorstaan.
+  let onDelta=null;
+  if(STREAM&&kanStreamen()&&toonTussenstand){
+    let getoond=-1;
+    onDelta=(heel)=>{
+      const half=tryRepairJSON(heel);
+      if(!half)return;
+      const nu=(Array.isArray(half.citations)?half.citations.length:0)+((half.intro||"").trim()?0.5:0);
+      if(nu<=getoond)return;
+      const voorlopig=bouwAntwoord(half,q,bronnen,cands,subs,true);
+      if(!voorlopig)return;
+      getoond=nu;toonTussenstand(voorlopig);
+    };
+  }
+  const text=await PROVIDERS[provSel.value].call(key,modelSel.value,lokaal?SYSTEM_LOKAAL:SYSTEM,user,onDelta);
+  const r=parseModelJSON(text);
+  const uit=bouwAntwoord(r,q,bronnen,cands,subs,false);
+  if(GENERATIEF&&uit.citations.length)uit.generatief=await schrijfAntwoord(q,uit.citations,key);
   return uit;
 }
 
@@ -2913,7 +3016,7 @@ function toonStappen(turn,m){
   el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ");
   bubble.appendChild(el);
 }
-function renderResult(turn,r){
+function renderResult(turn,r,voorlopig){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
   const hasCites=r.citations&&r.citations.length;
   let h=`<div class="bubble antwoord">`;
@@ -2993,10 +3096,16 @@ function renderResult(turn,r){
   }
   if(!hasCites&&r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   if(hasCites)f+=`<div class="consulted">Bron geraadpleegd op ${consultDate()}</div>`;
-  f+=`<div class="answer-actions">`;
-  if(hasCites)f+=`<button class="act-btn copy-answer" title="Zet het antwoord, het citaat en de bronlink op het klembord">${ICON_COPY}<span>Kopieer antwoord</span></button>`
-;
-  f+=`<span class="spacer"></span><span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">👍</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">👎</button></span></div>`;
+  // Bij een tussenstand nog geen kopieerknop en geen duimpjes: het antwoord is niet af, dus
+  // kopiëren levert een half citaat op en een oordeel slaat nergens op. In plaats daarvan een
+  // regel die zegt dat er nog iets komt.
+  if(voorlopig){
+    f+=`<div class="answer-actions"><span class="nog-bezig">Nog bezig met schrijven…</span></div>`;
+  }else{
+    f+=`<div class="answer-actions">`;
+    if(hasCites)f+=`<button class="act-btn copy-answer" title="Zet het antwoord, het citaat en de bronlink op het klembord">${ICON_COPY}<span>Kopieer antwoord</span></button>`;
+    f+=`<span class="spacer"></span><span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">👍</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">👎</button></span></div>`;
+  }
   h+=`<div class="answer-footer">${f}</div></div>`;
   const slot=turn.querySelector(".slot");slot.innerHTML=h;
   slot.querySelectorAll(".followups button").forEach(b=>{
