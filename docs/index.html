@@ -1860,7 +1860,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 94";
+const APP_VERSION="build 95";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2970,9 +2970,14 @@ function renderResult(turn,r){
     }
   }else{
     h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
-    h+=`<div class="no-answer">Geen antwoord gevonden op de website van NederlandWereldwijd.</div>`;
+    // Zonder citaat is de melding HET antwoord, dus die staat hier — niet ook nog eens in een
+    // oranje regel eronder. Dat was dubbelop: "Geen antwoord gevonden" plus dezelfde mededeling
+    // in andere woorden.
+    h+=`<div class="no-answer">${escapeHtml(r.note||GEEN_INFO)}</div>`;
   }
-  if(r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
+  // De losse melding blijft alleen bestaan naast een echt antwoord (bv. "dit antwoord was
+  // mogelijk niet volledig" of een onbeantwoord deel van een samengestelde vraag).
+  if(hasCites&&r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
   // Footer: vervolgvragen (Perplexity-stijl) en acties.
   let f="";
   // Eén lijst met alles wat de voorlichter nu kan doen. Bovenaan de vragen die hij aan de
