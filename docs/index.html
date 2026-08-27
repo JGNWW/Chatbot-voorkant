@@ -190,6 +190,9 @@ ol.srclist li{margin:2px 0;}
 .fup-plus{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;color:var(--rijk-licht);transition:background .12s;}
 .fup-row:hover .fup-plus{background:var(--blauw-bg);}
 a{color:var(--rijk-licht);}
+/* De wachtregel breekt over twee regels omdat de bel tijdens het laden weinig inhoud heeft en
+   dus smal is. white-space:nowrap is geprobeerd en weer weggehaald: de bel groeit dan niet mee,
+   en de tekst liep 11 tot 23 px buiten de rand. Afbreken is lelijker dan overlopen niet is. */
 .loading{margin-top:12px;color:#555;font-style:italic;}
 .error{margin-top:12px;color:var(--rood);}
 .composer{padding:12px 24px 20px;background:linear-gradient(to top,#fff 70%,rgba(255,255,255,0));position:sticky;bottom:0;}
@@ -256,7 +259,10 @@ body:not(.spraak-toon) .gesproken{display:none;}
 .welcome strong{color:var(--rijk-blauw);font-size:1.32rem;display:block;margin-bottom:6px;font-weight:700;}
 .welcome .hint{display:block;margin-top:14px;color:var(--ink-licht);font-style:normal;font-size:.92rem;}
 /* Typing-indicator: shimmer over de tekst (modern, zoals Claude) */
-.shimmer{font-weight:600;background:linear-gradient(90deg,#aab6c4 20%,var(--rijk-blauw) 50%,#aab6c4 80%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:shimmer 1.5s linear infinite;}
+/* display:inline-block + wat lucht links en rechts: de tekst is cursief, en bij
+   background-clip:text steekt een schuine letter (de A van "Antwoord") buiten zijn vak en werd
+   daar afgesneden. De negatieve marge houdt de opmaak precies zoals hij was. */
+.shimmer{display:inline-block;padding:0 .16em;margin:0 -.16em;font-weight:600;background:linear-gradient(90deg,#aab6c4 20%,var(--rijk-blauw) 50%,#aab6c4 80%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:shimmer 1.5s linear infinite;}
 @keyframes shimmer{to{background-position:-200% 0;}}
 @media (prefers-reduced-motion:reduce){.shimmer{animation:none;color:var(--ink-licht);-webkit-text-fill-color:currentColor;}}
 /* Kopieer-knop per citaat */
@@ -595,8 +601,25 @@ function kanStreamen(){const p=PROVIDERS[provSel.value];return !!(p&&p.stream);}
 
 async function oaiChat(endpoint,key,model,system,user,name,onDelta){
   if(onDelta){
-    const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,stream:true,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
-    if(!r.ok)throw new Error(name+" "+r.status+": "+(await r.text()).slice(0,200));
+    // Niet elke aanbieder accepteert stream:true SAMEN met response_format. Weigert er een, dan
+    // proberen we het zonder dat veld, en pas als ook dat niet lukt zonder streamen. Zonder deze
+    // trap kreeg je stilletjes helemaal geen generatief antwoord: de fout verdween in de catch
+    // van schrijfAntwoord en de app viel terug op de letterlijke citaten.
+    const doe=async(json)=>{
+      const body={model,temperature:0,max_tokens:3000,stream:true,messages:[{role:"system",content:system},{role:"user",content:user}]};
+      if(json)body.response_format={type:"json_object"};
+      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
+      return r;
+    };
+    let r=await doe(true);
+    if(!r.ok&&(r.status===400||r.status===422)){
+      console.warn(name+": stream met response_format geweigerd ("+r.status+"), opnieuw zonder");
+      r=await doe(false);
+    }
+    if(!r.ok){
+      console.warn(name+": streamen lukt niet ("+r.status+"), val terug op het gewone antwoord");
+      return oaiChatHeel(endpoint,key,model,system,user,name);
+    }
     return leesSSE(r,j=>j.choices?.[0]?.delta?.content||"",onDelta);
   }
   return oaiChatHeel(endpoint,key,model,system,user,name);
@@ -971,6 +994,13 @@ const PROVIDERS={
       };
       let res=await doe(denk);
       if(!res.ok&&res.status===400&&/thinking/i.test(res.tekst))res=await doe({});
+      // Weigert de streamroute, dan alsnog in één keer ophalen. Beter een antwoord dat ineens
+      // verschijnt dan helemaal geen antwoord.
+      if(!res.ok&&onDelta){
+        console.warn("Gemini: streamen lukt niet ("+res.status+"), val terug op het gewone antwoord");
+        onDelta=null;res=await doe(denk);
+        if(!res.ok&&res.status===400&&/thinking/i.test(res.tekst))res=await doe({});
+      }
       if(!res.ok)throw new Error("Gemini "+res.status+": "+res.tekst.slice(0,200));
       const d=JSON.parse(res.tekst);
       const txt=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
@@ -2093,7 +2123,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 101";
+const APP_VERSION="build 102";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
