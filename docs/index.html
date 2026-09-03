@@ -588,10 +588,15 @@ const GENERATIEF_SYSTEM=`Je krijgt de vraag van een voorlichter van NederlandWer
 
 Regels:
 - Gebruik UITSLUITEND wat in de passages staat. Voeg geen kennis van buitenaf toe, ook niet als je het zeker weet.
+- Staat het antwoord al goed in een passage? Neem die zin of zinnen dan LETTERLIJK over, woord voor woord, in plaats van ze te herschrijven. Een zin van de website is altijd beter dan een vlottere zin van jou: hij is al precies, al goedgekeurd, en de voorlichter kan hem zo voorlezen. Herschrijven mag alleen als het echt nodig is:
+  * het antwoord moet uit meerdere passages worden samengevoegd;
+  * er hoort een voorwaarde bij die in de zin zelf niet staat (zie de regel over tussenkopjes);
+  * de zin is zonder de omringende tekst niet te begrijpen (verwijswoorden als "dit", "daarvoor", "die aanvraag").
+  Twijfel je of herschrijven nodig is? Dan is het niet nodig: neem de zin letterlijk over.
 - Elke alinea MOET verwijzen naar minstens één passage. Een alinea zonder bron wordt weggegooid.
 - Neem bedragen, termijnen, jaartallen en aantallen TEKEN VOOR TEKEN over uit de passage waarnaar je verwijst: dezelfde cijfers, dezelfde komma of punt, dezelfde schrijfwijze. Reken niets om en rond niets af. Staat het getal dat je nodig hebt niet in de passage, noem dan geen getal.
 - Schrijf 1 tot 4 korte alinea's, in de volgorde die de vraag het beste beantwoordt. Geen kopjes, geen opsommingstekens.
-- Begin niet met een herhaling van de vraag; begin met het antwoord.
+- Begin niet met een herhaling van de vraag; begin met het antwoord. Dat mag ook de letterlijke openingszin van de passage zijn.
 - Neem VAKTERMEN letterlijk over ("inreisvisum" is iets anders dan "Schengenvisum").
 - Hangt het antwoord af van de situatie (land, eerste aanvraag of verlenging, volwassene of kind), zeg dat dan met zoveel woorden in plaats van één situatie te kiezen.
 - Passages komen vaak uit een sectie met een eigen tussenkopje, en gelden dan alleen voor DIE situatie (bijvoorbeeld een pop-up ambassade tegenover een gewone ambassade of VFS Global). Schrijf de voorwaarde er dan bij; presenteer een uitzondering nooit als de algemene regel.
@@ -2168,7 +2173,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 109";
+const APP_VERSION="build 110";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
