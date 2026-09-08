@@ -678,6 +678,23 @@ async function oaiModels(endpoint,key,opties){
   return ids.sort((a,b)=>rang(a)-rang(b)||a.localeCompare(b));
 }
 
+// Een 429 bij een gratis sleutel is bijna nooit "u vraagt te vaak". Gratis sleutels rekenen in
+// TOKENS PER MINUUT, en dat budget is klein: bij Groq 8.000 voor gpt-oss-20b. Onze antwoordvraag
+// is gemeten 28.226 tekens, ongeveer 8.550 tokens. Die past dus niet eens in zijn eentje in het
+// budget van een minuut — dan is wachten zinloos, hoe lang je ook wacht.
+// Daarom onderscheiden we twee gevallen: de emmer is even leeg (wachten helpt, dus we wachten en
+// proberen het nog één keer), of de vraag is groter dan de emmer (wachten helpt niet, dus zeggen
+// we wat er wél helpt).
+const TEKENS_PER_TOKEN=3.3;   // gemeten op onze eigen prompts (45.604 tekens ≈ 13.819 tokens)
+function limietUitFout(tekst){
+  const tpm=/tokens per (?:minute|min)[^\d]{0,20}(\d{3,})/i.exec(tekst)||/TPM\D{0,20}(\d{3,})/i.exec(tekst);
+  const wacht=/try again in ([\d.]+)\s*(m?s)/i.exec(tekst);
+  let sec=0;
+  if(wacht)sec=wacht[2].toLowerCase()==="ms"?+wacht[1]/1000:+wacht[1];
+  return {tpm:tpm?+tpm[1]:0,wacht:Math.min(30,Math.ceil(sec))};
+}
+function tokensVan(system,user){return Math.round(((system||"").length+(user||"").length)/TEKENS_PER_TOKEN);}
+
 async function oaiChat(endpoint,key,model,system,user,name,onDelta){
   if(onDelta){
     // Niet elke aanbieder accepteert stream:true SAMEN met response_format. Weigert er een, dan
@@ -696,21 +713,38 @@ async function oaiChat(endpoint,key,model,system,user,name,onDelta){
       r=await doe(false);
     }
     if(!r.ok){
-      console.warn(name+": streamen lukt niet ("+r.status+"), val terug op het gewone antwoord");
+      console.warn(name+(r.status===429?": limiet geraakt ("+r.status+")":": streamen lukt niet ("+r.status+")")+", val terug op het gewone antwoord");
       return oaiChatHeel(endpoint,key,model,system,user,name);
     }
     return leesSSE(r,j=>j.choices?.[0]?.delta?.content||"",onDelta);
   }
   return oaiChatHeel(endpoint,key,model,system,user,name);
 }
-async function oaiChatHeel(endpoint,key,model,system,user,name){
+async function oaiChatHeel(endpoint,key,model,system,user,name,tweedeKans){
   const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
   if(!r.ok){
-    const tekst=(await r.text()).slice(0,200);
+    const tekst=(await r.text()).slice(0,400);
     // "model_not_found" is geen storing maar een verlopen keuze. Zeg dan wat er aan de hand is
     // in plaats van de rauwe foutmelding van de aanbieder door te geven.
     if(r.status===404&&/model/i.test(tekst))
       throw new Error(name+": het gekozen model ("+model+") bestaat daar niet meer. Vul je sleutel in bij Instellingen en kies opnieuw — de lijst wordt dan bij "+name+" zelf opgehaald.");
+    if(r.status===429){
+      const {tpm,wacht}=limietUitFout(tekst),nodig=tokensVan(system,user);
+      const duizend=n=>Math.round(n/100)/10+"K";
+      // Groter dan het hele budget van een minuut: wachten lost dit nooit op.
+      if(tpm&&nodig>tpm*0.85)
+        throw new Error(name+": deze vraag past niet in de gratis limiet van "+model+" — hij vraagt ongeveer "
+          +duizend(nodig)+" tokens en het model mag er "+duizend(tpm)+" per minuut. Kies een model met een ruimere limiet, "
+          +"of zet turbo aan bij Instellingen: dat brengt drie aanroepen per vraag terug naar één.");
+      // Emmer even leeg: één keer wachten en opnieuw. Twee keer wachten is voor aan de telefoon
+      // te lang; dan is een eerlijke melding beter dan een voorlichter die naar een balkje kijkt.
+      if(wacht&&tweedeKans!==false){
+        console.warn(name+": limiet geraakt, "+wacht+"s wachten en opnieuw");
+        await new Promise(res=>setTimeout(res,wacht*1000+300));
+        return oaiChatHeel(endpoint,key,model,system,user,name,false);
+      }
+      throw new Error(name+" zit aan zijn limiet (429). Wacht een minuut, of kies een ander model.");
+    }
     throw new Error(name+" "+r.status+": "+tekst);
   }
   const d=await r.json();return d.choices?.[0]?.message?.content||"";
@@ -2235,7 +2269,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 112";
+const APP_VERSION="build 113";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
