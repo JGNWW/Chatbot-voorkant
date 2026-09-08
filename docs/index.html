@@ -651,6 +651,33 @@ async function leesSSE(res,pluk,onDelta){
 // Ondersteunt deze provider streamen? De twee lokale motoren nog niet.
 function kanStreamen(){const p=PROVIDERS[provSel.value];return !!(p&&p.stream);}
 
+// Modellijsten in de code verouderen. llama-3.3-70b-versatile verdween bij Groq en gaf sindsdien
+// een 404 midden in een gesprek; bij Gemini ging gemini-2.0-flash eerder zo op zwart. Een lijst
+// die wij bijhouden loopt daar per definitie achteraan, dus vragen we hem op bij de aanbieder
+// zelf — dezelfde aanpak die bij Gemini al werkte. Zonder sleutel kan dat niet; dan blijft
+// fallbackModels over, en dat is dus een noodgreep en niet meer de waarheid.
+//
+// Alles wat geen tekst-in-tekst-uit model is, valt af: spraak, beeld, embeddings en
+// veiligheidsfilters kunnen onze JSON-opdracht niet aan en horen niet in een keuzelijst.
+const NIET_CHAT=/whisper|tts|audio|realtime|embed|guard|moderation|rerank|ocr|image|vision|dall-e|sora|video|transcribe|speech|clip|bge|babbage|davinci|codex|nemotron-nano-vl/i;
+async function oaiModels(endpoint,key,opties){
+  const o=opties||{};
+  if(!key||key.trim().length<10)throw new Error("geen sleutel");
+  const r=await fetch(endpoint,{headers:o.headers?o.headers(key):{authorization:"Bearer "+key.trim()}});
+  if(!r.ok)throw new Error("modellen ophalen mislukt ("+r.status+")");
+  const d=await r.json();
+  let ids=[...new Set((d.data||d.models||[]).map(m=>(m&&(m.id||m.name))||"").filter(Boolean))]
+    .map(id=>id.replace(/^models\//,""))
+    .filter(id=>!NIET_CHAT.test(id));
+  if(o.houd)ids=ids.filter(id=>o.houd.test(id));
+  if(!ids.length)throw new Error("geen bruikbare modellen");
+  // Beproefde modellen bovenaan, de rest eronder op alfabet. Wegfilteren doen we niet: een lijst
+  // die stiekem modellen weglaat is net zo vervelend als een lijst die verouderd is.
+  const voorkeur=o.voorkeur||[];
+  const rang=id=>{const i=voorkeur.findIndex(v=>id.includes(v));return i<0?voorkeur.length:i;};
+  return ids.sort((a,b)=>rang(a)-rang(b)||a.localeCompare(b));
+}
+
 async function oaiChat(endpoint,key,model,system,user,name,onDelta){
   if(onDelta){
     // Niet elke aanbieder accepteert stream:true SAMEN met response_format. Weigert er een, dan
@@ -678,7 +705,14 @@ async function oaiChat(endpoint,key,model,system,user,name,onDelta){
 }
 async function oaiChatHeel(endpoint,key,model,system,user,name){
   const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
-  if(!r.ok)throw new Error(name+" "+r.status+": "+(await r.text()).slice(0,200));
+  if(!r.ok){
+    const tekst=(await r.text()).slice(0,200);
+    // "model_not_found" is geen storing maar een verlopen keuze. Zeg dan wat er aan de hand is
+    // in plaats van de rauwe foutmelding van de aanbieder door te geven.
+    if(r.status===404&&/model/i.test(tekst))
+      throw new Error(name+": het gekozen model ("+model+") bestaat daar niet meer. Vul je sleutel in bij Instellingen en kies opnieuw — de lijst wordt dan bij "+name+" zelf opgehaald.");
+    throw new Error(name+" "+r.status+": "+tekst);
+  }
   const d=await r.json();return d.choices?.[0]?.message?.content||"";
 }
 // De lokale modellen draaien in de browser zelf (transformers.js + WebGPU): geen sleutel, geen
@@ -1132,15 +1166,37 @@ const PROVIDERS={
       const d=JSON.parse(res.tekst);
       if(d.error)throw new Error("HuggingFace: "+((d.error.message||d.error)+"").slice(0,200));
       return d.choices?.[0]?.message?.content||"";}},
-  groq:{stream:true,label:"Groq (gratis, snel)",models:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],keyUrl:"https://console.groq.com/keys",keyHint:"Gratis sleutel via console.groq.com",
+  groq:{stream:true,label:"Groq (gratis, snel)",keyUrl:"https://console.groq.com/keys",keyHint:"Gratis sleutel via console.groq.com",
+    fallbackModels:["llama-3.3-70b-versatile","llama-3.1-8b-instant"],
+    loadModels(key){return oaiModels("https://api.groq.com/openai/v1/models",key,
+      {voorkeur:["llama-3.3-70b","llama-3.1-8b","gpt-oss-120b","gpt-oss-20b","kimi","qwen"]});},
     call(key,model,system,user,onDelta){return oaiChat("https://api.groq.com/openai/v1/chat/completions",key,model,system,user,"Groq",onDelta);}},
-  cerebras:{stream:true,label:"Cerebras (gratis, zeer snel)",models:["llama-3.3-70b","llama-3.1-8b"],keyUrl:"https://cloud.cerebras.ai/",keyHint:"Gratis sleutel via cloud.cerebras.ai",
+  cerebras:{stream:true,label:"Cerebras (gratis, zeer snel)",keyUrl:"https://cloud.cerebras.ai/",keyHint:"Gratis sleutel via cloud.cerebras.ai",
+    fallbackModels:["llama-3.3-70b","llama-3.1-8b"],
+    loadModels(key){return oaiModels("https://api.cerebras.ai/v1/models",key,
+      {voorkeur:["llama-3.3-70b","llama3.1-8b","llama-3.1-8b","gpt-oss","qwen"]});},
     call(key,model,system,user,onDelta){return oaiChat("https://api.cerebras.ai/v1/chat/completions",key,model,system,user,"Cerebras",onDelta);}},
-  mistral:{stream:true,label:"Mistral (gratis, EU)",models:["mistral-small-latest","mistral-large-latest","open-mistral-nemo"],keyUrl:"https://console.mistral.ai/api-keys/",keyHint:"Gratis sleutel via console.mistral.ai",
+  mistral:{stream:true,label:"Mistral (gratis, EU)",keyUrl:"https://console.mistral.ai/api-keys/",keyHint:"Gratis sleutel via console.mistral.ai",
+    fallbackModels:["mistral-small-latest","mistral-large-latest","open-mistral-nemo"],
+    // De datumversies (mistral-small-2506) staan naast de -latest-namen in de lijst; die -latest
+    // wijst altijd naar de nieuwste, dus die hoort bovenaan.
+    loadModels(key){return oaiModels("https://api.mistral.ai/v1/models",key,
+      {voorkeur:["mistral-small-latest","mistral-medium-latest","mistral-large-latest","magistral","ministral","open-mistral"]});},
     call(key,model,system,user,onDelta){return oaiChat("https://api.mistral.ai/v1/chat/completions",key,model,system,user,"Mistral",onDelta);}},
-  openai:{stream:true,label:"OpenAI (ChatGPT)",models:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],keyUrl:"https://platform.openai.com/api-keys",keyHint:"Sleutel via platform.openai.com (betaald)",
+  openai:{stream:true,label:"OpenAI (ChatGPT)",keyUrl:"https://platform.openai.com/api-keys",keyHint:"Sleutel via platform.openai.com (betaald)",
+    fallbackModels:["gpt-4o-mini","gpt-4o","gpt-4.1-mini"],
+    // OpenAI zet ook oude tekstmodellen, fijnafstellingen en hulpmodellen in de lijst; alleen de
+    // gpt- en o-reeks praten via /chat/completions zoals wij ze aanroepen.
+    loadModels(key){return oaiModels("https://api.openai.com/v1/models",key,
+      {houd:/^(gpt-|o[1-9])/,voorkeur:["gpt-4o-mini","gpt-4.1-mini","gpt-5","gpt-4.1","gpt-4o"]});},
     call(key,model,system,user,onDelta){return oaiChat("https://api.openai.com/v1/chat/completions",key,model,system,user,"OpenAI",onDelta);}},
-  anthropic:{stream:true,label:"Anthropic (Claude)",models:["claude-sonnet-4-6","claude-haiku-4-5"],keyUrl:"https://console.anthropic.com/settings/keys",keyHint:"Sleutel via console.anthropic.com (betaald)",
+  anthropic:{stream:true,label:"Anthropic (Claude)",keyUrl:"https://console.anthropic.com/settings/keys",keyHint:"Sleutel via console.anthropic.com (betaald)",
+    fallbackModels:["claude-sonnet-4-6","claude-haiku-4-5"],
+    // Anthropic gebruikt geen Bearer maar x-api-key, en vanuit een browser moet je expliciet
+    // zeggen dat je dat weet.
+    loadModels(key){return oaiModels("https://api.anthropic.com/v1/models?limit=100",key,
+      {voorkeur:["sonnet","haiku","opus"],
+       headers:k=>({"x-api-key":k.trim(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"})});},
     // Onder welke promptlengte het cachen stilzwijgend niet gebeurt. Die drempel loopt niet
     // netjes op met de generatie: Haiku 4.5 vraagt 4.096 tokens, Sonnet 4.6 maar 1.024. Onze
     // systeemprompt is ~3.240 tokens, dus hij cachet wél bij Sonnet en NIET bij Haiku.
@@ -2179,7 +2235,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 111";
+const APP_VERSION="build 112";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
