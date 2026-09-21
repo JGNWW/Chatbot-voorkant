@@ -35,5 +35,5 @@ export async function loadSemantic(core, dir = dataDir) {
 
 // Precies wat de app zonder AI-stappen als kandidaten toont.
 export async function retrieve(core, q, limit = 6) {
-  return (await core.rankFor(q)).slice(0, limit);
+  return (await core.rankFor(q, limit)).slice(0, limit);
 }

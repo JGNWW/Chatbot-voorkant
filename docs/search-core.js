@@ -382,7 +382,7 @@ function hubCandidates(cands,text){
 // verdrong een specifiekere pagina die de vraag wél beantwoordde. Bij de AI-weg blijft
 // hubCandidates() wel staan — die voegt hubs alleen toe als EXTRA kandidaat zonder de volgorde
 // te veranderen, en het taalmodel kiest daarna zelf.
-async function rankFor(q){return forceProduct(q,await hybrid(q,[],TOPK));}
+async function rankFor(q,limit){return forceProduct(q,await hybrid(q,[],limit||TOPK));}
 
 // ---- Corpus en semantiek van buitenaf vullen (browser doet dit via de globals) ----
 function setCorpus(c){
