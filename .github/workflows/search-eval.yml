@@ -1,28 +1,37 @@
 name: Zoekkwaliteit (regressie-gate)
 
-# Draait de eval-harnas op de zoeklaag wanneer er iets aan de zoeklogica, het corpus
-# of de testset verandert. De gate faalt (rode check) als recall@6 < 85% of MRR < 0.72.
-# Gebruikt de --no-sem modus: alleen de trefwoordlaag (BM25 + spelling + landherkenning),
-# zodat de check snel en zonder modeldownload/netwerk draait.
-# Let op: dit toetst scripts/eval.mjs (een spiegel van de zoeklogica in docs/index.html);
-# houd beide in sync bij wijzigingen aan de zoeklogica.
+# Draait het eval-harnas op de zoeklaag zodra er iets aan de zoeklogica, het corpus of een
+# vragenset verandert. De zoeklogica staat sinds kort op één plek (docs/search-core.js); de
+# browser laadt dat bestand en Node laadt hetzelfde bestand, dus deze gate toetst precies wat
+# de voorlichter krijgt. Er is geen kopie meer die uit de pas kan lopen.
+#
+# Draait in --no-sem modus: alleen de trefwoordlaag, zodat de check snel is en geen model van
+# 118 MB hoeft te downloaden. De drempels staan met marge onder de gemeten waarden.
 
 on:
   pull_request:
     paths:
+      - docs/search-core.js
       - docs/index.html
       - docs/data/corpus.json
       - docs/data/embeddings.json
       - scripts/eval.mjs
+      - scripts/corelib.mjs
       - scripts/eval_set.json
+      - scripts/eval_set_gauntlet_dev.json
+      - scripts/eval_set_gauntlet_blind.json
   push:
     paths:
+      - docs/search-core.js
       - docs/index.html
       - docs/data/corpus.json
       - docs/data/embeddings.json
       - scripts/eval.mjs
+      - scripts/corelib.mjs
       - scripts/eval_set.json
       - scripts/eval_set_auto.json
+      - scripts/eval_set_gauntlet_dev.json
+      - scripts/eval_set_gauntlet_blind.json
       - scripts/quote_test.mjs
 
 jobs:
@@ -35,10 +44,27 @@ jobs:
           node-version: "22"
       - name: Citaten mogen nooit midden in een zin afbreken
         run: node scripts/quote_test.mjs
+      - name: De voorgebouwde index rangschikt hetzelfde als de zoeker
+        run: node scripts/index_test.mjs
       - name: Gate op de handgemaakte vragen (126)
-        run: node scripts/eval.mjs --no-sem --gate
-      - name: Gate op de gegenereerde vragen (1000)
         env:
           GATE_RECALL: "0.88"
           GATE_MRR: "0.78"
+        run: node scripts/eval.mjs --no-sem --gate
+      - name: Gate op de gegenereerde vragen (1000)
+        env:
+          GATE_RECALL: "0.93"
+          GATE_MRR: "0.85"
         run: node scripts/eval.mjs --no-sem --gate --set=eval_set_auto.json
+      # De vijandige set: vragen in de woorden van de beller. Hier is nog veel te winnen, dus
+      # de drempel staat laag — hij is er om achteruitgang te vangen, niet om te vieren.
+      - name: Gate op de vijandige vragen (114, dev)
+        env:
+          GATE_RECALL: "0.45"
+          GATE_MRR: "0.33"
+        run: node scripts/eval.mjs --no-sem --gate --set=eval_set_gauntlet_dev.json
+      - name: Gate op de vijandige vragen (108, blind)
+        env:
+          GATE_RECALL: "0.37"
+          GATE_MRR: "0.28"
+        run: node scripts/eval.mjs --no-sem --gate --set=eval_set_gauntlet_blind.json

@@ -118,16 +118,25 @@ function detectCountries(text){if(!COUNTRY)buildCountries();const f=" "+fold(tex
 // Actieve handmatige filters (zoekgebied): land en onderwerp (eerste URL-segment).
 const FILTER={country:"",topic:""};
 function firstSeg(idx){return (CORPUS[idx].url||"").replace(/^https?:\/\/[^/]+\//,"").split("/")[0]||"";}
-// Beperk + herorden kandidaten op het zoekgebied: onderwerp-filter (met terugval als het te
-// streng is) en land (handmatig filter overschrijft autodetectie). Genoemd/gekozen land eerst,
-// dan algemene pagina's, andere landen achteraan.
+// Beperk + herorden kandidaten op het zoekgebied dat de voorlichter zelf heeft INGESTELD:
+// het onderwerp-filter (met terugval als het te streng is) en het land-filter. Gekozen land
+// eerst, dan algemene pagina's, andere landen achteraan.
+//
+// Hier stond eerder ook een automatische variant: werd er een land in de vraag HERKEND, dan
+// schoof elke pagina van dat land naar voren. Dat kostte meer dan het opleverde. De site heeft
+// van bijna elk onderwerp een landversie, dus "ik ben beroofd in thailand" leverde zes
+// Thailand-pagina's op over visum en trouwen, en de pagina over beroving stond er niet bij.
+// Gemeten over 1126 vragen kostte die groepering 4 punten recall@6 en 7 punten op plek 1 —
+// ook op de landvragen zelf, waarvoor hij bedoeld was. Het land staat al in de URL en de titel
+// en telt daar mee in de score; dat is genoeg.
 function applyScope(text,order){
   if(!PCOUNTRY)buildCountries();
+  if(!FILTER.topic&&!FILTER.country)return order;
   let o=order;
   if(FILTER.topic){const m=o.filter(i=>firstSeg(i)===FILTER.topic);if(m.length>=2)o=m;}
-  const det=FILTER.country?new Set([FILTER.country]):detectCountries(text);
+  if(!FILTER.country)return o;
   const g1=[],g2=[],g3=[];
-  for(const idx of o){const pc=PCOUNTRY[idx];if(pc&&det.has(pc))g1.push(idx);else if(pc)g3.push(idx);else g2.push(idx);}
+  for(const idx of o){const pc=PCOUNTRY[idx];if(pc===FILTER.country)g1.push(idx);else if(pc)g3.push(idx);else g2.push(idx);}
   return [...g1,...g2,...g3];
 }
 // Leesbare zoekwoorden van actieve filters (voor betere recall in de trefwoordzoeker).
@@ -140,7 +149,7 @@ const SEM={ready:false,meta:null,vecs:null,extractor:null,modelPromise:null,pct:
 // Hoe lang een vraag hoogstens op dat model wacht. Stond er geen grens, dan hing de eerste vraag
 // na het openen van de pagina net zo lang als de download duurt — op een trage lijn minuten,
 // zonder dat je iets anders zag dan "Bezig met opzoeken…". Liever een antwoord dat alleen op
-// trefwoorden is gevonden (87% recall in plaats van 95%) dan een scherm dat stilstaat.
+// trefwoorden is gevonden (91% recall in plaats van 95%) dan een scherm dat stilstaat.
 const SEM_WACHT_MS=1500;
 
 async function semanticRank(q,limit){
@@ -211,8 +220,17 @@ function productMatch(text){
   for(const t of new Set(tokenize(text||""))){const i=PRODUCT.get(t);if(i!==undefined&&t.length>len){best=i;len=t.length;}}
   return best;
 }
-// Zet de productpagina vooraan; verandert verder niets aan de volgorde.
+// Zet de productpagina vooraan, maar alleen als de vakterm zo ongeveer de HELE vraag is
+// ("nooddocument", "schengenvisum"). Dat was ook de bedoeling: een losse vakterm is een
+// specifieke vraag, geen brede.
+//
+// Zonder die voorwaarde sloeg de regel te breed toe. Van de acht termen die hem laten vuren
+// zijn "trouwen" en "woonplaats" gewone woorden, dus elke vraag waarin ze voorkwamen kreeg de
+// algemene pagina opgedrongen: "trouwen in denemarken" gaf /trouwen in plaats van
+// /trouwen/denemarken. Dat kostte 5 punten op plek 1 over 1000 vragen.
+const PRODUCT_MAX_WOORDEN=2;
 function forceProduct(text,list){
+  if(tokenize(text||"").length>PRODUCT_MAX_WOORDEN)return list;
   const i=productMatch(text);
   if(i<0||!Array.isArray(list)||list[0]===i)return list;
   return [i,...list.filter(x=>x!==i)];
