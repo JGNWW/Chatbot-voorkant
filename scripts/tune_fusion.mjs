@@ -7,6 +7,29 @@
 //
 //   node scripts/tune_fusion.mjs                      afstellen op de vijandige dev-set
 //   node scripts/tune_fusion.mjs --cache=/tmp/f.json  ranglijsten bewaren/hergebruiken
+//
+// WAT AL GEMETEN IS EN NIET WERKTE — zodat niemand dit nog eens hoeft te doen. Alles hieronder
+// is doorgerekend op de 126 handgemaakte, de 1000 gegenereerde en de 114 vijandige vragen:
+//
+//   Het land uit de trefwoordvraag halen en vervangen door een bonus op landpagina's.
+//     Klinkt goed (een landnaam is een facet, geen onderwerp) maar de 1000-set zakte van 97%
+//     naar 62%. Bij veel vragen IS de landpagina het antwoord, en dan moet het land gewoon
+//     meewegen als zoekwoord.
+//   Een prior op het aantal inkomende links (PageRank-licht) en op de URL-diepte.
+//     Ruis (/cookies, /privacy) bleek nauwelijks een probleem: 2 à 3 gevallen op 114 vragen.
+//     De prior gaf +1,6 punt op de 126 en -0,9 op de vijandige set: ruis, geen signaal.
+//   Samenstellingen splitsen ("paspoortaanvraag" -> paspoort + aanvraag).
+//     Vuurt op 11 van de 1348 vragen, waarvan de helft onzin ("vrijgekocht" -> vrij + gekocht).
+//     Het corpusvocabulaire is groot genoeg dat echte samenstellingen er al in staan.
+//   De spellingcorrectie strenger maken of de correctie naast het origineel zetten.
+//     De correctie verandert soms een gewoon woord in een ander gewoon woord ("negen" ->
+//     "nemen", "gekort" -> "gekost"). Dat ziet er eng uit, maar kost meetbaar niets; hem
+//     uitzetten kost wel 4 punten. Laten staan.
+//   De paginascore anders opbouwen uit de tekstblokken (gemiddelde van de beste twee of drie
+//     in plaats van het maximum). Alles binnen de ruis.
+//   Een volwaardige Nederlandse Snowball-stemmer in plaats van de simpele uitgangenlijst.
+//     Verliest: op de vijandige set 38,6% -> 36,8% op plek 1. Het verdubbelen van klinkers
+//     terugdraaien ("maan" -> "man") maakt botsingen die deze vakterm-rijke site niet aankan.
 import fs from "fs";
 import { loadCore, loadCorpus, loadSemantic } from "./corelib.mjs";
 
