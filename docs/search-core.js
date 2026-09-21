@@ -99,13 +99,27 @@ function fuzzyFix(t){
   }
   return best||t;
 }
-// Trefwoord-ranking met BM25 (term-frequentie + lengtenormalisatie + IDF). Zeldzame, vaak
-// voorkomende termen in korte/relevante pagina's scoren hoog. Onbekende woorden worden
-// eerst gecorrigeerd op spelling (fuzzyFix).
+// ---- Titeldekking: hoeveel van de vraag staat er in de TITEL? ----
+// BM25 weegt de titel zwaarder, maar telt frequenties; het telt niet hoeveel van de vraag een
+// titel dekt. Daardoor won de algemene pagina van een rubriek het van de pagina die precies de
+// gestelde deelvraag behandelt: "wat kost een nieuw paspoort" kwam uit bij de aanvraagpagina,
+// terwijl /paspoort-id-kaart/kosten-buitenland gewoon bestaat. Een titel die de hele vraag dekt
+// is bijna altijd de goede bladzijde.
+let TITLETOK=null;
+function buildTitleTokens(){TITLETOK=CORPUS.map(p=>new Set(tokenize((p.title||"").replace(/ \| NederlandWereldwijd$/,""))));}
+const W_TITELDEKKING=2;
+// Trefwoord-ranking met BM25 (term-frequentie + lengtenormalisatie + IDF), daarna een bonus
+// naar rato van hoeveel vraagwoorden de titel dekt. Onbekende woorden worden eerst gecorrigeerd
+// op spelling (fuzzyFix).
 function rank(q,limit){
   if(!DF)buildDF();
+  if(!TITLETOK)buildTitleTokens();
   const qt=[...new Set(tokenize(q).map(fuzzyFix))];if(!qt.length)return [];
-  const k1=1.5,b=0.75,s=[];
+  // k1 stond op 1,5. Lager laat herhaling van hetzelfde woord minder zwaar wegen, wat
+  // langere pagina's minder bevoordeelt; gemeten over 1240 vragen gaf 1,2 op elke set een
+  // beter resultaat.
+  const k1=1.2,b=0.75,s=[];
+  const dekking=i=>{let raak=0;const t=TITLETOK[i];for(const x of qt)if(t.has(x))raak++;return 1+W_TITELDEKKING*(raak/qt.length);};
   if(TIDX){
     // Zelfde formule, andere route: alleen de postings van de gevraagde termen doorlopen in
     // plaats van alle 4431 pagina's. scripts/index_test.mjs bewijst dat de uitkomst gelijk is.
@@ -118,13 +132,13 @@ function rank(q,limit){
         sc[d]+=w*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[d]/AVGDL));
       }
     }
-    for(let i=0;i<NDOCS;i++)if(sc[i]>0)s.push([sc[i],i]);
+    for(let i=0;i<NDOCS;i++)if(sc[i]>0)s.push([sc[i]*dekking(i),i]);
     s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
   }
   for(let i=0;i<NDOCS;i++){
     const m=PTOKENS[i];let sc=0;
     for(const t of qt){const tf=m.get(t);if(!tf)continue;sc+=bm25idf(t)*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[i]/AVGDL));}
-    if(sc>0)s.push([sc,i]);
+    if(sc>0)s.push([sc*dekking(i),i]);
   }
   s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
 }
@@ -341,7 +355,7 @@ async function rankFor(q){return forceProduct(q,withHub(await hybrid(q,[],TOPK))
 
 // ---- Corpus en semantiek van buitenaf vullen (browser doet dit via de globals) ----
 function setCorpus(c){
-  CORPUS=c;TIDX=null;
+  CORPUS=c;TIDX=null;TITLETOK=null;
   DF=null;VOCAB=null;COUNTRY=null;PCOUNTRY=null;URL2IDX=null;PRODUCT=null;ANCHOR=null;
   PTOKENS=CORPUS.map(tokensOf);
   buildDF();
