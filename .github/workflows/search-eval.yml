@@ -48,23 +48,23 @@ jobs:
         run: node scripts/index_test.mjs
       - name: Gate op de handgemaakte vragen (126)
         env:
-          GATE_RECALL: "0.88"
-          GATE_MRR: "0.78"
+          GATE_RECALL: "0.91"
+          GATE_MRR: "0.82"
         run: node scripts/eval.mjs --no-sem --gate
       - name: Gate op de gegenereerde vragen (1000)
         env:
-          GATE_RECALL: "0.93"
-          GATE_MRR: "0.85"
+          GATE_RECALL: "0.95"
+          GATE_MRR: "0.88"
         run: node scripts/eval.mjs --no-sem --gate --set=eval_set_auto.json
       # De vijandige set: vragen in de woorden van de beller. Hier is nog veel te winnen, dus
       # de drempel staat laag — hij is er om achteruitgang te vangen, niet om te vieren.
       - name: Gate op de vijandige vragen (114, dev)
         env:
-          GATE_RECALL: "0.45"
-          GATE_MRR: "0.33"
+          GATE_RECALL: "0.52"
+          GATE_MRR: "0.37"
         run: node scripts/eval.mjs --no-sem --gate --set=eval_set_gauntlet_dev.json
       - name: Gate op de vijandige vragen (108, blind)
         env:
-          GATE_RECALL: "0.37"
-          GATE_MRR: "0.28"
+          GATE_RECALL: "0.44"
+          GATE_MRR: "0.33"
         run: node scripts/eval.mjs --no-sem --gate --set=eval_set_gauntlet_blind.json
