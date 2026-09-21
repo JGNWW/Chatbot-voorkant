@@ -33,8 +33,7 @@ export async function loadSemantic(core, dir = dataDir) {
   return meta;
 }
 
-// Wat de app zonder AI-stappen als kandidaten toont (docs/index.html: rankFor, zonder de
-// hub-aanvulling die alleen de AI-herrangschikking extra keuze geeft).
+// Precies wat de app zonder AI-stappen als kandidaten toont.
 export async function retrieve(core, q, limit = 6) {
-  return core.forceProduct(q, await core.hybrid(q, [], limit)).slice(0, limit);
+  return (await core.rankFor(q)).slice(0, limit);
 }

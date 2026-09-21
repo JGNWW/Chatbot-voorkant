@@ -374,7 +374,15 @@ function hubCandidates(cands,text){
   return applyScope(text||"",[...cands,...extra]);
 }
 // Eenvoudige retrieval (gebruikt in demo/zonder-sleutel pad).
-async function rankFor(q){return forceProduct(q,withHub(await hybrid(q,[],TOPK)));}
+// De weg zonder AI-stappen: fusie, spreiding, en de vakterm-regel.
+//
+// Hier zat withHub() tussen, die de bovenliggende rubriekspagina naar voren haalde zodat een
+// algemene vraag altijd een algemene passage had. Gemeten kostte dat 3,5 punten recall@6 en 2,6
+// punten op plek 1 op de vijandige vragen, en ook op de 126 ging het omlaag: de hubpagina
+// verdrong een specifiekere pagina die de vraag wél beantwoordde. Bij de AI-weg blijft
+// hubCandidates() wel staan — die voegt hubs alleen toe als EXTRA kandidaat zonder de volgorde
+// te veranderen, en het taalmodel kiest daarna zelf.
+async function rankFor(q){return forceProduct(q,await hybrid(q,[],TOPK));}
 
 // ---- Corpus en semantiek van buitenaf vullen (browser doet dit via de globals) ----
 function setCorpus(c){
