@@ -6,9 +6,9 @@
 // document-frequenties, op de hoofddraad, terwijl de gebruiker niets kan doen.
 // Ingelezen als typed arrays is dat een kwestie van bytes kopiëren.
 //
-// De index is een exacte afspiegeling van tokensOf() in docs/index.html: zelfde stopwoorden,
-// zelfde stemmer, zelfde veldgewichten. Wijzigt daar iets, dan MOET dit bestand opnieuw
-// gebouwd worden — scripts/index_test.mjs controleert dat en faalt als ze uit elkaar lopen.
+// De index wordt gebouwd met tokensOf() uit docs/search-core.js zelf — niet met een kopie van
+// de stopwoorden, de stemmer en de veldgewichten. Wijzigt daar iets, dan MOET dit bestand
+// opnieuw gebouwd worden; scripts/index_test.mjs faalt als ze uit elkaar lopen.
 //
 // De index staat per TERM, niet per pagina. Dat is niet alleen compacter om te laden maar ook
 // sneller te bevragen: een vraag van vijf woorden raakt alleen de postings van die vijf termen,
@@ -24,30 +24,15 @@
 //   postTf        Uint16Array(posities)   -> gewogen frequentie (hoogste gemeten: 122)
 // df is af te leiden uit ptr (ptr[t+1]-ptr[t]) en staat er dus niet apart in.
 import fs from "fs";
+import { loadCore, loadCorpus } from "./corelib.mjs";
 
-const html = fs.readFileSync(new URL("../docs/index.html", import.meta.url), "utf-8");
-const corpus = JSON.parse(fs.readFileSync(new URL("../docs/data/corpus.json", import.meta.url), "utf-8"));
 const OUT = new URL("../docs/data/bm25.bin", import.meta.url).pathname;
+const core = loadCore();
+const corpus = loadCorpus(core);
+const FW = core.weights;
 
-// De veldgewichten uit de app halen in plaats van ze over te typen: één plek waar ze staan.
-const gew = (naam) => {
-  const m = new RegExp("const FW_TITLE=(\\d+), FW_DESC=(\\d+), FW_URL=(\\d+), FW_TEXT=(\\d+)").exec(html);
-  if (!m) { console.error("veldgewichten niet gevonden in docs/index.html"); process.exit(1); }
-  return { TITLE: +m[1], DESC: +m[2], URL: +m[3], TEXT: +m[4] }[naam];
-};
-const FW = { title: gew("TITLE"), desc: gew("DESC"), url: gew("URL"), text: gew("TEXT") };
-
-const STOP = new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
-const stem = w => { if (w.length < 5) return w; for (const s of ["ingen", "ing", "heden", "heid", "en", "s"]) if (w.length - s.length >= 4 && w.endsWith(s)) return w.slice(0, -s.length); return w; };
-const tokenize = t => (t || "").toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w => w.length > 2 && !STOP.has(w)).map(stem);
-
-// 1. per pagina de gewogen termfrequenties, precies zoals tokensOf()
-const perPagina = corpus.map(p => {
-  const m = new Map();
-  const add = (t, w) => { for (const x of tokenize(t || "")) m.set(x, (m.get(x) || 0) + w); };
-  add(p.title, FW.title); add(p.summary || p.desc, FW.desc); add(p.url, FW.url); add(p.text, FW.text);
-  return m;
-});
+// 1. per pagina de gewogen termfrequenties — letterlijk die van de zoeker zelf
+const perPagina = core.PTOKENS;
 
 // 2. vocabulaire vaststellen. Gesorteerd, zodat het bestand reproduceerbaar is: dezelfde invoer
 //    geeft byte-voor-byte hetzelfde bestand, en een diff laat echte wijzigingen zien.
@@ -103,4 +88,4 @@ fs.writeFileSync(OUT, uit);
 console.error(`geschreven: ${OUT}`);
 console.error(`  ${corpus.length} pagina's, ${termen.length} termen, ${posities} postings`);
 console.error(`  ${(uit.length / 1e6).toFixed(2)} MB rauw`);
-console.error(`  veldgewichten uit index.html: titel ${FW.title}, desc ${FW.desc}, url ${FW.url}, tekst ${FW.text}`);
+console.error(`  veldgewichten uit search-core.js: titel ${FW.FW_TITLE}, desc ${FW.FW_DESC}, url ${FW.FW_URL}, tekst ${FW.FW_TEXT}, ankertekst ${FW.FW_ANCHOR}`);

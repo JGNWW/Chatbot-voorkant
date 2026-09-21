@@ -7,28 +7,23 @@
 //   1. vocabulaire, documentlengtes en document-frequenties zijn identiek;
 //   2. de rangschikking van 126 echte vragen is TEKEN VOOR TEKEN gelijk (top 25);
 //   3. hoeveel sneller of langzamer de nieuwe zoekweg is.
-// Loopt tokensOf() in docs/index.html uit de pas met build_index.mjs, dan valt punt 1 om.
+// Loopt tokensOf() in docs/search-core.js uit de pas met build_index.mjs, dan valt punt 1 om.
 import fs from "fs";
+import { loadCore, loadCorpus } from "./corelib.mjs";
 
-const corpus = JSON.parse(fs.readFileSync(new URL("../docs/data/corpus.json", import.meta.url), "utf-8"));
 const bin = fs.readFileSync(new URL("../docs/data/bm25.bin", import.meta.url));
 const vragen = JSON.parse(fs.readFileSync(new URL("./eval_set.json", import.meta.url), "utf-8")).map(x => x.q);
 
-const STOP = new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
-const stem = w => { if (w.length < 5) return w; for (const s of ["ingen", "ing", "heden", "heid", "en", "s"]) if (w.length - s.length >= 4 && w.endsWith(s)) return w.slice(0, -s.length); return w; };
-const tokenize = t => (t || "").toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w => w.length > 2 && !STOP.has(w)).map(stem);
+const core = loadCore();
+const tokenize = core.tokenize;
 
 let fout = 0;
 const eis = (ok, wat) => { if (!ok) { console.log("  ✗ " + wat); fout++; } else console.log("  ✓ " + wat); };
 
-// ---- oude weg: index opbouwen zoals de app dat nu doet ----
+// ---- oude weg: index opbouwen zoals de app dat nu doet, met de zoeker zelf ----
 const t0 = Date.now();
-const PT = corpus.map(p => {
-  const m = new Map();
-  const add = (t, w) => { for (const x of tokenize(t || "")) m.set(x, (m.get(x) || 0) + w); };
-  add(p.title, 4); add(p.summary || p.desc, 1); add(p.url, 3); add(p.text, 1);
-  return m;
-});
+const corpus = loadCorpus(core);
+const PT = core.PTOKENS;
 const N = PT.length, DF = new Map(), DLEN = new Array(N);
 let tot = 0;
 for (let i = 0; i < N; i++) { let len = 0; for (const [t, c] of PT[i]) { DF.set(t, (DF.get(t) || 0) + 1); len += c; } DLEN[i] = len; tot += len; }

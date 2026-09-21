@@ -2142,8 +2142,8 @@ async function prepareQuery(rawQ){
 const uniek=a=>[...new Set(a.filter(Boolean).map(t=>(""+t).trim()).filter(Boolean))];
 async function fuseRetrieval(semTexts,kwText,category,limit){
   const lists=[];
-  for(const t of semTexts){if(t&&SEM.meta){try{lists.push(await semanticRank(t,Math.max(limit,12)));}catch(e){}}}
-  lists.push(rank([kwText,...scopeTerms()].join(" "),Math.max(limit,12)));
+  for(const t of semTexts){if(t&&SEM.meta){try{lists.push(await semanticRank(t,Math.max(limit,FUSE_DEPTH)));}catch(e){}}}
+  lists.push(rank([kwText,...scopeTerms()].join(" "),Math.max(limit,FUSE_DEPTH)));
   const score=new Map();
   lists.forEach((list,li)=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+(li<lists.length-1?W_SEM:W_KW)/(RRF_K+r))));
   // Het haalbare maximum hangt af van hoeveel lijsten er MEEDEDEN. Is het semantische model nog
@@ -2154,7 +2154,7 @@ async function fuseRetrieval(semTexts,kwText,category,limit){
   if(category){const cat=fold(category);if(cat.length>=3)for(const idx of score.keys())if(fold(CORPUS[idx].url).includes(cat))score.set(idx,score.get(idx)+0.02);}
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   LAATSTE_SCORES=score;
-  return applyScope(kwText,fused).slice(0,limit);
+  return spread(applyScope(kwText,fused),limit);
 }
 // ---- Relevantie in procenten ----------------------------------------------------------------
 // De fusiescore uit de RRF-formule loopt van ongeveer 0,05 tot een hard maximum van

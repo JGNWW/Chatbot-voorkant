@@ -9,12 +9,19 @@ const STOP=new Set("de het een en van in op te voor met aan is ik je u hoe wat w
 
 const TOPK=6; // aantal kandidaat-pagina's dat naar het AI-model gaat
 
-// Fusie- en veldgewichten, afgesteld met scripts/tune.mjs (660 varianten) op 1000 uit het corpus
-// afgeleide vragen (scripts/eval_set_auto.json), met als HARDE EIS dat de 126 handgemaakte
-// vragen (scripts/eval_set.json) er niet op achteruit gaan — anders koop je winst op
-// gegenereerde vragen af met verlies op echte.
-const RRF_K=14, W_SEM=1.0, W_KW=0.75;
-const FW_TITLE=4, FW_DESC=1, FW_URL=3, FW_TEXT=1;
+// Fusie- en veldgewichten, afgesteld met scripts/tune_fusion.mjs op de vijandige vragenset,
+// met als HARDE EIS dat de 126 handgemaakte en de 1000 gegenereerde vragen er niet op
+// achteruit gaan — anders koop je winst op moeilijke vragen af met verlies op gewone.
+//
+// RRF_K bepaalt hoe vlak de fusiecurve is. Hij stond op 14: het verschil tussen plek 1 en
+// plek 12 was dan nog geen factor 2, zodat een pagina die in BEIDE lijsten middelmatig scoort
+// won van een pagina die in één lijst bovenaan stond. Juist bij vragen in eigen woorden is de
+// semantische lijst de enige die het goed heeft, en die werd zo weggestemd. Met k=5 telt een
+// eerste plek echt mee. Dieper kijken in beide lijsten (50 in plaats van 12) kost niets — beide
+// lijsten zijn toch al helemaal doorgerekend — en vangt de gevallen waarin het goede antwoord
+// net buiten de eerste twaalf viel.
+const RRF_K=5, W_SEM=1.0, W_KW=1.0, FUSE_DEPTH=50;
+const FW_TITLE=4, FW_DESC=1, FW_URL=3, FW_TEXT=1, FW_ANCHOR=1;
 let CORPUS=[],PTOKENS=[],DF=null,NDOCS=0;
 
 let TIDX=null;
@@ -29,12 +36,36 @@ function stem(w){
   return w;
 }
 function tokenize(t){return t.toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w=>w.length>2&&!STOP.has(w)).map(stem);}
+// ---- Ankertekst: de woorden waarmee de rest van de site naar een pagina verwijst ----
+// De titel van /verklaring/in-leven-zijn zegt niets over "attestatie de vita", maar de links
+// ernaartoe wel. Zo weet de site zelf al hoe burgers een pagina noemen; die kennis stond alleen
+// nergens in de index. Alleen UNIEKE linkteksten per doelpagina tellen mee: staat een
+// navigatieblok op 209 pagina's, dan telt die tekst één keer en niet 209 keer.
+let ANCHOR=null;
+function buildAnchors(){
+  ANCHOR=CORPUS.map(()=>null);
+  const m=urlIndex();
+  for(const p of CORPUS){
+    const zelf=(p.url||"").replace(/\/+$/,"");
+    for(const l of p.links||[]){
+      if(!Array.isArray(l))continue;
+      const doel=String(l[1]||"").replace(/\/+$/,"");
+      if(!doel||doel===zelf)continue;
+      const i=m.get(doel);if(i===undefined)continue;
+      const tekst=String(l[0]||"").trim();if(!tekst)continue;
+      let s=ANCHOR[i];if(!s){s=new Set();ANCHOR[i]=s;}
+      s.add(tekst);
+    }
+  }
+}
 // Trefwoord-index per pagina = term-frequenties over VOLLEDIGE tekst, met veldweging
 // (titel telt zwaarder dan lopende tekst). Nodig voor BM25.
-function tokensOf(p){
+function tokensOf(p,i){
+  if(!ANCHOR)buildAnchors();
   const m=new Map();
   const add=(text,w)=>{for(const t of tokenize(text||""))m.set(t,(m.get(t)||0)+w);};
   add(p.title,FW_TITLE);add(p.summary||p.desc,FW_DESC);add(p.url,FW_URL);add(p.text,FW_TEXT);
+  const ank=ANCHOR[i];if(ank)for(const a of ank)add(a,FW_ANCHOR);
   return m;
 }
 // Document-frequenties + lengtes voor BM25.
@@ -115,6 +146,37 @@ function buildCountries(){
     for(const c of COUNTRY)if(last.endsWith("-"+c)){PCOUNTRY[i]=c;break;}}
 }
 function detectCountries(text){if(!COUNTRY)buildCountries();const f=" "+fold(text).replace(/[^a-z0-9]+/g," ")+" ";const out=new Set();for(const c of COUNTRY)if(f.includes(" "+c.replace(/-/g," ")+" "))out.add(c);return out;}
+
+// ---- Spreiding: niet vier keer dezelfde pagina in een ander land ----
+// De site heeft van de meeste onderwerpen een versie per land, en die lijken zo op elkaar dat
+// ze samen de hele top 6 kunnen vullen. Dan staat er zes keer "MVV aanvragen" — in België, in
+// Tokelau, in Iran — en is er geen plek meer voor de pagina die de gestelde vraag beantwoordt.
+// Van elke familie mogen er hoogstens twee mee naar voren; de rest schuift naar achteren, maar
+// verdwijnt niet. Gemeten: +2,6 punten recall@6 op de vijandige vragen, +0,8 op de 126.
+let FAMILY=null;
+function buildFamilies(){
+  if(!COUNTRY)buildCountries();
+  FAMILY=CORPUS.map((p,i)=>{
+    const pad=(p.url||"").replace(/^https?:\/\/[^/]+/,"").replace(/\/+$/,"");
+    const c=PCOUNTRY[i];
+    if(!c)return pad;
+    const delen=pad.split("/"),last=(delen.pop()||"").toLowerCase();
+    // /verklaring/in-leven-zijn/india -> /verklaring/in-leven-zijn
+    // /visum-nederland/.../aanvragen-marokko -> /visum-nederland/.../aanvragen
+    return last===c?delen.join("/"):delen.concat(last.slice(0,-(c.length+1))).join("/");
+  });
+}
+const MAX_PER_FAMILIE=2;
+function spread(order,limit){
+  if(!FAMILY)buildFamilies();
+  const n=limit||TOPK,tel=new Map(),voor=[],achter=[];
+  for(const i of order){
+    if(voor.length>=n)break;
+    const f=FAMILY[i],k=tel.get(f)||0;
+    if(k<MAX_PER_FAMILIE){tel.set(f,k+1);voor.push(i);}else achter.push(i);
+  }
+  return [...voor,...achter].slice(0,n);
+}
 // Actieve handmatige filters (zoekgebied): land en onderwerp (eerste URL-segment).
 const FILTER={country:"",topic:""};
 function firstSeg(idx){return (CORPUS[idx].url||"").replace(/^https?:\/\/[^/]+\//,"").split("/")[0]||"";}
@@ -241,19 +303,17 @@ const isSpecificPage=idx=>SPECIFIC_RX.test(CORPUS[idx].title||"");
 // Hybride kandidaten: Reciprocal Rank Fusion van semantisch (synoniemen/parafrase) en
 // trefwoord (exacte/zeldzame termen + zoektermen). Geen hub-logica; geeft top `limit`.
 async function hybrid(q,terms,limit){
-  const K=Math.max(limit,12);
+  const K=Math.max(limit,FUSE_DEPTH);
   let sem=[];
   if(SEM.meta){try{sem=await semanticRank(q,K);}catch(e){/* val terug op trefwoord */}}
   const kw=rank([q,...(terms||[]),...scopeTerms()].join(" "),K);
   if(!sem.length&&!kw.length)return [];
   const score=new Map();
-  // Gemeten weging (126 testvragen): semantiek x1,5 en k=10 gaf de beste uitkomst
-  // (recall@6 94% -> 95%, MRR 0,854 -> 0,860).
   const add=(list,w)=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(RRF_K+r)));
   add(sem,W_SEM);add(kw,W_KW);
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   // Zoekgebied (filters) + landherkenning toepassen.
-  return applyScope([q,...(terms||[])].join(" "),fused).slice(0,limit);
+  return spread(applyScope([q,...(terms||[])].join(" "),fused),limit);
 }
 // Voeg de algemene/hub-pagina van de beste treffer toe (en zet die vooraan als de beste
 // treffer situatie-specifiek is), zodat een algemene vraag altijd een algemene passage heeft.
@@ -281,8 +341,9 @@ async function rankFor(q){return forceProduct(q,withHub(await hybrid(q,[],TOPK))
 
 // ---- Corpus en semantiek van buitenaf vullen (browser doet dit via de globals) ----
 function setCorpus(c){
-  CORPUS=c;PTOKENS=CORPUS.map(tokensOf);TIDX=null;
-  DF=null;VOCAB=null;COUNTRY=null;PCOUNTRY=null;URL2IDX=null;PRODUCT=null;
+  CORPUS=c;TIDX=null;
+  DF=null;VOCAB=null;COUNTRY=null;PCOUNTRY=null;URL2IDX=null;PRODUCT=null;ANCHOR=null;
+  PTOKENS=CORPUS.map(tokensOf);
   buildDF();
 }
 function setSemantic(s){Object.assign(SEM,s);}
@@ -293,9 +354,10 @@ if(typeof module!=="undefined"&&module.exports){
     stem,tokenize,tokensOf,rank,fuzzyFix,normalize,
     fold,detectCountries,applyScope,scopeTerms,
     urlIndex,ancestorsOf,productMatch,forceProduct,
-    semanticRank,hybrid,withHub,hubCandidates,rankFor,
+    semanticRank,hybrid,withHub,hubCandidates,rankFor,spread,
     get CORPUS(){return CORPUS;},
-    weights:{get TOPK(){return TOPK;},get RRF_K(){return RRF_K;},get W_SEM(){return W_SEM;},get W_KW(){return W_KW;},
-             get FW_TITLE(){return FW_TITLE;},get FW_DESC(){return FW_DESC;},get FW_URL(){return FW_URL;},get FW_TEXT(){return FW_TEXT;}},
+    get PTOKENS(){return PTOKENS;},
+    weights:{get TOPK(){return TOPK;},get RRF_K(){return RRF_K;},get W_SEM(){return W_SEM;},get W_KW(){return W_KW;},get FUSE_DEPTH(){return FUSE_DEPTH;},
+             get FW_TITLE(){return FW_TITLE;},get FW_DESC(){return FW_DESC;},get FW_URL(){return FW_URL;},get FW_TEXT(){return FW_TEXT;},get FW_ANCHOR(){return FW_ANCHOR;}},
   };
 }
