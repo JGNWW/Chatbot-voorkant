@@ -1,0 +1,182 @@
+[
+ {
+  "q": "bewijs dat ik geen strafblad heb nodig voor een baan in australie",
+  "expect": ["/verklaring/vog"],
+  "kind": "vakterm-ontbreekt",
+  "why": "deze pagina legt uit dat een VOG aantoont dat uw gedrag geen bezwaar vormt voor een functie en hoe u die vanuit het buitenland bij Dienst Justis aanvraagt; het woord strafblad staat nergens op de site"
+ },
+ {
+  "q": "mijn werkgever in dubai vraagt om een police clearance certificate",
+  "expect": ["/verklaring/vog"],
+  "kind": "synoniem",
+  "why": "wat buitenlandse werkgevers police clearance certificate noemen is de VOG, en deze pagina beschrijft als enige hoe u die aanvraagt als u buiten Nederland woont"
+ },
+ {
+  "q": "kan ik bij de ambassade terecht voor een verklaring omtrent gedrag",
+  "expect": ["/verklaring/vog"],
+  "kind": "spreektaal",
+  "why": "de pagina zegt letterlijk dat u geen VOG kunt aanvragen bij een Nederlandse ambassade of consulaat maar bij Dienst Justis"
+ },
+ {
+  "q": "j1 visum en ik wil onder de verplichting uit om twee jaar naar nederland terug te gaan",
+  "expect": ["/verklaring/verklaring-geen-bezwaar-verenigde-staten"],
+  "kind": "vakterm-ontbreekt",
+  "why": "deze pagina beschrijft precies de verklaring van geen bezwaar waarmee J-1-studenten kunnen afwijken van de 2-year home country physical presence requirement"
+ },
+ {
+  "q": "ik moet laten zien waar ik woon om mijn rijbewijs te kunnen verlengen",
+  "expect": ["/verklaring/woonplaats"],
+  "kind": "vakterm-ontbreekt",
+  "why": "de pagina noemt het vernieuwen van uw rijbewijs als voorbeeld waarvoor u een verklaring van woonplaats nodig heeft"
+ },
+ {
+  "q": "papiertje dat ik volgens de nederlandse wet mag trouwen ik woon in italie",
+  "expect": ["/verklaring/huwelijksbevoegdheid/italie"],
+  "kind": "omschrijving",
+  "why": "met een verklaring van huwelijksbevoegdheid laat u volgens de site zien dat u volgens de Nederlandse wet mag trouwen, en deze pagina beschrijft de aanvraag voor Nederlanders die in Italie wonen"
+ },
+ {
+  "q": "heb ik een geldig paspoort nodig als de ambassade een verklaring voor me opstelt",
+  "expect": ["/verklaring/consulaire-verklaring"],
+  "kind": "hele-zin",
+  "why": "deze pagina bevat de voorwaarde dat u alleen een consulaire verklaring kunt aanvragen als u een geldig Nederlands paspoort of ID-kaart heeft"
+ },
+ {
+  "q": "waar krijg ik die sticker van de rechtbank op mijn geboorteakte",
+  "expect": ["/legaliseren/waar-apostille-halen"],
+  "kind": "vakterm-ontbreekt",
+  "why": "de vraag is waar je moet zijn, en deze pagina legt uit dat u voor een Nederlands document een apostille bij een rechtbank haalt en wat u vooraf moet controleren"
+ },
+ {
+  "q": "is een apostille uit pakistan geldig in nederland",
+  "expect": ["/legaliseren/landen-apostille", "/legaliseren/buitenlandse-documenten/pakistan"],
+  "kind": "hele-zin",
+  "why": "de landenlijst waarschuwt expliciet dat Nederland apostilles uit Pakistan niet erkent en verwijst naar de Pakistan-pagina voor de juiste route"
+ },
+ {
+  "q": "mijn nederlandse huwelijksakte moet bruikbaar worden in japan welke stempels heb ik nodig",
+  "expect": ["/legaliseren/nederlandse-documenten"],
+  "kind": "omschrijving",
+  "why": "deze pagina laat u per document en per land van gebruik opzoeken welke legalisatie een Nederlands document nodig heeft, met een huwelijksakte als voorbeeld"
+ },
+ {
+  "q": "waarom moeten er allemaal stempels op mijn papieren voor het buitenland",
+  "expect": ["/legaliseren/wat-is-legaliseren"],
+  "kind": "spreektaal",
+  "why": "deze pagina legt uit dat legaliseren een document geschikt maakt voor gebruik in een ander land en wat de stempels wel en niet bewijzen"
+ },
+ {
+  "q": "ik kom niet aan mijn geboorteakte uit ghana kan buitenlandse zaken die voor mij opvragen",
+  "expect": ["/legaliseren/buitenlandse-documenten/bemiddeling-cdc"],
+  "kind": "omschrijving",
+  "why": "deze pagina beschrijft de bemiddeling door het CDC bij het opvragen en legaliseren van buitenlandse documenten, met de geboorteakte als meest voorkomende geval"
+ },
+ {
+  "q": "ik zit in canada en moet een volmacht tekenen voor de verkoop van mijn huis in nederland",
+  "expect": ["/legaliseren/handtekening"],
+  "kind": "hele-zin",
+  "why": "deze pagina noemt een volmacht voor de verkoop van een huis als voorbeeld en legt uit dat u uw handtekening tijdens een afspraak bij de ambassade laat legaliseren"
+ },
+ {
+  "q": "hoe bewijs ik in thailand dat mijn nederlandse rijbewijs echt is",
+  "expect": ["/legaliseren/legaliseren-kopie-rijbewijs"],
+  "kind": "omschrijving",
+  "why": "deze pagina beschrijft de gewaarmerkte kopie via de ambassade en de echtheidsverklaring van de RDW waarmee u aantoont dat uw Nederlandse rijbewijs geldig is"
+ },
+ {
+  "q": "is het gratis als ik het svb formulier laat afstempelen op de ambassade in duitsland",
+  "expect": ["/consulaire-tarieven/duitsland"],
+  "kind": "hele-zin",
+  "why": "op de tarieflijst van Duitsland staat dat een verklaring van in leven zijn gratis is als er een voordruk van een Nederlandse instantie is en anders 30 euro kost"
+ },
+ {
+  "q": "wat kost een verklaring van huwelijksbevoegdheid in duitsland",
+  "expect": ["/consulaire-tarieven/duitsland"],
+  "kind": "samenstelling",
+  "why": "de tarieflijst van Duitsland noemt de prijs van de verklaring van huwelijksbevoegdheid; de inhoudelijke huwelijksbevoegdheidspagina noemt geen bedrag"
+ },
+ {
+  "q": "goedemiddag ik bel namens mijn moeder van 84 die in spanje woont haar pensioenfonds heeft een formulier gestuurd dat ondertekend moet worden en ze kan niet reizen hoe regelen we dat",
+  "expect": ["/verklaring/in-leven-zijn/spanje"],
+  "kind": "hele-zin",
+  "why": "deze pagina gaat precies over het laten ondertekenen en stempelen van een voorbedrukte verklaring van in leven zijn in Spanje en over wat u dan moet meenemen"
+ },
+ {
+  "q": "mijn dochter gaat trouwen in griekenland en de gemeente daar vraagt allerlei nederlandse papieren ze heeft nooit in nederland gewoond",
+  "expect": ["/verklaring/huwelijksbevoegdheid/griekenland"],
+  "kind": "hele-zin",
+  "why": "de verklaring van huwelijksbevoegdheid is juist bedoeld voor Nederlanders die nooit in Nederland hebben gewoond, en deze pagina beschrijft de aanvraag in Griekenland"
+ },
+ {
+  "q": "hoeveel kost het om een handtekening te laten legaliseren bij de ambassade in frankrijk",
+  "expect": ["/consulaire-tarieven/frankrijk"],
+  "kind": "omschrijving",
+  "why": "de tarieflijst van Frankrijk bevat de regel legaliseren handtekening Nederlander met het bedrag; de pagina over handtekeninglegalisatie zelf noemt geen prijs"
+ },
+ {
+  "q": "wie zet de stempels op nederlandse papieren voordat ze naar het buitenland gaan",
+  "expect": ["/legaliseren/nederlandse-documenten"],
+  "kind": "spreektaal",
+  "why": "deze rubriek legt uit welke instanties een Nederlands document legaliseren voor gebruik in het buitenland, waaronder rechtbank en het Consulair Dienstencentrum"
+ },
+ {
+  "q": "kan ik mijn nederlandse documenten per post laten legaliseren of moet ik naar de balie",
+  "expect": ["/legaliseren/nederlandse-documenten/cdc"],
+  "kind": "hele-zin",
+  "why": "deze pagina beschrijft beide routes bij het CDC, inclusief de openingstijden van de legalisatiebalie en de oproep om bij drukte per post te sturen"
+ },
+ {
+  "q": "papieren uit curacao gebruiken in een land buiten het koninkrijk",
+  "expect": ["/legaliseren/nederlandse-documenten/cdc"],
+  "kind": "meerdere-landen",
+  "why": "deze pagina legt uit dat documenten uit Curacao eerst langs het kabinet van de gevolmachtigde minister moeten en daarna door het CDC gelegaliseerd worden"
+ },
+ {
+  "q": "welke landen doen mee met dat verdrag voor die stempel",
+  "expect": ["/legaliseren/landen-apostille"],
+  "kind": "vakterm-ontbreekt",
+  "why": "deze pagina is de lijst van landen die meedoen met het Apostilleverdrag en waar een apostille dus geldig is"
+ },
+ {
+  "q": "wat is een vbn en heb ik die nodig",
+  "expect": ["/verklaring/kan-ik-een-verklaring-van-nederlanderschap-aanvragen"],
+  "kind": "afkorting",
+  "why": "deze pagina gebruikt de afkorting VBN voor de verklaring van Nederlanderschap en beschrijft wanneer u die nodig heeft en of u hem kunt aanvragen"
+ },
+ {
+  "q": "ik woon in duitsland maar mijn geboorteakte komt uit brazilie en ik heb hem nodig in nederland",
+  "expect": ["/legaliseren/buitenlandse-documenten/brazilie"],
+  "kind": "meerdere-landen",
+  "why": "bij legaliseren telt het land waar het document vandaan komt, niet het woonland, dus de Brazilie-pagina beschrijft wat er met deze geboorteakte moet gebeuren"
+ },
+ {
+  "q": "de gemeente in nieuw-zeeland vraagt een certificate of no impediment van mij",
+  "expect": ["/verklaring/huwelijksbevoegdheid/nieuw-zeeland"],
+  "kind": "synoniem",
+  "why": "deze pagina noemt de verklaring van huwelijksbevoegdheid ook declaration of no impediment to marriage en beschrijft de aanvraag via de ambassade in Wellington"
+ },
+ {
+  "q": "mijn marokkaanse geboorteakte is in het arabisch wat moet ik doen om hem bij de gemeente te gebruiken",
+  "expect": ["/legaliseren/buitenlandse-documenten/marokko"],
+  "kind": "hele-zin",
+  "why": "deze pagina geeft het stappenplan voor Arabischtalige documenten uit Marokko: eerst beedigd laten vertalen en daarna document en vertaling met een apostille laten legaliseren"
+ },
+ {
+  "q": "kan mijn zus de apostille voor mij ophalen",
+  "expect": ["/legaliseren/waar-apostille-halen"],
+  "kind": "spreektaal",
+  "why": "deze pagina zegt dat iemand anders de apostille voor u kan halen en dat die persoon daarvoor geen toestemming van u nodig heeft"
+ },
+ {
+  "q": "kan ik een afspraak maken bij de ambassade in wenen",
+  "expect": ["/afspraak-maken/oostenrijk"],
+  "kind": "omschrijving",
+  "why": "de site ordent afspraken per land, dus de afspraakpagina van Oostenrijk beschrijft waar en hoe u een afspraak maakt bij de ambassade in Wenen"
+ },
+ {
+  "q": "moet ik naar ankara of naar istanbul voor mijn papieren",
+  "expect": ["/afspraak-maken/turkije"],
+  "kind": "omschrijving",
+  "why": "de afspraakpagina van Turkije laat per dienst zien of u bij de ambassade in Ankara of het consulaat-generaal in Istanbul terechtkunt"
+ }
+]

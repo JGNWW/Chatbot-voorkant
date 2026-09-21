@@ -1,0 +1,424 @@
+[
+ {
+  "q": "hoe vraag ik een id-kaart aan vanuit het buiteland",
+  "expect": [
+   "/paspoort-id-kaart"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buiteland\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "hoe lang duurt het voor ik mijn pasport heb",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"paspoort\" verhaspeld tot \"pasport\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ik moet morgen reizen maar mijn pasport is verlopen",
+  "expect": [
+   "nooddocument",
+   "/paspoort-id-kaart/verlopen"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"paspoort\" verhaspeld tot \"pasport\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "paspoort aanvargen als ik in thailand woon",
+  "expect": [
+   "thailand"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"aanvragen\" verhaspeld tot \"aanvargen\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "schengnvisum aanvragen voor familiebezoek",
+  "expect": [
+   "schengenvisum",
+   "/visum-nederland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"schengenvisum\" verhaspeld tot \"schengnvisum\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wanneer krijg ik bericht over mijn visumanavraag",
+  "expect": [
+   "wanneer-bericht"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"visumaanvraag\" verhaspeld tot \"visumanavraag\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "verklraing van in leven zijn nodig voor mijn pensioen",
+  "expect": [
+   "in-leven-zijn"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"verklaring\" verhaspeld tot \"verklraing\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wat is een apostile",
+  "expect": [
+   "legaliseren",
+   "apostille"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"apostille\" verhaspeld tot \"apostile\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ik kan niet inlogen met digid",
+  "expect": [
+   "/digid-buiten-nederland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"inloggen\" verhaspeld tot \"inlogen\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wat is een bsn en hoe krijg ik het in het buitelnand",
+  "expect": [
+   "bsn"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ik wil trouwen in het buiteland",
+  "expect": [
+   "/trouwen"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buiteland\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "kind geboren in het buitelnand aangeven",
+  "expect": [
+   "/geboorte-aangeven-buiten-nederland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "gedwongen uitgehuwelijkt en achtereglaten in het buitenland",
+  "expect": [
+   "huwelijksdwang"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"achtergelaten\" verhaspeld tot \"achtereglaten\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "begraenis in het buitenland regelen",
+  "expect": [
+   "begrafenis"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"begrafenis\" verhaspeld tot \"begraenis\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "is mijn nederalndse rijbewijs geldig in het buitenland",
+  "expect": [
+   "/rijbewijs-buitenland/geldig"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nederlandse\" verhaspeld tot \"nederalndse\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ww-uitkering meenemen naar het buitelnand",
+  "expect": [
+   "ww-uitkering"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "belastingangifte doen vanuit het buitenland",
+  "expect": [
+   "belastingaangifte"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"belastingaangifte\" verhaspeld tot \"belastingangifte\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "arbijdsongeschiktheidsuitkering in het buitenland",
+  "expect": [
+   "arbeidsongeschiktheid"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"arbeidsongeschiktheidsuitkering\" verhaspeld tot \"arbijdsongeschiktheidsuitkering\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "is het veilig om naar markoko te reizen",
+  "expect": [
+   "/reisadvies",
+   "marokko"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"marokko\" verhaspeld tot \"markoko\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ik ben slachotffer van geweld in het buitenland",
+  "expect": [
+   "/slachtoffer-geweld"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"slachtoffer\" verhaspeld tot \"slachotffer\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wat doet de ambasade bij een crisis",
+  "expect": [
+   "crisis"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"ambassade\" verhaspeld tot \"ambasade\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "hoe word ik nederalnder",
+  "expect": [
+   "naturalisatie",
+   "nationaliteit"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nederlander\" verhaspeld tot \"nederalnder\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "afstand doen van de nederlandse nationlaiteit",
+  "expect": [
+   "afstand"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nationaliteit\" verhaspeld tot \"nationlaiteit\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "verhuizen naar het buiteland checklist",
+  "expect": [
+   "checklist-verhuizen",
+   "emigreren"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buiteland\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "terugkeren naar nederland na jaren in het buitelnand",
+  "expect": [
+   "terug-naar-nederland",
+   "immigreren"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "nederandse pasfoto laten maken in het buitenland",
+  "expect": [
+   "pasfoto"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nederlandse\" verhaspeld tot \"nederandse\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "mijn kind is gebren wat nu",
+  "expect": [
+   "geboorte-aangeven",
+   "kind-krijgen"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"geboren\" verhaspeld tot \"gebren\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "visum voor de cariben aanvargen",
+  "expect": [
+   "caribisch-visum"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"aanvragen\" verhaspeld tot \"aanvargen\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wie kan mij uitnoigen voor een visum",
+  "expect": [
+   "/visum-nederland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"uitnodigen\" verhaspeld tot \"uitnoigen\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ik wil trouwen en heb een verklaring van huwelijksbveoegdheid nodig",
+  "expect": [
+   "huwelijksbevoegdheid"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"huwelijksbevoegdheid\" verhaspeld tot \"huwelijksbveoegdheid\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "nederlands document laten legalsieren voor gebruik in het buitenland",
+  "expect": [
+   "/legaliseren"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"legaliseren\" verhaspeld tot \"legalsieren\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wat kosten consuaire diensten",
+  "expect": [
+   "consulaire-tarieven",
+   "tarieven"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"consulaire\" verhaspeld tot \"consuaire\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "berichten van de overheid bekijken vanuit het buiteland",
+  "expect": [
+   "mijnoverheid"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buiteland\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "kind krijgen in het buitelnand wat moet ik regelen",
+  "expect": [
+   "kind-krijgen",
+   "geboorte-aangeven"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "werken in het buitelnand en verzekerd blijven",
+  "expect": [
+   "werken-buitenland",
+   "uitkering"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "kinderopvngtoeslag als ik in het buitenland woon",
+  "expect": [
+   "kinderopvangtoeslag"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"kinderopvangtoeslag\" verhaspeld tot \"kinderopvngtoeslag\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "studiefinankiering meenemen naar het buitenland",
+  "expect": [
+   "studiefinanciering"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"studiefinanciering\" verhaspeld tot \"studiefinankiering\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "spullen meenemen naar nedelrand douane",
+  "expect": [
+   "reizen-naar-nederland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nederland\" verhaspeld tot \"nedelrand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "is mijn nederandse diploma geldig in het buitenland",
+  "expect": [
+   "nederlands-diploma-buitenland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nederlandse\" verhaspeld tot \"nederandse\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "kan ik met spoed een pasport krijgen",
+  "expect": [
+   "nooddocument",
+   "tijdsduur",
+   "paspoort-id-kaart"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"paspoort\" verhaspeld tot \"pasport\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ik ga emigerren wat moet ik doorgeven",
+  "expect": [
+   "checklist-verhuizen",
+   "emigreren",
+   "uitschrijven"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"emigreren\" verhaspeld tot \"emigerren\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "mijn partner is overleden in het buiteland",
+  "expect": [
+   "overlijden-buitenland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buiteland\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "vog nodig voor werk in het buitelnand",
+  "expect": [
+   "vog"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "zorgverezkering opzeggen bij emigratie",
+  "expect": [
+   "zorgverzekering"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"zorgverzekering\" verhaspeld tot \"zorgverezkering\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wat moet ik meenmeen naar mijn afspraak",
+  "expect": [
+   "welke-documenten",
+   "waar-op-letten",
+   "afspraak"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"meenemen\" verhaspeld tot \"meenmeen\"; verder dezelfde vraag als in eval_set.json"
+ }
+]

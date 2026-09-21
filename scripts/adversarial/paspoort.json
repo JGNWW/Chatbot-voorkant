@@ -1,0 +1,286 @@
+[
+ {
+  "q": "die blauwe kaft waarmee je een keer naar huis mag vliegen",
+  "expect": [
+   "/nooddocument/soorten-nooddocumenten"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina is de enige die beschrijft dat de laissez-passer een blauwe kaft heeft en geldig is voor een enkele reis naar Nederland"
+ },
+ {
+  "q": "ben m kwijt in spanje en moet donderdag alweer vliegen",
+  "expect": [
+   "/paspoort-id-kaart/kwijt-gestolen",
+   "/nooddocument/spanje"
+  ],
+  "kind": "spreektaal",
+  "why": "de kwijt-gestolen-pagina geeft het stappenplan bij verlies en verwijst bij een reis binnen 2 weken naar een nooddocument, dat in Spanje via deze landenpagina loopt"
+ },
+ {
+  "q": "pasje voor mijn dochter van 3",
+  "expect": [
+   "/paspoort-id-kaart/paspoort-kind",
+   "/waar-let-ik-op-paspoort-kind-buitenland"
+  ],
+  "kind": "spreektaal",
+  "why": "beide pagina's gaan over het aanvragen van een paspoort of ID-kaart voor een kind jonger dan 12 jaar in het buitenland"
+ },
+ {
+  "q": "mijn ex in engeland weigert te tekenen voor het pasje van onze zoon",
+  "expect": [
+   "/vervangende-toestemming-minderjarige-verenigd-koninkrijk"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "deze pagina legt uit dat je in het VK vervangende toestemming van de rechtbank regelt als een gezaghebbende ouder geen toestemming geeft; de burger kent de term 'vervangende toestemming' niet"
+ },
+ {
+  "q": "hoeveel bladzijdes zitten er in zo'n boekje",
+  "expect": [
+   "/paspoort-id-kaart/verschil"
+  ],
+  "kind": "omschrijving",
+  "why": "alleen deze pagina noemt dat een paspoort 34 pagina's heeft en een zakenpaspoort 66"
+ },
+ {
+  "q": "waarom kan ik met mijn paspoort niet inloggen bij de overheid",
+  "expect": [
+   "/paspoort-id-kaart/verschil",
+   "/inloggen-id-kaart"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "de verschil-pagina zegt letterlijk dat inloggen via DigiD niet met een paspoort kan maar wel met een ID-kaart van 13 maart 2021 of later; de DigiD-pagina legt dat inloggen verder uit"
+ },
+ {
+  "q": "wat ben ik ongeveer kwijt voor een nieuw paspoort bij de ambassade",
+  "expect": [
+   "/paspoort-id-kaart/kosten-buitenland"
+  ],
+  "kind": "spreektaal",
+  "why": "deze pagina geeft de bedragen per document bij ambassade of consulaat-generaal (paspoort 18 jaar en ouder 169,15 euro)"
+ },
+ {
+  "q": "kan ik het goedkoper regelen als ik toch even in nederland ben",
+  "expect": [
+   "/paspoort-id-kaart/aanvragen-grensgemeente"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina zegt dat de tarieven bij de 15 grensgemeenten lager zijn dan bij ambassades en consulaten"
+ },
+ {
+  "q": "komt er nog iemand van de ambassade langs op bali",
+  "expect": [
+   "/paspoort-id-kaart/aanvragen-in-de-buurt"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina geeft per land de tijdelijke aanvraaglocaties, waaronder Bali in Indonesie, zonder het woord 'langskomen' te gebruiken"
+ },
+ {
+  "q": "moet ik extra betalen als ze met een tijdelijk loket in mijn stad zijn",
+  "expect": [
+   "/paspoort-id-kaart/aanvragen-in-de-buurt",
+   "/paspoort-id-kaart/kosten-buitenland"
+  ],
+  "kind": "omschrijving",
+  "why": "beide pagina's noemen de toeslag van 26,85 euro bij een tijdelijke aanvraaglocatie (pop-up ambassade)"
+ },
+ {
+  "q": "waar staat dat nummer waarmee ik kan kijken hoe ver ze zijn",
+  "expect": [
+   "/paspoort-id-kaart/status-aanvraag"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina zegt dat het volgnummer op de achterkant staat van het kaartje dat je bij de aanvraag krijgt en waarmee je track en trace opent"
+ },
+ {
+  "q": "ik heb al 6 weken niks gehoord mag ik nu bellen",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen",
+   "/paspoort-id-kaart/status-aanvraag"
+  ],
+  "kind": "spreektaal",
+  "why": "de tijdsduur-pagina zegt dat je pas na 8 weken zonder bericht contact opneemt; de status-pagina zegt dat bellen over de status geen zin heeft"
+ },
+ {
+  "q": "wanneer is het rustig om aan te vragen",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen"
+  ],
+  "kind": "synoniem",
+  "why": "deze pagina zegt dat het tussen november en maart minder druk is en adviseert dan aan te vragen"
+ },
+ {
+  "q": "mijn pas is al 3 jaar over datum en ik woon in parijs",
+  "expect": [
+   "/langer-dan-2-jaar-verlopen-frankrijk"
+  ],
+  "kind": "spreektaal",
+  "why": "deze pagina geldt precies voor meerderjarigen in Frankrijk van wie het identiteitsbewijs langer dan 2 jaar verlopen is en die moeten bewijzen dat ze niet de Franse nationaliteit hebben"
+ },
+ {
+  "q": "ik ben in india mijn paspoort kwijt en ze zeggen dat ik zonder stempel het land niet uit kom",
+  "expect": [
+   "/paspoort-id-kaart/india-uitreisvisum"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "deze pagina legt uit dat je na verlies van je paspoort in India een uitreisvisum (exit permit) bij de FRRO nodig hebt om het land te verlaten"
+ },
+ {
+  "q": "hoe stuurt de ambassade in stockholm mijn boekje naar me op",
+  "expect": [
+   "/verzendinstructies-rd-zweden"
+  ],
+  "kind": "synoniem",
+  "why": "deze pagina geeft de verzendinstructies met PostNord voor wie zijn nieuwe paspoort in Zweden naar een postkantoor wil laten sturen"
+ },
+ {
+  "q": "mag ik met mijn id naar de canarische eilanden",
+  "expect": [
+   "/reizen-paspoort-id-kaart/spanje"
+  ],
+  "kind": "omschrijving",
+  "why": "de Spanje-pagina gaat expliciet ook over de Canarische eilanden en zegt of je daar met een Nederlandse ID-kaart naartoe kunt"
+ },
+ {
+  "q": "ik woon in duitsland maar wil het in belgie regelen mag dat",
+  "expect": [
+   "/paspoort-id-kaart/waar-aanvragen"
+  ],
+  "kind": "meerdere-landen",
+  "why": "deze pagina zegt dat je je aanvraag niet in je woonland hoeft te doen en ook in een ander land, bijvoorbeeld een buurland, terechtkunt"
+ },
+ {
+  "q": "ik ben amerikaan geworden mag ik nog een nederlands paspoort",
+  "expect": [
+   "/hoe-aanvragen-andere-nationaliteit"
+  ],
+  "kind": "hele-zin",
+  "why": "deze pagina beschrijft stap voor stap wat je moet regelen als je een andere nationaliteit hebt aangenomen en toch een Nederlands paspoort of ID-kaart wilt aanvragen"
+ },
+ {
+  "q": "is mijn paspoort nog geldig met mijn oude naam erin",
+  "expect": [
+   "/naamswijziging/paspoort-of-id-kaart-geldig"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina zegt dat je paspoort of ID-kaart na een erkende naamswijziging niet meer geldig is en dat je een nieuwe moet aanvragen"
+ },
+ {
+  "q": "spoedprocedure paspoort ambassade",
+  "expect": [
+   "/nooddocument/soorten-nooddocumenten"
+  ],
+  "kind": "samenstelling",
+  "why": "deze pagina is de enige die de spoedprocedure voor een normaal paspoort bij de ambassade beschrijft en uitlegt wanneer die in plaats van een laissez-passer geldt"
+ },
+ {
+  "q": "welk briefje van de politie heb ik nodig als mijn paspoort gejat is",
+  "expect": [
+   "/paspoort-id-kaart/kwijt-gestolen"
+  ],
+  "kind": "spreektaal",
+  "why": "stap 1 op deze pagina is aangifte doen bij de lokale politie en vragen om een schriftelijk bewijs van aangifte"
+ },
+ {
+  "q": "mag mijn kind nog bijgeschreven worden in mijn paspoort",
+  "expect": [
+   "/waar-let-ik-op-paspoort-kind-buitenland"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "deze pagina zegt dat elk kind een eigen paspoort of ID-kaart nodig heeft en dat bijschrijven niet meer kan"
+ },
+ {
+  "q": "ik zit in bangkok zonder papieren en moet zo snel mogelijk naar huis",
+  "expect": [
+   "/nooddocument/thailand",
+   "/paspoort-id-kaart/kwijt-gestolen"
+  ],
+  "kind": "hele-zin",
+  "why": "de Thailand-pagina geeft het stappenplan voor een nooddocument bij de ambassade in Bangkok; de kwijt-gestolen-pagina geeft de algemene stappen om terug te reizen"
+ },
+ {
+  "q": "goedemiddag ik bel voor mijn moeder van 82 die in portugal woont haar paspoort loopt in november af maar zij kan niet meer helemaal naar lissabon reizen wat kan zij doen",
+  "expect": [
+   "/paspoort-id-kaart/aanvragen-in-de-buurt",
+   "/paspoort-id-kaart/waar-aanvragen"
+  ],
+  "kind": "hele-zin",
+  "why": "voor wie ver van de ambassade woont staan hier de tijdelijke aanvraaglocaties in de eigen regio en de andere plekken waar je kunt aanvragen"
+ },
+ {
+  "q": "worden er vingerafdrukken opgeslagen op de nieuwe identiteitskaart",
+  "expect": [
+   "/paspoort-id-kaart/verschil"
+  ],
+  "kind": "samenstelling",
+  "why": "deze pagina is de enige die vermeldt dat de ID-kaart vanaf 2 augustus 2021 voor Nederlanders vanaf 12 jaar 2 vingerafdrukken bevat"
+ },
+ {
+  "q": "mijn dochter is in duitsland geboren en wij wonen in belgie hoe krijgt zij een nederlands paspoort",
+  "expect": [
+   "/waar-let-ik-op-paspoort-kind-buitenland",
+   "/paspoort-id-kaart/paspoort-kind",
+   "/buitenland/paspoort-belgie"
+  ],
+  "kind": "meerdere-landen",
+  "why": "de kindpagina's leggen uit dat je eerst de geboorte aangeeft en een geboorteakte nodig hebt voor een eerste aanvraag, en de Belgie-pagina geeft het stappenplan in het woonland"
+ },
+ {
+  "q": "mijn paspoort is gestolen maar ik reis nog door naar vietnam en cambodja welk noodpapier krijg ik dan",
+  "expect": [
+   "/nooddocument/soorten-nooddocumenten"
+  ],
+  "kind": "meerdere-landen",
+  "why": "deze pagina zegt dat je bij een rondreis door meerdere landen geen laissez-passer maar een paspoort via de spoedprocedure nodig hebt"
+ },
+ {
+  "q": "kan ik het formulier op mijn telefoon invullen",
+  "expect": [
+   "/paspoort-id-kaart/account-aanmaken-paspoort",
+   "/paspoort-id-kaart/aanvraagformulier"
+  ],
+  "kind": "omschrijving",
+  "why": "beide pagina's zeggen dat je het aanvraagformulier op een computer of tablet invult omdat het portaal niet werkt op een smartphone"
+ },
+ {
+  "q": "mevrouw is op vakantie in italie en haar tas is gestolen met alles erin en zondag moet ze weer werken in nederland",
+  "expect": [
+   "/nooddocument/italie",
+   "/paspoort-id-kaart/kwijt-gestolen"
+  ],
+  "kind": "hele-zin",
+  "why": "bij diefstal op vakantie vraag je een nooddocument aan bij de ambassade in het land waar je bent om terug te kunnen reizen"
+ },
+ {
+  "q": "paspoortfoto eisen",
+  "expect": [
+   "/paspoort-id-kaart/eisen-pasfoto"
+  ],
+  "kind": "samenstelling",
+  "why": "deze pagina somt alle eisen op voor de pasfoto voor een Nederlands paspoort of ID-kaart"
+ },
+ {
+  "q": "spoedaanvraag paspoort spanje",
+  "expect": [
+   "/buitenland/paspoort-spanje"
+  ],
+  "kind": "samenstelling",
+  "why": "de Spanje-pagina is de enige landenpagina met het stappenplan en de spoedaanvraag voor wie in Spanje woont"
+ },
+ {
+  "q": "moet ik mijn id laten blokkeren als ik hem kwijt ben",
+  "expect": [
+   "/paspoort-id-kaart/kwijt-gestolen"
+  ],
+  "kind": "spreektaal",
+  "why": "stap 2 op deze pagina is de inlogfunctie van een ID-kaart van 13 maart 2021 of later laten blokkeren bij de DigiD-helpdesk"
+ },
+ {
+  "q": "mag mijn zoon van 14 zelf een pasje aanvragen zonder mij erbij",
+  "expect": [
+   "/paspoort-id-kaart/aanvragen",
+   "/paspoort-id-kaart/paspoort-kind"
+  ],
+  "kind": "spreektaal",
+  "why": "deze pagina's zeggen dat een kind vanaf 12 jaar zelf een ID-kaart mag aanvragen en voor een paspoort toestemming van de ouders nodig heeft"
+ }
+]

@@ -1,0 +1,995 @@
+[
+ {
+  "q": "mijn vriendin is uitgerekend in maart en wij wonen in portugal moet ik het kindje ook bij nederland aanmelden",
+  "expect": [
+   "/geboorte-aangeven-buiten-nederland/buitenland"
+  ],
+  "kind": "hele-zin",
+  "bron": "burgerzaken",
+  "why": "deze pagina's leggen uit dat u de geboorte altijd in het geboorteland aangeeft en wat u daarna richting Nederland kunt doen"
+ },
+ {
+  "q": "wordt mijn zoontje automatisch nederlander als hij in kenia ter wereld komt",
+  "expect": [
+   "/nederlandse-nationaliteit/geboorte-buitenland",
+   "/nederlandse-nationaliteit/nederlander-worden-geboorte-erkenning"
+  ],
+  "kind": "omschrijving",
+  "bron": "burgerzaken",
+  "why": "beide pagina's gaan precies over de vraag of een kind bij geboorte buiten Nederland automatisch de Nederlandse nationaliteit krijgt"
+ },
+ {
+  "q": "ik wil mijn baby in nederland ter wereld laten komen maar wij wonen al jaren in canada",
+  "expect": [
+   "/kind-krijgen-buiten-nederland/bevallen-nederland"
+  ],
+  "kind": "spreektaal",
+  "bron": "burgerzaken",
+  "why": "de tekst beschrijft stap voor stap wat een Nederlander uit het buitenland moet regelen om in Nederland te bevallen: inschrijven, zorgverzekering, BSN, geboorteaangifte"
+ },
+ {
+  "q": "de papieren van de geboorte van mijn kind ben ik kwijt kan ik nieuwe krijgen vanuit thailand",
+  "expect": [
+   "/kind-krijgen-buiten-nederland/geboorteakte-krijgen"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "burgerzaken",
+  "why": "deze pagina legt uit hoe u later alsnog een afschrift of uittreksel van de geboorteakte aanvraagt in het geboorteland of bij de gemeente Den Haag"
+ },
+ {
+  "q": "wij zijn niet getrouwd hoe word ik officieel de vader van ons kindje dat in het buitenland geboren is",
+  "expect": [
+   "/geboorte-aangeven-buiten-nederland/buitenland"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "burgerzaken",
+  "why": "de tekst zegt dat een kind erkennen meestal in het geboorteland kan en anders in Nederland; 'erkennen' is precies het woord dat de burger niet gebruikt"
+ },
+ {
+  "q": "mijn oma stond in de rni en is vorige week gestorven wie past dat aan",
+  "expect": [
+   "/rni/overlijden-doorgeven"
+  ],
+  "kind": "afkorting",
+  "bron": "burgerzaken",
+  "why": "de tekst legt uit dat u het overlijden doorgeeft via een Nederlandse overheidsorganisatie waarmee de overledene te maken had, of via RvIG"
+ },
+ {
+  "q": "wat moet ik betalen om via de ambassade nederlander te worden",
+  "expect": [
+   "/nederlandse-nationaliteit/kosten-naturalisatie-buitenland"
+  ],
+  "kind": "omschrijving",
+  "bron": "burgerzaken",
+  "why": "deze pagina geeft de bedragen voor naturalisatie in het buitenland voor volwassenen en kinderen en hoe u betaalt"
+ },
+ {
+  "q": "wij wonen allebei in duitsland maar willen in amsterdam voor de wet trouwen waar doen wij ondertrouw",
+  "expect": [
+   "/trouwen/voorgenomen-huwelijk-melden-nederland"
+  ],
+  "kind": "synoniem",
+  "bron": "burgerzaken",
+  "why": "de tekst zegt dat wie beiden buiten Nederland woont het voorgenomen huwelijk minimaal 12 weken vooraf bij de gemeente Den Haag meldt; het woord 'ondertrouw' staat er niet"
+ },
+ {
+  "q": "wordt ons homohuwelijk uit nederland ook in het buitenland geaccepteerd",
+  "expect": [
+   "/trouwen/erkenning-huwelijk-nederland"
+  ],
+  "kind": "samenstelling",
+  "bron": "burgerzaken",
+  "why": "de tekst gaat over erkenning van een in Nederland gesloten huwelijk in andere landen, en noemt juist huwelijken tussen personen van hetzelfde geslacht als twijfelgeval"
+ },
+ {
+  "q": "welke papieren wil de gemeente zien als je hier wilt trouwen en je komt uit het buitenland",
+  "expect": [
+   "/trouwen/documenten-trouwen-nederland"
+  ],
+  "kind": "spreektaal",
+  "bron": "burgerzaken",
+  "why": "de tekst somt de documenten op die de Nederlandse gemeente kan vragen, zoals een ongehuwdverklaring en een verklaring geen schijnhuwelijk"
+ },
+ {
+  "q": "mijn huwelijk is stuk en wij wonen in spanje hoe pak ik dat juridisch aan",
+  "expect": [
+   "/scheiden-buitenland"
+  ],
+  "kind": "spreektaal",
+  "bron": "burgerzaken",
+  "why": "deze pagina legt uit dat het van uw situatie afhangt via welk recht de echtscheidingsprocedure loopt en dat u een advocaat inschakelt"
+ },
+ {
+  "q": "ik ben gescheiden en gebruik weer mijn eigen achternaam moet ik dan een nieuw reisdocument aanvragen",
+  "expect": [
+   "/naamswijziging/paspoort"
+  ],
+  "kind": "omschrijving",
+  "bron": "burgerzaken",
+  "why": "de tekst zegt dat uw Nederlandse paspoort of ID-kaart na een naamswijziging niet meer geldig is en dat u een nieuwe moet aanvragen met een bewijs van naamswijziging"
+ },
+ {
+  "q": "ik heb een papiertje nodig waaruit blijkt dat ik niet meer in nederland ingeschreven sta",
+  "expect": [
+   "/brp/bewijs-uitschrijving-gemeente"
+  ],
+  "kind": "spreektaal",
+  "bron": "burgerzaken",
+  "why": "deze pagina gaat over het bewijs van uitschrijving: een verklaring met uw gegevens en de datum van uitschrijving, aan te vragen bij de gemeente of een RNI-loket"
+ },
+ {
+  "q": "ik zit negen maanden per jaar in mijn spaanse huis moet ik mij dan afmelden bij de gemeente",
+  "expect": [
+   "/brp/wanneer-uitschrijven-gemeente"
+  ],
+  "kind": "hele-zin",
+  "bron": "burgerzaken",
+  "why": "de tekst noemt precies de grens van 8 maanden per jaar en noemt verblijf op een vakantieadres in het buitenland als voorbeeld"
+ },
+ {
+  "q": "hoe kom ik aan een officieel bewijs met mijn bsn erop nu ik in het buitenland woon",
+  "expect": [
+   "/rni/uittreksel-aanvragen"
+  ],
+  "kind": "afkorting",
+  "bron": "burgerzaken",
+  "why": "de tekst noemt als eerste voorbeeld het standaarduittreksel met burgerservicenummer en legt uit bij welke RNI-loketten u dat aanvraagt"
+ },
+ {
+  "q": "mijn vriendin uit brazilie gaat bij mij in nederland wonen en werken wat moet zij vooraf regelen",
+  "expect": [
+   "/checklist-verhuizen-nederland-immigreren"
+  ],
+  "kind": "hele-zin",
+  "bron": "burgerzaken",
+  "why": "deze checklist loopt per onderwerp langs wat iemand voor en na een verhuizing naar Nederland moet regelen: verblijfsvergunning, visum, werken, inschrijven"
+ },
+ {
+  "q": "kan ik onze marokkaanse trouwpapieren in nederlandse laten veranderen",
+  "expect": [
+   "/buitenlandse-akte-omzetten"
+  ],
+  "kind": "samenstelling",
+  "bron": "burgerzaken",
+  "why": "deze pagina's leggen uit hoe de gemeente Den Haag een buitenlandse akte omzet naar een Nederlandse akte en wat u daarvoor moet aanleveren"
+ },
+ {
+  "q": "mag mijn dochter voortaan mijn zaken regelen bij de nederlandse overheid",
+  "expect": [
+   "/digid-buiten-nederland/machtigen"
+  ],
+  "kind": "omschrijving",
+  "bron": "digitaal",
+  "why": "deze pagina beschrijft stap voor stap hoe je vanuit het buitenland iemand machtigt om namens jou zaken te regelen met de Nederlandse overheid"
+ },
+ {
+  "q": "ik krijg het smsje met de code nooit binnen hier in indonesie",
+  "expect": [
+   "/digid-buiten-nederland/inloggen-sms-controle"
+  ],
+  "kind": "spreektaal",
+  "bron": "digitaal",
+  "why": "deze pagina heeft een apart blok 'Ik ontvang de sms niet' met wat je kunt doen als de sms-code in je verblijfsland niet aankomt"
+ },
+ {
+  "q": "ik krijg aow en woon in portugal moet ik echt naar de ambassade voor mijn inlogcode",
+  "expect": [
+   "/digid-buiten-nederland/hoe-aanvragen-met-aow"
+  ],
+  "kind": "afkorting",
+  "bron": "digitaal",
+  "why": "deze pagina beschrijft dat AOW'ers DigiD via de SVB kunnen aanvragen en de activeringscode per post krijgen, zonder balie of videobellen"
+ },
+ {
+  "q": "ik wil de blauwe envelop digitaal krijgen in plaats van op papier",
+  "expect": [
+   "/mijnoverheid-buiten-nederland/berichtenbox"
+  ],
+  "kind": "spreektaal",
+  "bron": "digitaal",
+  "why": "deze pagina beschrijft de Berichtenbox als de digitale brievenbus waarin je post van onder meer de Belastingdienst digitaal in plaats van op papier ontvangt"
+ },
+ {
+  "q": "waar zie ik online welke auto's op mijn naam staan en wanneer mijn paspoort verloopt",
+  "expect": [
+   "/mijnoverheid-buiten-nederland/mijngegevens-app",
+   "/mijnoverheid-buiten-nederland/welke-gegevens"
+  ],
+  "kind": "omschrijving",
+  "bron": "digitaal",
+  "why": "de MijnGegevens-app toont volgens de tekst je geregistreerde voertuigen en de verloopdatum van je paspoort, en MijnOverheid bevat diezelfde gegevens"
+ },
+ {
+  "q": "de politie in spanje heeft mijn rijbewijs afgepakt na een snelheidsovertreding",
+  "expect": [
+   "/rijbewijs-buitenland/in-beslag-genomen"
+  ],
+  "kind": "spreektaal",
+  "bron": "digitaal",
+  "why": "deze pagina gaat precies over een door de buitenlandse politie afgepakt (in beslag genomen) rijbewijs en waarschuwt om het niet als vermist op te geven"
+ },
+ {
+  "q": "ik ben dit jaar geemigreerd welk formulier moet ik invullen voor de belasting",
+  "expect": [
+   "/belastingaangifte-buiten-nederland/jaar-van-verhuizing-buitenland"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "digitaal",
+  "why": "deze pagina zegt dat je over het jaar van je verhuizing naar het buitenland alleen aangifte kunt doen via het M-formulier"
+ },
+ {
+  "q": "ik ben met verlof in nederland tijdens de verkiezingen kan ik hier in een stemhokje stemmen",
+  "expect": [
+   "/stemmen-buitenland/in-nederland"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "digitaal",
+  "why": "deze pagina zegt dat je als kiezer buiten Nederland een kiezerspas bij de gemeente Den Haag aanvraagt om bij een Nederlands stembureau te stemmen"
+ },
+ {
+  "q": "kan ik mijn stem ook per brief opsturen vanuit australie",
+  "expect": [
+   "/stemmen-buitenland/per-post"
+  ],
+  "kind": "omschrijving",
+  "bron": "digitaal",
+  "why": "deze pagina beschrijft het opsturen van je briefstem naar het briefstembureau in Den Haag of naar een ambassade of consulaat-generaal"
+ },
+ {
+  "q": "wegenbelastingvrijstelling regelen nu ik een jaar in azie zit",
+  "expect": [
+   "/auto-exporteren/auto-schorsen"
+  ],
+  "kind": "samenstelling",
+  "bron": "digitaal",
+  "why": "deze pagina legt uit dat je door je auto te schorsen tijdelijk geen wegenbelasting, apk en verzekering hoeft te regelen als je naar het buitenland gaat"
+ },
+ {
+  "q": "mijn auto staat al twee jaar in spanje maar heeft nog nederlandse nummerborden",
+  "expect": [
+   "/auto-exporteren/auto-al-in-buitenland"
+  ],
+  "kind": "hele-zin",
+  "bron": "digitaal",
+  "why": "deze pagina beschrijft hoe je een auto met Nederlands kenteken die al in het buitenland staat uitschrijft, online of met exportbewijs"
+ },
+ {
+  "q": "hoelang mag ik met mijn nederlandse nummerborden in frankrijk blijven rondrijden",
+  "expect": [
+   "/auto-exporteren/rijden-met-nederlands-kenteken"
+  ],
+  "kind": "synoniem",
+  "bron": "digitaal",
+  "why": "deze pagina zegt dat je buiten Nederland meestal 3 tot 6 maanden met een Nederlands kenteken mag rijden en dat elk land dat zelf bepaalt"
+ },
+ {
+  "q": "duo kan niets afschrijven van mijn australische bankrekening hoe betaal ik mijn lening dan terug",
+  "expect": [
+   "/studiefinanciering-buitenland/studieschuld-hoe-terugbetalen"
+  ],
+  "kind": "hele-zin",
+  "bron": "digitaal",
+  "why": "deze pagina legt per woonland uit hoe je terugbetaalt en zegt dat automatische incasso alleen werkt met een rekening uit het SEPA-gebied"
+ },
+ {
+  "q": "ik ben tandarts in brazilie en wil in nederland aan de slag heb ik daar toestemming voor nodig",
+  "expect": [
+   "/buitenlands-diploma-in-nederland/beroepserkenning-beschermd-beroep",
+   "/buitenlands-diploma-in-nederland/werk"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "digitaal",
+  "why": "deze pagina legt uit dat je voor een beschermd (gereglementeerd) beroep eerst beroepserkenning moet aanvragen voordat je dat werk in Nederland mag doen"
+ },
+ {
+  "q": "mijn vriend is de bak in gedraaid in spanje kan ik geld naar hem sturen",
+  "expect": [
+   "/gearresteerd-buitenland/een-nederlands-familielid-of-vriend-is-gearresteerd"
+  ],
+  "kind": "spreektaal",
+  "bron": "geld-nood",
+  "why": "deze pagina legt uit dat je geld kunt storten op de rekening van de buitenlandse gevangenis of via Buitenlandse Zaken (50 euro) als een familielid of vriend is opgepakt"
+ },
+ {
+  "q": "ik ben beroofd in thailand en heb geen cent meer om terug te vliegen",
+  "expect": [
+   "/bestolen-buitenland"
+  ],
+  "kind": "spreektaal",
+  "bron": "geld-nood",
+  "why": "deze pagina behandelt precies geldnood na diefstal: aangifte, passen blokkeren en hoe familie geld kan sturen als u uw terugreis niet kunt betalen"
+ },
+ {
+  "q": "ik ben in elkaar geslagen tijdens mijn vakantie in bulgarije",
+  "expect": [
+   "/slachtoffer-geweld/slachtoffer-van-geweld"
+  ],
+  "kind": "spreektaal",
+  "bron": "geld-nood",
+  "why": "deze pagina geeft de stappen voor slachtoffers van geweld in het buitenland: veilige plek, arts met medische verklaring, aangifte en slachtofferhulp"
+ },
+ {
+  "q": "moet ik me ergens aanmelden zodat ik een sms krijg als het onveilig wordt waar ik zit",
+  "expect": [
+   "/informatieservice-buitenlandse-zaken"
+  ],
+  "kind": "omschrijving",
+  "bron": "geld-nood",
+  "why": "de Informatieservice is de dienst waarvoor u zich aanmeldt om per e-mail of sms bericht te krijgen bij een gewijzigd reisadvies of een dreigende crisis"
+ },
+ {
+  "q": "wat betekent de kleur oranje op de kaart van buitenlandse zaken",
+  "expect": [
+   "/reisadvies/reisadviezen-kleurcodes",
+   "/reisadvies/kleurcode-per-land"
+  ],
+  "kind": "omschrijving",
+  "bron": "geld-nood",
+  "why": "hier staat uitgelegd wat groen, geel, oranje en rood betekenen; oranje is alleen noodzakelijke reizen"
+ },
+ {
+  "q": "goedemiddag ik bel namens mijn moeder van 82 die in marokko woont zij heeft een brief van de svb gekregen dat ze moet aantonen dat ze nog leeft maar ze kan niet naar de ambassade reizen",
+  "expect": [
+   "/aow-buiten-nederland/levensbewijs"
+  ],
+  "kind": "hele-zin",
+  "bron": "geld-nood",
+  "why": "deze pagina gaat over het levensbewijs dat de SVB per brief opvraagt en dat u thuis via de app met de QR-code kunt versturen"
+ },
+ {
+  "q": "ben mijn baan kwijt in duitsland waar moet ik me melden",
+  "expect": [
+   "/ww-uitkering-buiten-nederland/werkloos-worden"
+  ],
+  "kind": "spreektaal",
+  "bron": "geld-nood",
+  "why": "dit is het stappenplan voor wie buiten Nederland werkloos wordt: nagaan waar u verzekerd bent en in welk land u de uitkering aanvraagt"
+ },
+ {
+  "q": "heeft nederland afspraken met marokko over werkloosheid",
+  "expect": [
+   "/ww-uitkering-buiten-nederland/verdragslanden"
+  ],
+  "kind": "meerdere-landen",
+  "bron": "geld-nood",
+  "why": "deze pagina geeft de lijst verdragslanden voor werkloosheid, met Marokko erin en per land of er wel of geen afspraken over werkloosheid zijn"
+ },
+ {
+  "q": "mijn ww loopt bijna af en ik woon in spanje wat nu",
+  "expect": [
+   "/ww-uitkering-buiten-nederland/uitkering-stopt"
+  ],
+  "kind": "afkorting",
+  "bron": "geld-nood",
+  "why": "deze pagina behandelt per situatie wat u kunt doen als uw WW-uitkering van UWV in het buitenland (bijna) stopt"
+ },
+ {
+  "q": "een meneer belt omdat hij drie jaar in oostenrijk heeft gewerkt en daar nu ontslagen is hij wil weten of hij in nederland of in oostenrijk een uitkering moet aanvragen",
+  "expect": [
+   "/ww-uitkering-buiten-nederland/recht-op-ww-uitkering"
+  ],
+  "kind": "hele-zin",
+  "bron": "geld-nood",
+  "why": "deze pagina bepaalt per situatie in welk land u recht heeft op een werkloosheidsuitkering: het land waar u verzekerd bent, werkte en woont"
+ },
+ {
+  "q": "mijn man is overleden krijg ik nu een uitkering als ik in frankrijk woon",
+  "expect": [
+   "/anw-uitkering-buiten-nederland/anw-uitkering-krijgen"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "geld-nood",
+  "why": "de vakterm is Anw; deze pagina geeft de voorwaarden waaronder een nabestaande buiten Nederland een Anw-uitkering kan krijgen"
+ },
+ {
+  "q": "nabestaandenpensioen aanvragen vanuit het buitenland",
+  "expect": [
+   "/anw-uitkering-buiten-nederland"
+  ],
+  "kind": "samenstelling",
+  "bron": "geld-nood",
+  "why": "burgers noemen de Anw-nabestaandenuitkering nabestaandenpensioen; deze rubriek gaat over de Anw-uitkering buiten Nederland en het aanvragen ervan"
+ },
+ {
+  "q": "mijn zoon heeft een wajong en wil naar duitsland verhuizen kan dat",
+  "expect": [
+   "/uitkering-arbeidsongeschiktheid-buitenland/wajong-meenemen"
+  ],
+  "kind": "spreektaal",
+  "bron": "geld-nood",
+  "why": "deze pagina noemt de drie gevallen waarin u een Wajong-uitkering bij verhuizing naar het buitenland mag meenemen"
+ },
+ {
+  "q": "ik word binnenkort 67 en krijg wia wat gebeurt er dan met mijn uitkering",
+  "expect": [
+   "/uitkering-arbeidsongeschiktheid-buitenland/stoppen"
+  ],
+  "kind": "omschrijving",
+  "bron": "geld-nood",
+  "why": "deze pagina zegt dat de UWV-uitkering automatisch stopt bij de AOW-leeftijd en dat u buiten Nederland zelf 6 maanden vooraf AOW moet aanvragen"
+ },
+ {
+  "q": "arbeidsongeschiktheidspensioen meenemen naar zuid-afrika",
+  "expect": [
+   "/uitkering-arbeidsongeschiktheid-buitenland/meenemen-wia-wao-waz",
+   "/uitkering-arbeidsongeschiktheid-buitenland/welke-landen"
+  ],
+  "kind": "samenstelling",
+  "bron": "geld-nood",
+  "why": "of u uw WIA-, WAO- of WAZ-uitkering meeneemt hangt af van de afspraken met het land van bestemming; de landenlijst staat op welke-landen"
+ },
+ {
+  "q": "welk pasje moet ik meenemen op vakantie in europa voor de dokter",
+  "expect": [
+   "/zorgverzekering-buitenland/europese-ziekteverzekeringskaart"
+  ],
+  "kind": "omschrijving",
+  "bron": "geld-nood",
+  "why": "de EHIC is de gratis Europese zorgverzekeringspas die recht geeft op noodzakelijke medische zorg tijdens een tijdelijk verblijf in Europa"
+ },
+ {
+  "q": "mijn nederlandse verzekering dekt niet alles in amerika wat kan ik erbij nemen",
+  "expect": [
+   "/zorgverzekering-buitenland/internationale-zorgverzekering"
+  ],
+  "kind": "omschrijving",
+  "bron": "geld-nood",
+  "why": "deze pagina beschrijft de internationale zorgverzekering als aanvulling wanneer de Nederlandse basisverzekering in een duur land niet alles vergoedt"
+ },
+ {
+  "q": "krijg ik minder kinderbijslag omdat ik hier ook al geld voor de kinderen krijg",
+  "expect": [
+   "/kinderbijslag-buiten-nederland/hoogte"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "geld-nood",
+  "why": "de vakterm is gezinsbijslag; deze pagina legt uit dat u niet 2 keer het hele bedrag krijgt en dat Nederland een lagere buitenlandse bijslag aanvult"
+ },
+ {
+  "q": "ik woon in belgie maar ga voor mijn werk naar kenia moet ik daar iets voor regelen",
+  "expect": [
+   "/werken-buitenland/kenia"
+  ],
+  "kind": "meerdere-landen",
+  "bron": "geld-nood",
+  "why": "de landenpagina Werken in Kenia vertelt of u daar een visum of werkvergunning nodig heeft en waar u die aanvraagt"
+ },
+ {
+  "q": "die blauwe kaft waarmee je een keer naar huis mag vliegen",
+  "expect": [
+   "/nooddocument/soorten-nooddocumenten"
+  ],
+  "kind": "omschrijving",
+  "bron": "paspoort",
+  "why": "deze pagina is de enige die beschrijft dat de laissez-passer een blauwe kaft heeft en geldig is voor een enkele reis naar Nederland"
+ },
+ {
+  "q": "pasje voor mijn dochter van 3",
+  "expect": [
+   "/paspoort-id-kaart/paspoort-kind",
+   "/waar-let-ik-op-paspoort-kind-buitenland"
+  ],
+  "kind": "spreektaal",
+  "bron": "paspoort",
+  "why": "beide pagina's gaan over het aanvragen van een paspoort of ID-kaart voor een kind jonger dan 12 jaar in het buitenland"
+ },
+ {
+  "q": "hoeveel bladzijdes zitten er in zo'n boekje",
+  "expect": [
+   "/paspoort-id-kaart/verschil"
+  ],
+  "kind": "omschrijving",
+  "bron": "paspoort",
+  "why": "alleen deze pagina noemt dat een paspoort 34 pagina's heeft en een zakenpaspoort 66"
+ },
+ {
+  "q": "waarom kan ik met mijn paspoort niet inloggen bij de overheid",
+  "expect": [
+   "/paspoort-id-kaart/verschil",
+   "/inloggen-id-kaart"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "paspoort",
+  "why": "de verschil-pagina zegt letterlijk dat inloggen via DigiD niet met een paspoort kan maar wel met een ID-kaart van 13 maart 2021 of later; de DigiD-pagina legt dat inloggen verder uit"
+ },
+ {
+  "q": "wat ben ik ongeveer kwijt voor een nieuw paspoort bij de ambassade",
+  "expect": [
+   "/paspoort-id-kaart/kosten-buitenland"
+  ],
+  "kind": "spreektaal",
+  "bron": "paspoort",
+  "why": "deze pagina geeft de bedragen per document bij ambassade of consulaat-generaal (paspoort 18 jaar en ouder 169,15 euro)"
+ },
+ {
+  "q": "kan ik het goedkoper regelen als ik toch even in nederland ben",
+  "expect": [
+   "/paspoort-id-kaart/aanvragen-grensgemeente"
+  ],
+  "kind": "omschrijving",
+  "bron": "paspoort",
+  "why": "deze pagina zegt dat de tarieven bij de 15 grensgemeenten lager zijn dan bij ambassades en consulaten"
+ },
+ {
+  "q": "moet ik extra betalen als ze met een tijdelijk loket in mijn stad zijn",
+  "expect": [
+   "/paspoort-id-kaart/aanvragen-in-de-buurt",
+   "/paspoort-id-kaart/kosten-buitenland"
+  ],
+  "kind": "omschrijving",
+  "bron": "paspoort",
+  "why": "beide pagina's noemen de toeslag van 26,85 euro bij een tijdelijke aanvraaglocatie (pop-up ambassade)"
+ },
+ {
+  "q": "waar staat dat nummer waarmee ik kan kijken hoe ver ze zijn",
+  "expect": [
+   "/paspoort-id-kaart/status-aanvraag"
+  ],
+  "kind": "omschrijving",
+  "bron": "paspoort",
+  "why": "deze pagina zegt dat het volgnummer op de achterkant staat van het kaartje dat je bij de aanvraag krijgt en waarmee je track en trace opent"
+ },
+ {
+  "q": "ik ben in india mijn paspoort kwijt en ze zeggen dat ik zonder stempel het land niet uit kom",
+  "expect": [
+   "/paspoort-id-kaart/india-uitreisvisum"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "paspoort",
+  "why": "deze pagina legt uit dat je na verlies van je paspoort in India een uitreisvisum (exit permit) bij de FRRO nodig hebt om het land te verlaten"
+ },
+ {
+  "q": "mag ik met mijn id naar de canarische eilanden",
+  "expect": [
+   "/reizen-paspoort-id-kaart/spanje"
+  ],
+  "kind": "omschrijving",
+  "bron": "paspoort",
+  "why": "de Spanje-pagina gaat expliciet ook over de Canarische eilanden en zegt of je daar met een Nederlandse ID-kaart naartoe kunt"
+ },
+ {
+  "q": "ik ben amerikaan geworden mag ik nog een nederlands paspoort",
+  "expect": [
+   "/hoe-aanvragen-andere-nationaliteit"
+  ],
+  "kind": "hele-zin",
+  "bron": "paspoort",
+  "why": "deze pagina beschrijft stap voor stap wat je moet regelen als je een andere nationaliteit hebt aangenomen en toch een Nederlands paspoort of ID-kaart wilt aanvragen"
+ },
+ {
+  "q": "is mijn paspoort nog geldig met mijn oude naam erin",
+  "expect": [
+   "/naamswijziging/paspoort-of-id-kaart-geldig"
+  ],
+  "kind": "omschrijving",
+  "bron": "paspoort",
+  "why": "deze pagina zegt dat je paspoort of ID-kaart na een erkende naamswijziging niet meer geldig is en dat je een nieuwe moet aanvragen"
+ },
+ {
+  "q": "mag mijn kind nog bijgeschreven worden in mijn paspoort",
+  "expect": [
+   "/waar-let-ik-op-paspoort-kind-buitenland"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "paspoort",
+  "why": "deze pagina zegt dat elk kind een eigen paspoort of ID-kaart nodig heeft en dat bijschrijven niet meer kan"
+ },
+ {
+  "q": "kan ik het formulier op mijn telefoon invullen",
+  "expect": [
+   "/paspoort-id-kaart/account-aanmaken-paspoort",
+   "/paspoort-id-kaart/aanvraagformulier"
+  ],
+  "kind": "omschrijving",
+  "bron": "paspoort",
+  "why": "beide pagina's zeggen dat je het aanvraagformulier op een computer of tablet invult omdat het portaal niet werkt op een smartphone"
+ },
+ {
+  "q": "mevrouw is op vakantie in italie en haar tas is gestolen met alles erin en zondag moet ze weer werken in nederland",
+  "expect": [
+   "/nooddocument/italie",
+   "/paspoort-id-kaart/kwijt-gestolen"
+  ],
+  "kind": "hele-zin",
+  "bron": "paspoort",
+  "why": "bij diefstal op vakantie vraag je een nooddocument aan bij de ambassade in het land waar je bent om terug te kunnen reizen"
+ },
+ {
+  "q": "paspoortfoto eisen",
+  "expect": [
+   "/paspoort-id-kaart/eisen-pasfoto"
+  ],
+  "kind": "samenstelling",
+  "bron": "paspoort",
+  "why": "deze pagina somt alle eisen op voor de pasfoto voor een Nederlands paspoort of ID-kaart"
+ },
+ {
+  "q": "mag mijn zoon van 14 zelf een pasje aanvragen zonder mij erbij",
+  "expect": [
+   "/paspoort-id-kaart/aanvragen",
+   "/paspoort-id-kaart/paspoort-kind"
+  ],
+  "kind": "spreektaal",
+  "bron": "paspoort",
+  "why": "deze pagina's zeggen dat een kind vanaf 12 jaar zelf een ID-kaart mag aanvragen en voor een paspoort toestemming van de ouders nodig heeft"
+ },
+ {
+  "q": "paspoort aanvargen als ik in thailand woon",
+  "expect": [
+   "thailand"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"aanvragen\" verhaspeld tot \"aanvargen\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wat is een bsn en hoe krijg ik het in het buitelnand",
+  "expect": [
+   "bsn"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "begraenis in het buitenland regelen",
+  "expect": [
+   "begrafenis"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"begrafenis\" verhaspeld tot \"begraenis\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "is mijn nederalndse rijbewijs geldig in het buitenland",
+  "expect": [
+   "/rijbewijs-buitenland/geldig"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nederlandse\" verhaspeld tot \"nederalndse\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ww-uitkering meenemen naar het buitelnand",
+  "expect": [
+   "ww-uitkering"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "hoe word ik nederalnder",
+  "expect": [
+   "naturalisatie",
+   "nationaliteit"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nederlander\" verhaspeld tot \"nederalnder\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "terugkeren naar nederland na jaren in het buitelnand",
+  "expect": [
+   "terug-naar-nederland",
+   "immigreren"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "mijn kind is gebren wat nu",
+  "expect": [
+   "geboorte-aangeven",
+   "kind-krijgen"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"geboren\" verhaspeld tot \"gebren\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "studiefinankiering meenemen naar het buitenland",
+  "expect": [
+   "studiefinanciering"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"studiefinanciering\" verhaspeld tot \"studiefinankiering\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "spullen meenemen naar nedelrand douane",
+  "expect": [
+   "reizen-naar-nederland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"nederland\" verhaspeld tot \"nedelrand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "kan ik met spoed een pasport krijgen",
+  "expect": [
+   "nooddocument",
+   "tijdsduur",
+   "paspoort-id-kaart"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"paspoort\" verhaspeld tot \"pasport\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "ik ga emigerren wat moet ik doorgeven",
+  "expect": [
+   "checklist-verhuizen",
+   "emigreren",
+   "uitschrijven"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"emigreren\" verhaspeld tot \"emigerren\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "mijn partner is overleden in het buiteland",
+  "expect": [
+   "overlijden-buitenland"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buiteland\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "vog nodig voor werk in het buitelnand",
+  "expect": [
+   "vog"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"buitenland\" verhaspeld tot \"buitelnand\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "wat moet ik meenmeen naar mijn afspraak",
+  "expect": [
+   "welke-documenten",
+   "waar-op-letten",
+   "afspraak"
+  ],
+  "kind": "typefout",
+  "bron": "typefouten",
+  "why": "\"meenemen\" verhaspeld tot \"meenmeen\"; verder dezelfde vraag als in eval_set.json"
+ },
+ {
+  "q": "bewijs dat ik geen strafblad heb nodig voor een baan in australie",
+  "expect": [
+   "/verklaring/vog"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "verklaringen",
+  "why": "deze pagina legt uit dat een VOG aantoont dat uw gedrag geen bezwaar vormt voor een functie en hoe u die vanuit het buitenland bij Dienst Justis aanvraagt; het woord strafblad staat nergens op de site"
+ },
+ {
+  "q": "mijn werkgever in dubai vraagt om een police clearance certificate",
+  "expect": [
+   "/verklaring/vog"
+  ],
+  "kind": "synoniem",
+  "bron": "verklaringen",
+  "why": "wat buitenlandse werkgevers police clearance certificate noemen is de VOG, en deze pagina beschrijft als enige hoe u die aanvraagt als u buiten Nederland woont"
+ },
+ {
+  "q": "kan ik bij de ambassade terecht voor een verklaring omtrent gedrag",
+  "expect": [
+   "/verklaring/vog"
+  ],
+  "kind": "spreektaal",
+  "bron": "verklaringen",
+  "why": "de pagina zegt letterlijk dat u geen VOG kunt aanvragen bij een Nederlandse ambassade of consulaat maar bij Dienst Justis"
+ },
+ {
+  "q": "papiertje dat ik volgens de nederlandse wet mag trouwen ik woon in italie",
+  "expect": [
+   "/verklaring/huwelijksbevoegdheid/italie"
+  ],
+  "kind": "omschrijving",
+  "bron": "verklaringen",
+  "why": "met een verklaring van huwelijksbevoegdheid laat u volgens de site zien dat u volgens de Nederlandse wet mag trouwen, en deze pagina beschrijft de aanvraag voor Nederlanders die in Italie wonen"
+ },
+ {
+  "q": "heb ik een geldig paspoort nodig als de ambassade een verklaring voor me opstelt",
+  "expect": [
+   "/verklaring/consulaire-verklaring"
+  ],
+  "kind": "hele-zin",
+  "bron": "verklaringen",
+  "why": "deze pagina bevat de voorwaarde dat u alleen een consulaire verklaring kunt aanvragen als u een geldig Nederlands paspoort of ID-kaart heeft"
+ },
+ {
+  "q": "waar krijg ik die sticker van de rechtbank op mijn geboorteakte",
+  "expect": [
+   "/legaliseren/waar-apostille-halen"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "verklaringen",
+  "why": "de vraag is waar je moet zijn, en deze pagina legt uit dat u voor een Nederlands document een apostille bij een rechtbank haalt en wat u vooraf moet controleren"
+ },
+ {
+  "q": "is een apostille uit pakistan geldig in nederland",
+  "expect": [
+   "/legaliseren/landen-apostille",
+   "/legaliseren/buitenlandse-documenten/pakistan"
+  ],
+  "kind": "hele-zin",
+  "bron": "verklaringen",
+  "why": "de landenlijst waarschuwt expliciet dat Nederland apostilles uit Pakistan niet erkent en verwijst naar de Pakistan-pagina voor de juiste route"
+ },
+ {
+  "q": "waarom moeten er allemaal stempels op mijn papieren voor het buitenland",
+  "expect": [
+   "/legaliseren/wat-is-legaliseren"
+  ],
+  "kind": "spreektaal",
+  "bron": "verklaringen",
+  "why": "deze pagina legt uit dat legaliseren een document geschikt maakt voor gebruik in een ander land en wat de stempels wel en niet bewijzen"
+ },
+ {
+  "q": "is het gratis als ik het svb formulier laat afstempelen op de ambassade in duitsland",
+  "expect": [
+   "/consulaire-tarieven/duitsland"
+  ],
+  "kind": "hele-zin",
+  "bron": "verklaringen",
+  "why": "op de tarieflijst van Duitsland staat dat een verklaring van in leven zijn gratis is als er een voordruk van een Nederlandse instantie is en anders 30 euro kost"
+ },
+ {
+  "q": "wat kost een verklaring van huwelijksbevoegdheid in duitsland",
+  "expect": [
+   "/consulaire-tarieven/duitsland"
+  ],
+  "kind": "samenstelling",
+  "bron": "verklaringen",
+  "why": "de tarieflijst van Duitsland noemt de prijs van de verklaring van huwelijksbevoegdheid; de inhoudelijke huwelijksbevoegdheidspagina noemt geen bedrag"
+ },
+ {
+  "q": "goedemiddag ik bel namens mijn moeder van 84 die in spanje woont haar pensioenfonds heeft een formulier gestuurd dat ondertekend moet worden en ze kan niet reizen hoe regelen we dat",
+  "expect": [
+   "/verklaring/in-leven-zijn/spanje"
+  ],
+  "kind": "hele-zin",
+  "bron": "verklaringen",
+  "why": "deze pagina gaat precies over het laten ondertekenen en stempelen van een voorbedrukte verklaring van in leven zijn in Spanje en over wat u dan moet meenemen"
+ },
+ {
+  "q": "mijn dochter gaat trouwen in griekenland en de gemeente daar vraagt allerlei nederlandse papieren ze heeft nooit in nederland gewoond",
+  "expect": [
+   "/verklaring/huwelijksbevoegdheid/griekenland"
+  ],
+  "kind": "hele-zin",
+  "bron": "verklaringen",
+  "why": "de verklaring van huwelijksbevoegdheid is juist bedoeld voor Nederlanders die nooit in Nederland hebben gewoond, en deze pagina beschrijft de aanvraag in Griekenland"
+ },
+ {
+  "q": "hoeveel kost het om een handtekening te laten legaliseren bij de ambassade in frankrijk",
+  "expect": [
+   "/consulaire-tarieven/frankrijk"
+  ],
+  "kind": "omschrijving",
+  "bron": "verklaringen",
+  "why": "de tarieflijst van Frankrijk bevat de regel legaliseren handtekening Nederlander met het bedrag; de pagina over handtekeninglegalisatie zelf noemt geen prijs"
+ },
+ {
+  "q": "wie zet de stempels op nederlandse papieren voordat ze naar het buitenland gaan",
+  "expect": [
+   "/legaliseren/nederlandse-documenten"
+  ],
+  "kind": "spreektaal",
+  "bron": "verklaringen",
+  "why": "deze rubriek legt uit welke instanties een Nederlands document legaliseren voor gebruik in het buitenland, waaronder rechtbank en het Consulair Dienstencentrum"
+ },
+ {
+  "q": "papieren uit curacao gebruiken in een land buiten het koninkrijk",
+  "expect": [
+   "/legaliseren/nederlandse-documenten/cdc"
+  ],
+  "kind": "meerdere-landen",
+  "bron": "verklaringen",
+  "why": "deze pagina legt uit dat documenten uit Curacao eerst langs het kabinet van de gevolmachtigde minister moeten en daarna door het CDC gelegaliseerd worden"
+ },
+ {
+  "q": "mijn marokkaanse geboorteakte is in het arabisch wat moet ik doen om hem bij de gemeente te gebruiken",
+  "expect": [
+   "/legaliseren/buitenlandse-documenten/marokko"
+  ],
+  "kind": "hele-zin",
+  "bron": "verklaringen",
+  "why": "deze pagina geeft het stappenplan voor Arabischtalige documenten uit Marokko: eerst beedigd laten vertalen en daarna document en vertaling met een apostille laten legaliseren"
+ },
+ {
+  "q": "kan ik een afspraak maken bij de ambassade in wenen",
+  "expect": [
+   "/afspraak-maken/oostenrijk"
+  ],
+  "kind": "omschrijving",
+  "bron": "verklaringen",
+  "why": "de site ordent afspraken per land, dus de afspraakpagina van Oostenrijk beschrijft waar en hoe u een afspraak maakt bij de ambassade in Wenen"
+ },
+ {
+  "q": "moet ik naar ankara of naar istanbul voor mijn papieren",
+  "expect": [
+   "/afspraak-maken/turkije"
+  ],
+  "kind": "omschrijving",
+  "bron": "verklaringen",
+  "why": "de afspraakpagina van Turkije laat per dienst zien of u bij de ambassade in Ankara of het consulaat-generaal in Istanbul terechtkunt"
+ },
+ {
+  "q": "ik blijf een paar uur op schiphol tussen twee vluchten, moet ik dan iets aanvragen",
+  "expect": [
+   "visum-nodig-overstap-luchthaven"
+  ],
+  "kind": "omschrijving",
+  "bron": "visum",
+  "why": "de pagina is de check of u bij een tussenstop of vliegtuigwissel op een Nederlandse luchthaven een visum nodig heeft"
+ },
+ {
+  "q": "ik ga eerst twee weken naar spanje en daarna drie dagen naar nederland, waar vraag ik het visum aan",
+  "expect": [
+   "meerdere-schengenlanden-bezoeken"
+  ],
+  "kind": "meerdere-landen",
+  "bron": "visum",
+  "why": "de pagina legt uit dat u het visum aanvraagt bij het land van uw belangrijkste reisdoel, anders wordt de aanvraag afgewezen"
+ },
+ {
+  "q": "mijn echtgenoot is belg, hoef ik dan geen geld te betalen voor mijn visum",
+  "expect": [
+   "faciliterend-visum-krijgen-familielid-eu-eer"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "bron": "visum",
+  "why": "de pagina beschrijft het gratis faciliterend Schengenvisum voor directe familieleden van een EU/EER-burger, zoals een echtgenoot"
+ },
+ {
+  "q": "ik ben met de remigratieregeling teruggegaan naar marokko en wil mijn kinderen bezoeken",
+  "expect": [
+   "visum-voor-remigranten/aanvragen"
+  ],
+  "kind": "samenstelling",
+  "bron": "visum",
+  "why": "de pagina gaat over wie op basis van de Remigratiewet is teruggekeerd en Nederland kort wil bezoeken"
+ },
+ {
+  "q": "moet mijn baby van 3 ook betalen voor het visum",
+  "expect": [
+   "kosten-visum"
+  ],
+  "kind": "omschrijving",
+  "bron": "visum",
+  "why": "de pagina noemt als uitzondering dat er geen visumkosten zijn voor een kind van 0 tot 6 jaar"
+ },
+ {
+  "q": "er is geen nederlandse ambassade in mijn land, waar haal ik dan mijn sticker op",
+  "expect": [
+   "waar-mvv-aanvragen"
+  ],
+  "kind": "spreektaal",
+  "bron": "visum",
+  "why": "de pagina zegt dat u in een ander land terecht kunt als er geen Nederlandse ambassade of consulaat-generaal in uw woonland is, en dat dit in de inwilligingsbrief staat"
+ },
+ {
+  "q": "mijn vrouw woont in suriname en wil mij in nederland bezoeken, waar moet zij naartoe",
+  "expect": [
+   "schengenvisum/aanvragen-suriname"
+  ],
+  "kind": "omschrijving",
+  "bron": "visum",
+  "why": "de landpagina beschrijft stap voor stap waar en hoe u in Suriname een Schengenvisum voor kort verblijf in Nederland aanvraagt"
+ },
+ {
+  "q": "mijn verblijfspas is verlopen terwijl ik in het buitenland zit",
+  "expect": [
+   "verblijfsvergunning-verlopen"
+  ],
+  "kind": "spreektaal",
+  "bron": "visum",
+  "why": "de pagina is het stappenplan voor wie in het buitenland is terwijl de Nederlandse verblijfsvergunning verloopt: verlengen bij de IND en daarna checken of u visumplichtig bent"
+ }
+]

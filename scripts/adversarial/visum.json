@@ -1,0 +1,242 @@
+[
+ {
+  "q": "de IND heeft mijn aanvraag goedgekeurd, hoe kom ik nu naar nederland",
+  "expect": [
+   "visum-lang-verblijf-mvv"
+  ],
+  "kind": "afkorting",
+  "why": "de pagina legt uit dat u na de inwilligingsbrief van de IND de mvv-visumsticker aanvraagt om naar Nederland te reizen"
+ },
+ {
+  "q": "hoeveel tijd heb ik om mijn pasje bij de IND op te halen nadat ik de sticker heb gekregen",
+  "expect": [
+   "hoelang-mvv-geldig"
+  ],
+  "kind": "spreektaal",
+  "why": "de pagina zegt dat de mvv-visumsticker 90 dagen geldig is en dat u binnen die 90 dagen uw verblijfsvergunning bij de IND moet ophalen"
+ },
+ {
+  "q": "ik ben net afgestudeerd en wil in nederland blijven om een baan te zoeken",
+  "expect": [
+   "zoekjaar"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "de pagina beschrijft precies de mvv en verblijfsvergunning voor een zoekjaar na studie, promotie of onderzoek"
+ },
+ {
+  "q": "mijn neef verdient te weinig, kan ik met mijn salaris voor zijn bezoek instaan",
+  "expect": [
+   "/visum-nederland/garant-staan"
+  ],
+  "kind": "omschrijving",
+  "why": "de pagina legt uit hoe u financieel garant staat voor een bezoeker die onvoldoende inkomen heeft, en welke inkomenseisen daarvoor gelden"
+ },
+ {
+  "q": "mijn zus slaapt bij mij thuis tijdens haar bezoek, moet ik daar een papier voor invullen",
+  "expect": [
+   "logies-verstrekken"
+  ],
+  "kind": "spreektaal",
+  "why": "de pagina beschrijft het formulier bewijs van particuliere logiesverstrekking dat u als gastheer invult als iemand uit het buitenland bij u logeert"
+ },
+ {
+  "q": "ik blijf een paar uur op schiphol tussen twee vluchten, moet ik dan iets aanvragen",
+  "expect": [
+   "visum-nodig-overstap-luchthaven"
+  ],
+  "kind": "omschrijving",
+  "why": "de pagina is de check of u bij een tussenstop of vliegtuigwissel op een Nederlandse luchthaven een visum nodig heeft"
+ },
+ {
+  "q": "heb ik een ATV nodig als ik alleen overstap in amsterdam",
+  "expect": [
+   "visum-nodig-overstap-luchthaven"
+  ],
+  "kind": "afkorting",
+  "why": "ATV is de vakjargonafkorting voor luchthaventransitvisum; de pagina's zeggen of u dat visum nodig heeft en hoe u het aanvraagt"
+ },
+ {
+  "q": "mijn visum is een jaar geldig, mag ik dan een jaar in nederland wonen",
+  "expect": [
+   "schengenvisum-geldig"
+  ],
+  "kind": "hele-zin",
+  "why": "de pagina waarschuwt letterlijk dat de geldigheidsduur van het visum niet zegt hoelang u mag blijven; dat staat bij 'duur van het verblijf'"
+ },
+ {
+  "q": "ik ga eerst twee weken naar spanje en daarna drie dagen naar nederland, waar vraag ik het visum aan",
+  "expect": [
+   "meerdere-schengenlanden-bezoeken"
+  ],
+  "kind": "meerdere-landen",
+  "why": "de pagina legt uit dat u het visum aanvraagt bij het land van uw belangrijkste reisdoel, anders wordt de aanvraag afgewezen"
+ },
+ {
+  "q": "ik ben rus maar ik woon in georgie, kan ik een visum voor nederland krijgen",
+  "expect": [
+   "schengenvisum-buiten-rusland"
+  ],
+  "kind": "meerdere-landen",
+  "why": "de pagina gaat precies over Russen die buiten Rusland wonen en welke reisdoelen wel en niet mogelijk zijn"
+ },
+ {
+  "q": "moet mijn vriend uit colombia iets aanvragen voor bonaire",
+  "expect": [
+   "caribisch-visum/visum-nodig"
+  ],
+  "kind": "meerdere-landen",
+  "why": "de pagina geeft de lijst met nationaliteiten die zonder Caribisch visum naar Bonaire en de andere Koninkrijksdelen mogen"
+ },
+ {
+  "q": "ik wil een half jaar op curacao gaan wonen, wat moet ik regelen",
+  "expect": [
+   "caribisch-visum/lang-verblijf"
+  ],
+  "kind": "omschrijving",
+  "why": "de pagina zegt dat u voor langer dan 90 dagen een verblijfsvergunning nodig heeft die uw referent bij de lokale autoriteiten aanvraagt, plus soms een visum lang verblijf"
+ },
+ {
+  "q": "hoe lang mag een amerikaan op sint maarten blijven zonder papieren",
+  "expect": [
+   "zonder-visum-reizen"
+  ],
+  "kind": "spreektaal",
+  "why": "de pagina noemt de maximale verblijfsduur voor visumvrije bezoekers en apart de 180 dagen per 365 dagen voor Nederlanders en Amerikanen"
+ },
+ {
+  "q": "moet mijn vrouw eerst nederlands leren voordat ze uit ghana mag overkomen",
+  "expect": [
+   "basisexamen-inburgering/ghana"
+  ],
+  "kind": "omschrijving",
+  "why": "de landpagina zegt of het basisexamen inburgering in Ghana kan worden afgelegd en wat het examen op A1-niveau inhoudt"
+ },
+ {
+  "q": "mijn opa is overleden en ik moet snel naar de begrafenis in nederland",
+  "expect": [
+   "spoedvisum"
+  ],
+  "kind": "omschrijving",
+  "why": "de pagina noemt de begrafenis van een eerste- of tweedegraads familielid, waaronder een grootouder, als de situatie voor een spoedvisum"
+ },
+ {
+  "q": "de ambassade heeft nee gezegd, kan ik daar ergens tegenin gaan",
+  "expect": [
+   "bezwaar-afwijzing-aanvraag"
+  ],
+  "kind": "spreektaal",
+  "why": "de pagina legt uit dat u na een afwijzing binnen 4 weken gratis bezwaar kunt maken bij de IND of opnieuw kunt aanvragen"
+ },
+ {
+  "q": "mijn echtgenoot is belg, hoef ik dan geen geld te betalen voor mijn visum",
+  "expect": [
+   "faciliterend-visum-krijgen-familielid-eu-eer"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "de pagina beschrijft het gratis faciliterend Schengenvisum voor directe familieleden van een EU/EER-burger, zoals een echtgenoot"
+ },
+ {
+  "q": "ik ben met de remigratieregeling teruggegaan naar marokko en wil mijn kinderen bezoeken",
+  "expect": [
+   "visum-voor-remigranten/aanvragen"
+  ],
+  "kind": "samenstelling",
+  "why": "de pagina gaat over wie op basis van de Remigratiewet is teruggekeerd en Nederland kort wil bezoeken"
+ },
+ {
+  "q": "ik kom voor een operatie naar een nederlands ziekenhuis, wat moet ik meenemen naar mijn afspraak",
+  "expect": [
+   "checklijst-schengenvisum-medisch"
+  ],
+  "kind": "omschrijving",
+  "why": "de checklijst somt de documenten op die u mee moet nemen naar de visumafspraak bij een medische reden"
+ },
+ {
+  "q": "ik ben 25 en australisch en wil een jaar rondreizen en bijverdienen in nederland",
+  "expect": [
+   "/visum-nederland/whp"
+  ],
+  "kind": "omschrijving",
+  "why": "de pagina beschrijft het Working Holiday Program voor 18- tot 30-jarigen met onder andere de Australische nationaliteit, maximaal 1 jaar met beperkt werk"
+ },
+ {
+  "q": "ik heb al een visum maar ik wil in het najaar nog een keer komen",
+  "expect": [
+   "schengenvisum-nieuwe-reis"
+  ],
+  "kind": "hele-zin",
+  "why": "de pagina zegt dat u een nieuw Schengenvisum kunt aanvragen terwijl uw huidige visum nog geldig is, en dat het nieuwe visum pas daarna ingaat"
+ },
+ {
+  "q": "ik heb geen visum nodig, hoe lang mag ik dan in nederland blijven",
+  "expect": [
+   "hoelang-mag-ik-nederland-bezoeken"
+  ],
+  "kind": "hele-zin",
+  "why": "de pagina zegt dat visumvrije bezoekers maximaal 90 dagen per 180 dagen mogen blijven en verwijst naar de short-stay calculator"
+ },
+ {
+  "q": "moet mijn baby van 3 ook betalen voor het visum",
+  "expect": [
+   "kosten-visum"
+  ],
+  "kind": "omschrijving",
+  "why": "de pagina noemt als uitzondering dat er geen visumkosten zijn voor een kind van 0 tot 6 jaar"
+ },
+ {
+  "q": "er is geen nederlandse ambassade in mijn land, waar haal ik dan mijn sticker op",
+  "expect": [
+   "waar-mvv-aanvragen"
+  ],
+  "kind": "spreektaal",
+  "why": "de pagina zegt dat u in een ander land terecht kunt als er geen Nederlandse ambassade of consulaat-generaal in uw woonland is, en dat dit in de inwilligingsbrief staat"
+ },
+ {
+  "q": "mijn vrouw woont in suriname en wil mij in nederland bezoeken, waar moet zij naartoe",
+  "expect": [
+   "schengenvisum/aanvragen-suriname"
+  ],
+  "kind": "omschrijving",
+  "why": "de landpagina beschrijft stap voor stap waar en hoe u in Suriname een Schengenvisum voor kort verblijf in Nederland aanvraagt"
+ },
+ {
+  "q": "ik lig in het ziekenhuis in nederland en kan niet op tijd terug, mag ik langer blijven",
+  "expect": [
+   "schengenvisum/verlengen"
+  ],
+  "kind": "omschrijving",
+  "why": "de pagina zegt dat u een Schengenvisum alleen in noodgevallen zoals ziekte kunt laten verlengen en dat dit via de IND gaat als u in Nederland bent"
+ },
+ {
+  "q": "mijn verblijfspas is verlopen terwijl ik in het buitenland zit",
+  "expect": [
+   "verblijfsvergunning-verlopen"
+  ],
+  "kind": "spreektaal",
+  "why": "de pagina is het stappenplan voor wie in het buitenland is terwijl de Nederlandse verblijfsvergunning verloopt: verlengen bij de IND en daarna checken of u visumplichtig bent"
+ },
+ {
+  "q": "ik ben op vakantie in turkije en mijn verblijfsdocument is gestolen, hoe kom ik terug naar nederland",
+  "expect": [
+   "inreisvisum/turkije"
+  ],
+  "kind": "omschrijving",
+  "why": "de landpagina beschrijft hoe u in Turkije een inreisvisum aanvraagt voor de terugreis naar Nederland bij een gestolen verblijfsvergunning"
+ },
+ {
+  "q": "wat is een D-visum",
+  "expect": [
+   "informatie-op-visum"
+  ],
+  "kind": "afkorting",
+  "why": "de pagina zegt dat u een machtiging tot voorlopig verblijf (mvv) heeft als bij 'Type visum' een D staat en 'Geldig voor' alleen Nederland"
+ },
+ {
+  "q": "mijn visum is door de wasmachine gegaan en onleesbaar",
+  "expect": [
+   "hoe-schengenvisum-annuleren"
+  ],
+  "kind": "omschrijving",
+  "why": "de pagina zegt dat u een beschadigd, gestolen of kwijtgeraakt visum moet annuleren bij de locatie waar u het heeft aangevraagd"
+ }
+]

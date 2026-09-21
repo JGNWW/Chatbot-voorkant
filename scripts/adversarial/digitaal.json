@@ -1,0 +1,261 @@
+[
+  {
+    "q": "waar kan ik mijn sofinummer nog terugvinden nu ik geen post meer krijg",
+    "expect": [
+      "/bsn/waar-bsn-vinden"
+    ],
+    "kind": "synoniem",
+    "why": "deze pagina somt alle plekken op waar het BSN (vroeger sofinummer) staat: paspoort, ID-kaart, rijbewijs, zorgpas, loonstrook en oude brieven"
+  },
+  {
+    "q": "ik heb geen nederlands adres meer hoe krijg ik zo'n nummer van de gemeente om belastingaangifte te kunnen doen",
+    "expect": [
+      "/bsn/bsn-krijgen"
+    ],
+    "kind": "vakterm-ontbreekt",
+    "why": "deze pagina beschrijft dat je als buiten Nederland wonende een BSN krijgt door je in te schrijven bij een RNI-loket"
+  },
+  {
+    "q": "mijn baby is in canada geboren en de svb vraagt om een nummer voor hem",
+    "expect": [
+      "/bsn/bsn-kind-buiten-nederland"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina legt uit hoe een kind dat buiten Nederland woont een BSN krijgt via inschrijving bij een RNI-loket"
+  },
+  {
+    "q": "mag mijn dochter voortaan mijn zaken regelen bij de nederlandse overheid",
+    "expect": [
+      "/digid-buiten-nederland/machtigen"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina beschrijft stap voor stap hoe je vanuit het buitenland iemand machtigt om namens jou zaken te regelen met de Nederlandse overheid"
+  },
+  {
+    "q": "ik heb een spaans mobiel nummer genomen hoe koppel ik dat aan mijn inlog",
+    "expect": [
+      "/digid-buiten-nederland/telefoonnummer-wijzigen"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina legt uit hoe je vanuit het buitenland een nieuw telefoonnummer aan je DigiD koppelt, via de app of via een sms op je oude nummer"
+  },
+  {
+    "q": "ik krijg het smsje met de code nooit binnen hier in indonesie",
+    "expect": [
+      "/digid-buiten-nederland/inloggen-sms-controle"
+    ],
+    "kind": "spreektaal",
+    "why": "deze pagina heeft een apart blok 'Ik ontvang de sms niet' met wat je kunt doen als de sms-code in je verblijfsland niet aankomt"
+  },
+  {
+    "q": "moet ik mijn paspoort scannen met mijn telefoon om bij mijn medische gegevens te komen",
+    "expect": [
+      "/digid-buiten-nederland/wat-is-id-check-digid-app"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina legt uit dat je met de ID-check je paspoort, ID-kaart of rijbewijs scant om privacygevoelige gegevens over je gezondheid te kunnen inzien"
+  },
+  {
+    "q": "ik krijg aow en woon in portugal moet ik echt naar de ambassade voor mijn inlogcode",
+    "expect": [
+      "/digid-buiten-nederland/hoe-aanvragen-met-aow"
+    ],
+    "kind": "afkorting",
+    "why": "deze pagina beschrijft dat AOW'ers DigiD via de SVB kunnen aanvragen en de activeringscode per post krijgen, zonder balie of videobellen"
+  },
+  {
+    "q": "mijn kind van 10 moet ingelogd worden bij een nederlandse instantie hoe regel ik dat vanuit frankrijk",
+    "expect": [
+      "/digid-buiten-nederland/digid-kind"
+    ],
+    "kind": "hele-zin",
+    "why": "deze pagina is het stappenplan voor het aanvragen en activeren van een DigiD voor een kind dat met je in het buitenland woont"
+  },
+  {
+    "q": "mijn man is dement en kan zelf niet meer inloggen mag ik zijn post van de overheid lezen",
+    "expect": [
+      "/mijnoverheid-buiten-nederland/berichtenbox-machtigen"
+    ],
+    "kind": "hele-zin",
+    "why": "deze pagina legt uit hoe iemand anders toestemming (machtiging) krijgt om berichten in jouw Berichtenbox te lezen"
+  },
+  {
+    "q": "ik wil de blauwe envelop digitaal krijgen in plaats van op papier",
+    "expect": [
+      "/mijnoverheid-buiten-nederland/berichtenbox"
+    ],
+    "kind": "spreektaal",
+    "why": "deze pagina beschrijft de Berichtenbox als de digitale brievenbus waarin je post van onder meer de Belastingdienst digitaal in plaats van op papier ontvangt"
+  },
+  {
+    "q": "waar zie ik online welke auto's op mijn naam staan en wanneer mijn paspoort verloopt",
+    "expect": [
+      "/mijnoverheid-buiten-nederland/mijngegevens-app",
+      "/mijnoverheid-buiten-nederland/welke-gegevens"
+    ],
+    "kind": "omschrijving",
+    "why": "de MijnGegevens-app toont volgens de tekst je geregistreerde voertuigen en de verloopdatum van je paspoort, en MijnOverheid bevat diezelfde gegevens"
+  },
+  {
+    "q": "wordt mijn nederlandse rijbewijs geaccepteerd als legitimatie bij een bank in het buitenland",
+    "expect": [
+      "/rijbewijs-buitenland/identiteitsbewijs"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina stelt dat je je buiten Nederland niet met je rijbewijs kunt legitimeren, alleen met een geldig paspoort of ID-kaart"
+  },
+  {
+    "q": "de politie in spanje heeft mijn rijbewijs afgepakt na een snelheidsovertreding",
+    "expect": [
+      "/rijbewijs-buitenland/in-beslag-genomen"
+    ],
+    "kind": "spreektaal",
+    "why": "deze pagina gaat precies over een door de buitenlandse politie afgepakt (in beslag genomen) rijbewijs en waarschuwt om het niet als vermist op te geven"
+  },
+  {
+    "q": "heb ik zo'n internationaal papiertje nodig om een auto te huren in thailand",
+    "expect": [
+      "/rijbewijs-buitenland/internationaal-rijbewijs"
+    ],
+    "kind": "spreektaal",
+    "why": "deze pagina legt uit dat een internationaal rijbewijs een vertaling van je rijbewijs is waarmee je laat zien welke voertuigen je mag besturen en huren, en in welke landen je het nodig hebt"
+  },
+  {
+    "q": "ik woon in belgie en mijn rijbewijs loopt af maar ik werk in luxemburg",
+    "expect": [
+      "/rijbewijs-buitenland/verlengen-belgie"
+    ],
+    "kind": "meerdere-landen",
+    "why": "het woonland bepaalt de procedure, en deze pagina beschrijft het omwisselen van een Nederlands rijbewijs voor een Belgisch rijbewijs"
+  },
+  {
+    "q": "kan ik mijn nederlandse rijbewijs omruilen bij de dvla in engeland",
+    "expect": [
+      "/rijbewijs-buitenland/rijbewijs-verenigd-koninkrijk-omwisselen"
+    ],
+    "kind": "afkorting",
+    "why": "deze pagina is voor inwoners van Engeland, Schotland, Wales of Noord-Ierland en beschrijft verlengen via de RDW of omwisselen voor een Brits rijbewijs"
+  },
+  {
+    "q": "ik ben dit jaar geemigreerd welk formulier moet ik invullen voor de belasting",
+    "expect": [
+      "/belastingaangifte-buiten-nederland/jaar-van-verhuizing-buitenland"
+    ],
+    "kind": "vakterm-ontbreekt",
+    "why": "deze pagina zegt dat je over het jaar van je verhuizing naar het buitenland alleen aangifte kunt doen via het M-formulier"
+  },
+  {
+    "q": "ik werk in nederland maar woon in belgie waar betaal ik belasting",
+    "expect": [
+      "/belastingaangifte-buiten-nederland/inkomsten-uit-twee-landen"
+    ],
+    "kind": "meerdere-landen",
+    "why": "deze pagina behandelt in welk land je aangifte doet bij inkomsten uit 2 landen en heeft een apart blok over grensarbeiders die in België wonen en in Nederland werken"
+  },
+  {
+    "q": "kan ik mijn hypotheekrente nog aftrekken nu ik in duitsland woon",
+    "expect": [
+      "/belastingaangifte-buiten-nederland/nederlandse-belastingvoordelen"
+    ],
+    "kind": "vakterm-ontbreekt",
+    "why": "deze pagina noemt hypotheekrenteaftrek als voorbeeld van een Nederlands belastingvoordeel waar je recht op hebt als kwalificerend buitenlands belastingplichtige"
+  },
+  {
+    "q": "moet ik dubbel belasting betalen als ik in indonesie woon",
+    "expect": [
+      "/belastingaangifte-buiten-nederland/verdragslanden",
+      "/belastingaangifte-buiten-nederland/inkomsten-uit-twee-landen"
+    ],
+    "kind": "vakterm-ontbreekt",
+    "why": "de verdragslandenpagina legt uit dat een belastingverdrag voorkomt dat je meer dan 1 keer belasting betaalt en bevat de landenlijst met Indonesië"
+  },
+  {
+    "q": "ik wil elke maand alvast geld terug van de belasting in plaats van 1 keer per jaar",
+    "expect": [
+      "/belastingaangifte-buiten-nederland/voorlopige-aanslag"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina beschrijft de voorlopige aanslag als de manier om maandelijks belasting terug te krijgen of te betalen in plaats van achteraf"
+  },
+  {
+    "q": "kan mijn broer in utrecht mijn stem uitbrengen nu ik in canada zit",
+    "expect": [
+      "/stemmen-buitenland/per-volmacht"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina beschrijft hoe je als kiezer buiten Nederland iemand in Nederland via een volmacht voor je laat stemmen"
+  },
+  {
+    "q": "ik ben met verlof in nederland tijdens de verkiezingen kan ik hier in een stemhokje stemmen",
+    "expect": [
+      "/stemmen-buitenland/in-nederland"
+    ],
+    "kind": "vakterm-ontbreekt",
+    "why": "deze pagina zegt dat je als kiezer buiten Nederland een kiezerspas bij de gemeente Den Haag aanvraagt om bij een Nederlands stembureau te stemmen"
+  },
+  {
+    "q": "kan ik mijn stem ook per brief opsturen vanuit australie",
+    "expect": [
+      "/stemmen-buitenland/per-post"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina beschrijft het opsturen van je briefstem naar het briefstembureau in Den Haag of naar een ambassade of consulaat-generaal"
+  },
+  {
+    "q": "wegenbelastingvrijstelling regelen nu ik een jaar in azie zit",
+    "expect": [
+      "/auto-exporteren/auto-schorsen"
+    ],
+    "kind": "samenstelling",
+    "why": "deze pagina legt uit dat je door je auto te schorsen tijdelijk geen wegenbelasting, apk en verzekering hoeft te regelen als je naar het buitenland gaat"
+  },
+  {
+    "q": "mijn auto staat al twee jaar in spanje maar heeft nog nederlandse nummerborden",
+    "expect": [
+      "/auto-exporteren/auto-al-in-buitenland"
+    ],
+    "kind": "hele-zin",
+    "why": "deze pagina beschrijft hoe je een auto met Nederlands kenteken die al in het buitenland staat uitschrijft, online of met exportbewijs"
+  },
+  {
+    "q": "hoelang mag ik met mijn nederlandse nummerborden in frankrijk blijven rondrijden",
+    "expect": [
+      "/auto-exporteren/rijden-met-nederlands-kenteken"
+    ],
+    "kind": "synoniem",
+    "why": "deze pagina zegt dat je buiten Nederland meestal 3 tot 6 maanden met een Nederlands kenteken mag rijden en dat elk land dat zelf bepaalt"
+  },
+  {
+    "q": "duo kan niets afschrijven van mijn australische bankrekening hoe betaal ik mijn lening dan terug",
+    "expect": [
+      "/studiefinanciering-buitenland/studieschuld-hoe-terugbetalen"
+    ],
+    "kind": "hele-zin",
+    "why": "deze pagina legt per woonland uit hoe je terugbetaalt en zegt dat automatische incasso alleen werkt met een rekening uit het SEPA-gebied"
+  },
+  {
+    "q": "hoeveel moet ik nog terugbetalen aan duo",
+    "expect": [
+      "/studiefinanciering-buitenland/hoogte-studieschuld"
+    ],
+    "kind": "afkorting",
+    "why": "deze pagina legt uit hoe je de hoogte van je studieschuld in Mijn DUO bekijkt en hoe je een uitgebreid schuldoverzicht opvraagt"
+  },
+  {
+    "q": "ik heb in het buitenland gestudeerd en wil ir voor mijn naam kunnen zetten",
+    "expect": [
+      "/buitenlands-diploma-in-nederland/nederlandse-titel-aanvragen"
+    ],
+    "kind": "omschrijving",
+    "why": "deze pagina noemt ingenieur (ir.) als voorbeeld van een Nederlandse titel die je bij DUO aanvraagt op basis van een buitenlands diploma"
+  },
+  {
+    "q": "ik ben tandarts in brazilie en wil in nederland aan de slag heb ik daar toestemming voor nodig",
+    "expect": [
+      "/buitenlands-diploma-in-nederland/beroepserkenning-beschermd-beroep",
+      "/buitenlands-diploma-in-nederland/werk"
+    ],
+    "kind": "vakterm-ontbreekt",
+    "why": "deze pagina legt uit dat je voor een beschermd (gereglementeerd) beroep eerst beroepserkenning moet aanvragen voordat je dat werk in Nederland mag doen"
+  }
+]

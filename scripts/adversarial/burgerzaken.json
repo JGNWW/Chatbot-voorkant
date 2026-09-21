@@ -1,0 +1,268 @@
+[
+ {
+  "q": "mijn vriendin is uitgerekend in maart en wij wonen in portugal moet ik het kindje ook bij nederland aanmelden",
+  "expect": [
+   "/geboorte-aangeven-buiten-nederland/buitenland"
+  ],
+  "kind": "hele-zin",
+  "why": "deze pagina's leggen uit dat u de geboorte altijd in het geboorteland aangeeft en wat u daarna richting Nederland kunt doen"
+ },
+ {
+  "q": "wordt mijn zoontje automatisch nederlander als hij in kenia ter wereld komt",
+  "expect": [
+   "/nederlandse-nationaliteit/geboorte-buitenland",
+   "/nederlandse-nationaliteit/nederlander-worden-geboorte-erkenning"
+  ],
+  "kind": "omschrijving",
+  "why": "beide pagina's gaan precies over de vraag of een kind bij geboorte buiten Nederland automatisch de Nederlandse nationaliteit krijgt"
+ },
+ {
+  "q": "ik wil mijn baby in nederland ter wereld laten komen maar wij wonen al jaren in canada",
+  "expect": [
+   "/kind-krijgen-buiten-nederland/bevallen-nederland"
+  ],
+  "kind": "spreektaal",
+  "why": "de tekst beschrijft stap voor stap wat een Nederlander uit het buitenland moet regelen om in Nederland te bevallen: inschrijven, zorgverzekering, BSN, geboorteaangifte"
+ },
+ {
+  "q": "de papieren van de geboorte van mijn kind ben ik kwijt kan ik nieuwe krijgen vanuit thailand",
+  "expect": [
+   "/kind-krijgen-buiten-nederland/geboorteakte-krijgen"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "deze pagina legt uit hoe u later alsnog een afschrift of uittreksel van de geboorteakte aanvraagt in het geboorteland of bij de gemeente Den Haag"
+ },
+ {
+  "q": "wij zijn niet getrouwd hoe word ik officieel de vader van ons kindje dat in het buitenland geboren is",
+  "expect": [
+   "/geboorte-aangeven-buiten-nederland/buitenland"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "de tekst zegt dat een kind erkennen meestal in het geboorteland kan en anders in Nederland; 'erkennen' is precies het woord dat de burger niet gebruikt"
+ },
+ {
+  "q": "mijn zoon van negen heeft nog geen nederlands paspoort kan hij dat alsnog krijgen via mij",
+  "expect": [
+   "/kind-krijgen-buiten-nederland/nederlandse-nationaliteit-aanvragen-kind"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina beschrijft hoe u alsnog de Nederlandse nationaliteit voor uw kind regelt via erkenning (met DNA-bewijs vanaf 7 jaar) of de optieprocedure"
+ },
+ {
+  "q": "mijn partner is in de filipijnen overleden en ik woon in australie waar meld ik dat",
+  "expect": [
+   "/overlijden-buitenland/overlijden-melden"
+  ],
+  "kind": "meerdere-landen",
+  "why": "de tekst legt uit dat u het overlijden eerst bij de lokale autoriteiten meldt, een overlijdensakte opvraagt en het daarna bij Nederlandse organisaties meldt"
+ },
+ {
+  "q": "wij willen mijn moeder naar huis vliegen na haar overlijden in zuid-afrika",
+  "expect": [
+   "/overlijden-buitenland/repatriering"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "deze pagina gaat over het terughalen van een overledene naar Nederland en over verzekering en kosten; 'repatriëring' kent de beller niet"
+ },
+ {
+  "q": "mag ik de as van mijn vader in mijn koffer meenemen in het vliegtuig",
+  "expect": [
+   "/overlijden-buitenland/urn-asbus-meenemen"
+  ],
+  "kind": "spreektaal",
+  "why": "de tekst beschrijft de wachttijd van 1 maand en dat de luchtvaartmaatschappij bepaalt of de asbus mee mag in het vliegtuig"
+ },
+ {
+  "q": "ik hoor al weken niets van mijn broer in peru en ik vrees het ergste",
+  "expect": [
+   "/overlijden-buitenland/leeft-naaste-nog"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina is voor wie geen contact meer krijgt met een naaste in het buitenland en legt uit welke gegevens u verzamelt voordat u het contactcenter belt"
+ },
+ {
+  "q": "mijn oma stond in de rni en is vorige week gestorven wie past dat aan",
+  "expect": [
+   "/rni/overlijden-doorgeven"
+  ],
+  "kind": "afkorting",
+  "why": "de tekst legt uit dat u het overlijden doorgeeft via een Nederlandse overheidsorganisatie waarmee de overledene te maken had, of via RvIG"
+ },
+ {
+  "q": "ik heb de duitse en de nederlandse nationaliteit en woon in zwitserland raak ik mijn nederlandse paspoort kwijt",
+  "expect": [
+   "/nederlandse-nationaliteit/wanneer-verliezen"
+  ],
+  "kind": "meerdere-landen",
+  "why": "de tekst beschrijft wanneer u bij een dubbele nationaliteit en verblijf buiten Nederland uw Nederlanderschap verliest en hoe u dat voorkomt"
+ },
+ {
+  "q": "mijn nederlanderschap is destijds vervallen is er nog een weg terug",
+  "expect": [
+   "/nederlandse-nationaliteit/hoe-terugkrijgen"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina noemt de 2 manieren om een verloren Nederlandse nationaliteit terug te krijgen: de evenredigheidstoets via optie, of naturalisatie"
+ },
+ {
+  "q": "wat gebeurt er op die plechtigheid waar je een eed moet afleggen als je nederlander wordt",
+  "expect": [
+   "/nederlandse-nationaliteit/naturalisatieceremonie"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "de tekst beschrijft de ceremonie op de ambassade waar u de verklaring van verbondenheid voorleest; de burger zegt 'plechtigheid' en 'eed'"
+ },
+ {
+  "q": "wat moet ik betalen om via de ambassade nederlander te worden",
+  "expect": [
+   "/nederlandse-nationaliteit/kosten-naturalisatie-buitenland"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina geeft de bedragen voor naturalisatie in het buitenland voor volwassenen en kinderen en hoe u betaalt"
+ },
+ {
+  "q": "mijn moeder was nederlandse en mijn vader niet en ik ben in 1978 geboren heb ik recht op een nederlands paspoort",
+  "expect": [
+   "/nederlandse-nationaliteit/nederlander-worden-optieprocedure"
+  ],
+  "kind": "hele-zin",
+  "why": "de tekst bevat precies deze situatie: de optieprocedure voor latente Nederlanders, geboren vóór 1 januari 1985 uit een Nederlandse moeder en niet-Nederlandse vader"
+ },
+ {
+  "q": "wij wonen allebei in duitsland maar willen in amsterdam voor de wet trouwen waar doen wij ondertrouw",
+  "expect": [
+   "/trouwen/voorgenomen-huwelijk-melden-nederland"
+  ],
+  "kind": "synoniem",
+  "why": "de tekst zegt dat wie beiden buiten Nederland woont het voorgenomen huwelijk minimaal 12 weken vooraf bij de gemeente Den Haag meldt; het woord 'ondertrouw' staat er niet"
+ },
+ {
+  "q": "wij zijn in denemarken getrouwd maar wonen in belgie moeten wij ons huwelijk nog in nederland laten vastleggen",
+  "expect": [
+   "/trouwen/buitenlands-huwelijk-registreren-in-nederland"
+  ],
+  "kind": "meerdere-landen",
+  "why": "de tekst zegt dat registreren afhangt van uw woonland: buiten Nederland mag u de akte laten omzetten, in Nederland is registreren verplicht"
+ },
+ {
+  "q": "wordt ons homohuwelijk uit nederland ook in het buitenland geaccepteerd",
+  "expect": [
+   "/trouwen/erkenning-huwelijk-nederland"
+  ],
+  "kind": "samenstelling",
+  "why": "de tekst gaat over erkenning van een in Nederland gesloten huwelijk in andere landen, en noemt juist huwelijken tussen personen van hetzelfde geslacht als twijfelgeval"
+ },
+ {
+  "q": "mijn verloofde is thais en ik ben nederlands mogen wij in nederland trouwen",
+  "expect": [
+   "/trouwen/voorwaarden-trouwen-nederland"
+  ],
+  "kind": "omschrijving",
+  "why": "de tekst noemt als eerste voorwaarde dat minimaal één van beiden Nederlander is of in Nederland woont"
+ },
+ {
+  "q": "welke papieren wil de gemeente zien als je hier wilt trouwen en je komt uit het buitenland",
+  "expect": [
+   "/trouwen/documenten-trouwen-nederland"
+  ],
+  "kind": "spreektaal",
+  "why": "de tekst somt de documenten op die de Nederlandse gemeente kan vragen, zoals een ongehuwdverklaring en een verklaring geen schijnhuwelijk"
+ },
+ {
+  "q": "mijn huwelijk is stuk en wij wonen in spanje hoe pak ik dat juridisch aan",
+  "expect": [
+   "/scheiden-buitenland"
+  ],
+  "kind": "spreektaal",
+  "why": "deze pagina legt uit dat het van uw situatie afhangt via welk recht de echtscheidingsprocedure loopt en dat u een advocaat inschakelt"
+ },
+ {
+  "q": "de rechter in marokko heeft onze scheiding uitgesproken moet de gemeente in nederland dat weten",
+  "expect": [
+   "/scheiden-buitenland"
+  ],
+  "kind": "omschrijving",
+  "why": "de tekst zegt dat u een scheiding in het buitenland in uw Nederlandse gemeente moet registreren en de documenten moet laten omzetten en legaliseren"
+ },
+ {
+  "q": "ik heb in het buitenland een andere achternaam gekregen bij welke nederlandse instanties moet ik dat melden",
+  "expect": [
+   "/naamswijziging/gevolgen"
+  ],
+  "kind": "omschrijving",
+  "why": "de tekst somt op wat u na een erkende naamswijziging zelf moet doorgeven: nieuw paspoort, rijbewijs, bank, verzekeraar en de RNI"
+ },
+ {
+  "q": "ik ben gescheiden en gebruik weer mijn eigen achternaam moet ik dan een nieuw reisdocument aanvragen",
+  "expect": [
+   "/naamswijziging/paspoort"
+  ],
+  "kind": "omschrijving",
+  "why": "de tekst zegt dat uw Nederlandse paspoort of ID-kaart na een naamswijziging niet meer geldig is en dat u een nieuwe moet aanvragen met een bewijs van naamswijziging"
+ },
+ {
+  "q": "ik heb een papiertje nodig waaruit blijkt dat ik niet meer in nederland ingeschreven sta",
+  "expect": [
+   "/brp/bewijs-uitschrijving-gemeente"
+  ],
+  "kind": "spreektaal",
+  "why": "deze pagina gaat over het bewijs van uitschrijving: een verklaring met uw gegevens en de datum van uitschrijving, aan te vragen bij de gemeente of een RNI-loket"
+ },
+ {
+  "q": "ik zit negen maanden per jaar in mijn spaanse huis moet ik mij dan afmelden bij de gemeente",
+  "expect": [
+   "/brp/wanneer-uitschrijven-gemeente"
+  ],
+  "kind": "hele-zin",
+  "why": "de tekst noemt precies de grens van 8 maanden per jaar en noemt verblijf op een vakantieadres in het buitenland als voorbeeld"
+ },
+ {
+  "q": "ik ben binnen frankrijk verhuisd hoe geef ik mijn nieuwe adres door aan nederland",
+  "expect": [
+   "/rni/adres-wijzigen"
+  ],
+  "kind": "omschrijving",
+  "why": "deze pagina's gaan over het doorgeven van een verhuizing van een buitenlands adres naar een ander buitenlands adres, via MyRNI of een RNI-loket"
+ },
+ {
+  "q": "hoe kom ik aan een officieel bewijs met mijn bsn erop nu ik in het buitenland woon",
+  "expect": [
+   "/rni/uittreksel-aanvragen"
+  ],
+  "kind": "afkorting",
+  "why": "de tekst noemt als eerste voorbeeld het standaarduittreksel met burgerservicenummer en legt uit bij welke RNI-loketten u dat aanvraagt"
+ },
+ {
+  "q": "wat is het verschil tussen de brp en de rni",
+  "expect": [
+   "/brp/wat-is-brp",
+   "/rni/wat-is-rni"
+  ],
+  "kind": "afkorting",
+  "why": "deze twee pagina's beschrijven wat elk register is en dat de RNI het deel is voor mensen die niet in Nederland wonen"
+ },
+ {
+  "q": "mijn vriendin uit brazilie gaat bij mij in nederland wonen en werken wat moet zij vooraf regelen",
+  "expect": [
+   "/checklist-verhuizen-nederland-immigreren"
+  ],
+  "kind": "hele-zin",
+  "why": "deze checklist loopt per onderwerp langs wat iemand voor en na een verhuizing naar Nederland moet regelen: verblijfsvergunning, visum, werken, inschrijven"
+ },
+ {
+  "q": "wij wonen in kenia en willen daar een kindje in huis nemen dat geen ouders meer heeft",
+  "expect": [
+   "/adoptie-buitenlands-kind"
+  ],
+  "kind": "vakterm-ontbreekt",
+  "why": "de tekst zegt dat het voor Nederlanders in het buitenland van de lokale regels afhangt of adoptie kan, en wat u daarna voor het kind moet regelen"
+ },
+ {
+  "q": "kan ik onze marokkaanse trouwpapieren in nederlandse laten veranderen",
+  "expect": [
+   "/buitenlandse-akte-omzetten"
+  ],
+  "kind": "samenstelling",
+  "why": "deze pagina's leggen uit hoe de gemeente Den Haag een buitenlandse akte omzet naar een Nederlandse akte en wat u daarvoor moet aanleveren"
+ }
+]
