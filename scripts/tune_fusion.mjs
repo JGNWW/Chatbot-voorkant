@@ -27,6 +27,11 @@
 //     uitzetten kost wel 4 punten. Laten staan.
 //   De paginascore anders opbouwen uit de tekstblokken (gemiddelde van de beste twee of drie
 //     in plaats van het maximum). Alles binnen de ruis.
+//   De algemene pagina laten voorgaan op haar landversies als de vraag geen land noemt.
+//     Ziet er goed uit op één voorbeeld ("papiertje dat bewijst dat ik nog leef" gaf de
+//     attestatie de vita in Pakistan) maar kost 5 punten op de 1000-set én 5 op de blinde
+//     vijandige set: bij heel wat vragen is de landversie wel degelijk wat de beller zoekt,
+//     ook als het land niet in de vraag staat.
 //   Een volwaardige Nederlandse Snowball-stemmer in plaats van de simpele uitgangenlijst.
 //     Verliest: op de vijandige set 38,6% -> 36,8% op plek 1. Het verdubbelen van klinkers
 //     terugdraaien ("maan" -> "man") maakt botsingen die deze vakterm-rijke site niet aankan.
