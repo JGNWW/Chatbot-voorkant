@@ -2141,32 +2141,32 @@ async function prepareQuery(rawQ){
 // met trefwoord (BM25), via RRF; categorie-boost en landherkenning erbovenop.
 const uniek=a=>[...new Set(a.filter(Boolean).map(t=>(""+t).trim()).filter(Boolean))];
 async function fuseRetrieval(semTexts,kwText,category,limit){
-  const lists=[];
-  for(const t of semTexts){if(t&&SEM.meta){try{lists.push(await semanticRank(t,Math.max(limit,FUSE_DEPTH)));}catch(e){}}}
-  lists.push(rank([kwText,...scopeTerms()].join(" "),Math.max(limit,FUSE_DEPTH)));
-  const score=new Map();
-  lists.forEach((list,li)=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+(li<lists.length-1?W_SEM:W_KW)/(RRF_K+r))));
+  const lists=[],gewichten=[];
+  for(const t of semTexts){if(t&&SEM.meta){try{lists.push(await semanticScored(t,Math.max(limit,FUSE_DEPTH)));gewichten.push(W_SEM);}catch(e){}}}
+  lists.push(rankScored([kwText,...scopeTerms()].join(" "),Math.max(limit,FUSE_DEPTH)));gewichten.push(W_KW);
+  const {volgorde,score,max}=fuseScored(lists,gewichten);
   // Het haalbare maximum hangt af van hoeveel lijsten er MEEDEDEN. Is het semantische model nog
-  // niet geladen, dan is er alleen de trefwoordlijst en ligt het plafond op 0,75/14 in plaats van
-  // 1,75/14. Zonder deze correctie zou elke bron dan rond de 43% uitkomen in plaats van rond de
-  // 100% — een lager cijfer dat niets zegt over de bron maar alles over het laadmoment.
-  LAATSTE_MAX=((lists.length-1)*W_SEM+W_KW)/RRF_K;
-  if(category){const cat=fold(category);if(cat.length>=3)for(const idx of score.keys())if(fold(CORPUS[idx].url).includes(cat))score.set(idx,score.get(idx)+0.02);}
+  // niet geladen, dan is er alleen de trefwoordlijst en ligt het plafond op 1 in plaats van 2.
+  // Zonder deze correctie zou elke bron dan rond de 50% uitkomen in plaats van rond de 100% —
+  // een lager cijfer dat niets zegt over de bron maar alles over het laadmoment.
+  LAATSTE_MAX=max;
+  // Zetje voor de rubriek die het taalmodel noemde. Op de geschaalde somscore (0..2) is 0,05
+  // ongeveer wat 0,02 op de oude RRF-schaal was: genoeg om bij gelijke spel de doorslag te
+  // geven, te weinig om een duidelijk betere pagina te verdringen.
+  if(category){const cat=fold(category);if(cat.length>=3)for(const idx of score.keys())if(fold(CORPUS[idx].url).includes(cat))score.set(idx,score.get(idx)+0.05);}
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   LAATSTE_SCORES=score;
   return spread(applyScope(kwText,fused),limit);
 }
 // ---- Relevantie in procenten ----------------------------------------------------------------
-// De fusiescore uit de RRF-formule loopt van ongeveer 0,05 tot een hard maximum van
-// W_SEM/RRF_K + W_KW/RRF_K = 0,125. Dat plafond is bereikbaar (het is de score van een pagina die
-// in BEIDE ranglijsten op plek 1 staat), dus we drukken de score uit als deel daarvan: 0,1167
-// wordt 93%. Gemeten over de 126 testvragen haalt de beste treffer mediaan 0,118 (95%) en de
-// zesde 0,086 (69%).
+// Elke ranglijst wordt binnen de kandidaten van deze vraag geschaald naar 0..1, dus de somscore
+// loopt van 0 tot het aantal meedoende lijsten. Dat plafond is bereikbaar — het is de score van
+// een pagina die in ALLE lijsten bovenaan staat — dus we drukken de score uit als deel daarvan.
 //
 // WAT HET GETAL BETEKENT, en dat is minder dan het lijkt: het is een RANGSCHIKKINGSscore, geen
 // kans dat het antwoord klopt. 93% zegt "van alles wat deze zoeker kan opleveren scoort deze
 // pagina hoog", niet "93% kans dat dit het juiste antwoord is".
-let LAATSTE_SCORES=null,LAATSTE_MAX=(W_SEM+W_KW)/RRF_K;
+let LAATSTE_SCORES=null,LAATSTE_MAX=W_SEM+W_KW;
 function relevantieVan(idx){
   if(!LAATSTE_SCORES)return null;
   const s=LAATSTE_SCORES.get(idx);

@@ -1,5 +1,5 @@
 // Zoekkern van de voorlichter-chatbot: trefwoorden (BM25 + spelling), semantiek,
-// fusie (RRF), zoekgebied (land/onderwerp) en productpagina's.
+// fusie op score, zoekgebied (land/onderwerp) en productpagina's.
 //
 // Dit bestand is de ENIGE plek waar de zoeklogica staat. docs/index.html laadt het als gewoon
 // script; scripts/eval.mjs en scripts/probe.mjs laden hetzelfde bestand in Node. Er is dus geen
@@ -13,14 +13,18 @@ const TOPK=6; // aantal kandidaat-pagina's dat naar het AI-model gaat
 // met als HARDE EIS dat de 126 handgemaakte en de 1000 gegenereerde vragen er niet op
 // achteruit gaan — anders koop je winst op moeilijke vragen af met verlies op gewone.
 //
-// RRF_K bepaalt hoe vlak de fusiecurve is. Hij stond op 14: het verschil tussen plek 1 en
-// plek 12 was dan nog geen factor 2, zodat een pagina die in BEIDE lijsten middelmatig scoort
-// won van een pagina die in één lijst bovenaan stond. Juist bij vragen in eigen woorden is de
-// semantische lijst de enige die het goed heeft, en die werd zo weggestemd. Met k=5 telt een
-// eerste plek echt mee. Dieper kijken in beide lijsten (50 in plaats van 12) kost niets — beide
-// lijsten zijn toch al helemaal doorgerekend — en vangt de gevallen waarin het goede antwoord
-// net buiten de eerste twaalf viel.
-const RRF_K=5, W_SEM=1.0, W_KW=1.0, FUSE_DEPTH=50;
+// De twee lijsten worden samengevoegd op SCORE, niet op rangnummer. Daarvoor stond hier
+// Reciprocal Rank Fusion, die alleen naar de plek in de lijst kijkt: of de beste semantische
+// treffer er nu mijlenver bovenuit stak of net aan won, allebei telden als "plek 1". Die
+// informatie hebben we wel — de cosinus en de BM25-score — en die gooiden we weg. Nu wordt elke
+// lijst binnen de kandidatenpoel van díé vraag geschaald naar 0..1 en opgeteld. Een pagina die
+// in beide lijsten met kop en schouders bovenaan staat wint nu ook echt.
+//
+// Dieper kijken in beide lijsten (50 in plaats van 12) kost niets — beide lijsten zijn toch al
+// helemaal doorgerekend — en vangt de gevallen waarin het goede antwoord net buiten de eerste
+// twaalf viel. Op de vijandige vragen zit het antwoord bij 82% van de vragen in de semantische
+// top 50, tegen 52% in de top 6: daar valt de winst te halen, in de ordening.
+const W_SEM=1.0, W_KW=1.0, FUSE_DEPTH=50;
 const FW_TITLE=4, FW_DESC=1, FW_URL=3, FW_TEXT=1, FW_ANCHOR=1;
 let CORPUS=[],PTOKENS=[],DF=null,NDOCS=0;
 
@@ -111,7 +115,9 @@ const W_TITELDEKKING=2;
 // Trefwoord-ranking met BM25 (term-frequentie + lengtenormalisatie + IDF), daarna een bonus
 // naar rato van hoeveel vraagwoorden de titel dekt. Onbekende woorden worden eerst gecorrigeerd
 // op spelling (fuzzyFix).
-function rank(q,limit){
+function rank(q,limit){return rankScored(q,limit).map(x=>x[0]);}
+// Zelfde ranglijst, maar mét de scores erbij — die heeft de fusie nodig.
+function rankScored(q,limit){
   if(!DF)buildDF();
   if(!TITLETOK)buildTitleTokens();
   const qt=[...new Set(tokenize(q).map(fuzzyFix))];if(!qt.length)return [];
@@ -132,15 +138,33 @@ function rank(q,limit){
         sc[d]+=w*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[d]/AVGDL));
       }
     }
-    for(let i=0;i<NDOCS;i++)if(sc[i]>0)s.push([sc[i]*dekking(i),i]);
-    s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
+    for(let i=0;i<NDOCS;i++)if(sc[i]>0)s.push([i,sc[i]*dekking(i)]);
+    s.sort((a,b)=>b[1]-a[1]);return s.slice(0,limit||TOPK);
   }
   for(let i=0;i<NDOCS;i++){
     const m=PTOKENS[i];let sc=0;
     for(const t of qt){const tf=m.get(t);if(!tf)continue;sc+=bm25idf(t)*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[i]/AVGDL));}
-    if(sc>0)s.push([sc*dekking(i),i]);
+    if(sc>0)s.push([i,sc*dekking(i)]);
   }
-  s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
+  s.sort((a,b)=>b[1]-a[1]);return s.slice(0,limit||TOPK);
+}
+// Voegt ranglijsten samen op score. Elke lijst wordt binnen de kandidatenpoel van deze ene
+// vraag geschaald naar 0..1 — de absolute schaal van een cosinus en van een BM25-score zijn
+// onvergelijkbaar, en verschillen bovendien per vraag. Een pagina die in één lijst ontbreekt
+// telt daar als 0. De hoogst haalbare somscore is de som van de gewichten; daarmee is het
+// relevantiepercentage dat de app toont ook echt een percentage.
+function fuseScored(lijsten,gewichten){
+  const score=new Map();
+  let max=0;
+  lijsten.forEach((l,k)=>{
+    if(!l.length)return;
+    let lo=Infinity,hi=-Infinity;
+    for(const [,s] of l){if(s<lo)lo=s;if(s>hi)hi=s;}
+    const span=hi-lo,w=gewichten[k];
+    max+=w;
+    for(const [i,s] of l)score.set(i,(score.get(i)||0)+w*(span>0?(s-lo)/span:1));
+  });
+  return {volgorde:[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]),score,max};
 }
 function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
 
@@ -228,12 +252,14 @@ const SEM={ready:false,meta:null,vecs:null,extractor:null,modelPromise:null,pct:
 // trefwoorden is gevonden (91% recall in plaats van 95%) dan een scherm dat stilstaat.
 const SEM_WACHT_MS=1500;
 
-async function semanticRank(q,limit){
+async function semanticRank(q,limit){return (await semanticScored(q,limit)).map(x=>x[0]);}
+// Zelfde ranglijst, maar mét de cosinusafstand erbij — die heeft de fusie nodig.
+async function semanticScored(q,limit){
   if(!SEM.ready){
     // Wacht kort — is het model bijna binnen, dan is het die anderhalve seconde waard.
     // Anders val terug op trefwoorden; het model laadt op de achtergrond gewoon door.
     await Promise.race([SEM.modelPromise,new Promise(r=>setTimeout(r,SEM_WACHT_MS))]);
-    if(!SEM.ready)return rank(q,limit);
+    if(!SEM.ready)return rankScored(q,limit);
   }
   const out=await SEM.extractor([SEM.meta.query_prefix+q],{pooling:"mean",normalize:true});
   const qv=out.data,dim=SEM.meta.dim,v=SEM.vecs,owner=SEM.owner;
@@ -242,13 +268,13 @@ async function semanticRank(q,limit){
     // Meerdere chunks per pagina: bewaar de hoogste chunk-score per pagina.
     const best=new Map();
     for(let k=0,nv=owner.length;k<nv;k++){let dot=0;const off=k*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];const pg=owner[k],c=best.get(pg);if(c===undefined||dot>c)best.set(pg,dot);}
-    scored=[...best.entries()].map(([pg,sc])=>[sc,pg]);
+    scored=[...best.entries()];
   }else{
     const n=SEM.meta.count;scored=new Array(n);
-    for(let i=0;i<n;i++){let dot=0;const off=i*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];scored[i]=[dot,i];}
+    for(let i=0;i<n;i++){let dot=0;const off=i*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];scored[i]=[i,dot];}
   }
-  scored.sort((a,b)=>b[0]-a[0]);
-  return scored.slice(0,limit||TOPK).map(x=>x[1]);
+  scored.sort((a,b)=>b[1]-a[1]);
+  return scored.slice(0,limit||TOPK);
 }
 // URL -> index, voor het opzoeken van bovenliggende (algemenere) pagina's.
 let URL2IDX=null;
@@ -314,20 +340,17 @@ function forceProduct(text,list){
 // Pagina die een specifieke situatie aanneemt (eerste aanvraag, kind, verlies/diefstal).
 const SPECIFIC_RX=/voor het eerst|eerste keer|voor (mijn|uw|je|een) kind|verloren|gestolen|kwijt|vermist/i;
 const isSpecificPage=idx=>SPECIFIC_RX.test(CORPUS[idx].title||"");
-// Hybride kandidaten: Reciprocal Rank Fusion van semantisch (synoniemen/parafrase) en
-// trefwoord (exacte/zeldzame termen + zoektermen). Geen hub-logica; geeft top `limit`.
+// Hybride kandidaten: semantisch (synoniemen/parafrase) en trefwoord (exacte/zeldzame termen)
+// samengevoegd op score. Geen hub-logica; geeft top `limit`.
 async function hybrid(q,terms,limit){
   const K=Math.max(limit,FUSE_DEPTH);
   let sem=[];
-  if(SEM.meta){try{sem=await semanticRank(q,K);}catch(e){/* val terug op trefwoord */}}
-  const kw=rank([q,...(terms||[]),...scopeTerms()].join(" "),K);
+  if(SEM.meta){try{sem=await semanticScored(q,K);}catch(e){/* val terug op trefwoord */}}
+  const kw=rankScored([q,...(terms||[]),...scopeTerms()].join(" "),K);
   if(!sem.length&&!kw.length)return [];
-  const score=new Map();
-  const add=(list,w)=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(RRF_K+r)));
-  add(sem,W_SEM);add(kw,W_KW);
-  const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
-  // Zoekgebied (filters) + landherkenning toepassen.
-  return spread(applyScope([q,...(terms||[])].join(" "),fused),limit);
+  const {volgorde}=fuseScored([sem,kw],[W_SEM,W_KW]);
+  // Zoekgebied (handmatige filters) en spreiding over paginafamilies toepassen.
+  return spread(applyScope([q,...(terms||[])].join(" "),volgorde),limit);
 }
 // Voeg de algemene/hub-pagina van de beste treffer toe (en zet die vooraan als de beste
 // treffer situatie-specifiek is), zodat een algemene vraag altijd een algemene passage heeft.
@@ -368,10 +391,10 @@ if(typeof module!=="undefined"&&module.exports){
     stem,tokenize,tokensOf,rank,fuzzyFix,normalize,
     fold,detectCountries,applyScope,scopeTerms,
     urlIndex,ancestorsOf,productMatch,forceProduct,
-    semanticRank,hybrid,withHub,hubCandidates,rankFor,spread,
+    semanticRank,semanticScored,rankScored,fuseScored,hybrid,withHub,hubCandidates,rankFor,spread,
     get CORPUS(){return CORPUS;},
     get PTOKENS(){return PTOKENS;},
-    weights:{get TOPK(){return TOPK;},get RRF_K(){return RRF_K;},get W_SEM(){return W_SEM;},get W_KW(){return W_KW;},get FUSE_DEPTH(){return FUSE_DEPTH;},
+    weights:{get TOPK(){return TOPK;},get W_SEM(){return W_SEM;},get W_KW(){return W_KW;},get FUSE_DEPTH(){return FUSE_DEPTH;},
              get FW_TITLE(){return FW_TITLE;},get FW_DESC(){return FW_DESC;},get FW_URL(){return FW_URL;},get FW_TEXT(){return FW_TEXT;},get FW_ANCHOR(){return FW_ANCHOR;}},
   };
 }
