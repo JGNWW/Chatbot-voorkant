@@ -1,0 +1,19 @@
+{
+  "name": "voorlichter-chatbot-zoeklaag",
+  "private": true,
+  "description": "Ontwikkelgereedschap voor de zoeklaag: evaluatie, probes en de rookproef in een echte browser. De app zelf (docs/) draait zonder build.",
+  "scripts": {
+    "eval": "node scripts/eval.mjs",
+    "eval:kw": "node scripts/eval.mjs --no-sem",
+    "probe": "node scripts/probe.mjs",
+    "test:browser": "node scripts/browser_test.mjs",
+    "test:index": "node scripts/index_test.mjs",
+    "test:quote": "node scripts/quote_test.mjs"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.8.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

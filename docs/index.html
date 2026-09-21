@@ -480,6 +480,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
   </div>
 </aside>
 <div class="viewer-backdrop" id="viewer-backdrop" hidden></div>
+<script src="search-core.js"></script>
 <script>
 const SYSTEM=`Je helpt een voorlichter van het klantcontactcentrum van NederlandWereldwijd. Je krijgt de vraag van de burger en enkele genummerde pagina's van NederlandWereldwijd.nl met hun LETTERLIJKE tekst.
 
@@ -1277,9 +1278,7 @@ const PROVIDERS={
       return d.choices?.[0]?.message?.content||"";}}
 };
 
-const STOP=new Set("de het een en van in op te voor met aan is ik je u hoe wat waar wanneer kan moet mijn uw ben wil naar om dat die er ook als of bij dan zijn heb heeft wordt worden the a to of".split(" "));
 const SAMPLES=["Hoe vraag ik een ID-kaart aan vanuit het buitenland?","Wat kost een paspoort vanuit het buitenland?","Wat is een BSN?","Mijn rijbewijs is gestolen in het buitenland, wat nu?","Ik ben mijn DigiD-wachtwoord vergeten","Wat is een apostille?"];
-const TOPK=6; // aantal kandidaat-pagina's dat naar het AI-model gaat
 // Hoeveel citaten een antwoord hoogstens telt. Eén citaat blijft de regel; meer alleen als de
 // vraag echt uit meerdere onderdelen bestaat (kosten én doorlooptijd, of per situatie anders).
 const MAX_CITES=3;
@@ -1297,13 +1296,6 @@ function anchorSet(i){
   if(!_ANCH[i])_ANCH[i]=new Set(((CORPUS[i]||{}).links||[]).map(l=>(Array.isArray(l)?l[0]:l||"").trim()).filter(Boolean));
   return _ANCH[i];
 }
-// Fusie- en veldgewichten, afgesteld met scripts/tune.mjs (660 varianten) op 1000 uit het corpus
-// afgeleide vragen (scripts/eval_set_auto.json), met als HARDE EIS dat de 126 handgemaakte
-// vragen (scripts/eval_set.json) er niet op achteruit gaan — anders koop je winst op
-// gegenereerde vragen af met verlies op echte.
-const RRF_K=14, W_SEM=1.0, W_KW=0.75;
-const FW_TITLE=4, FW_DESC=1, FW_URL=3, FW_TEXT=1;
-let CORPUS=[],PTOKENS=[],DF=null,NDOCS=0;
 // ===== TURBOMODUS =============================================================================
 // Alles wat hieraan hangt is EXPERIMENTEEL en staat standaard uit. Staat het vinkje uit, dan
 // draait de app langs precies dezelfde weg als voordat turbo bestond — geen enkele codepad-
@@ -1312,7 +1304,6 @@ let TURBO=false;
 try{TURBO=localStorage.getItem("vk_turbo")==="1";}catch(e){}
 // De voorgebouwde zoekindex (docs/data/bm25.bin). Zie scripts/build_index.mjs voor het formaat
 // en scripts/index_test.mjs voor het bewijs dat hij exact hetzelfde rangschikt.
-let TIDX=null;
 async function laadTurboIndex(){
   try{
     const r=await haalData("data/bm25.bin");
@@ -1437,120 +1428,6 @@ async function tekstKlaar(){
 }
 // ===== <</TURBOMODUS-INDEX>> ==================================================================
 
-// Lichte Nederlandse stemmer: haalt veelvoorkomende uitgangen weg zodat varianten
-// op elkaar matchen ('verkracht'/'verkrachting', 'document'/'documenten').
-function stem(w){
-  if(w.length<5)return w;
-  for(const suf of ["ingen","ing","heden","heid","en","s"]){
-    if(w.length-suf.length>=4&&w.endsWith(suf))return w.slice(0,-suf.length);
-  }
-  return w;
-}
-function tokenize(t){return t.toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w=>w.length>2&&!STOP.has(w)).map(stem);}
-// Trefwoord-index per pagina = term-frequenties over VOLLEDIGE tekst, met veldweging
-// (titel telt zwaarder dan lopende tekst). Nodig voor BM25.
-function tokensOf(p){
-  const m=new Map();
-  const add=(text,w)=>{for(const t of tokenize(text||""))m.set(t,(m.get(t)||0)+w);};
-  add(p.title,FW_TITLE);add(p.summary||p.desc,FW_DESC);add(p.url,FW_URL);add(p.text,FW_TEXT);
-  return m;
-}
-// Document-frequenties + lengtes voor BM25.
-let DLEN=[],AVGDL=1;
-function buildDF(){
-  DF=new Map();NDOCS=PTOKENS.length;DLEN=new Array(NDOCS);let tot=0;
-  for(let i=0;i<NDOCS;i++){const m=PTOKENS[i];let len=0;for(const [t,c] of m){DF.set(t,(DF.get(t)||0)+1);len+=c;}DLEN[i]=len;tot+=len;}
-  AVGDL=tot/Math.max(1,NDOCS);
-}
-function bm25idf(t){const df=(DF&&DF.get(t))||0;return df?Math.log(1+(NDOCS-df+0.5)/(df+0.5)):0;}
-// Spellingscorrectie: corrigeer een query-woord dat NIET in het corpus voorkomt naar het
-// dichtstbijzijnde corpus-woord (edit-afstand 1, of 2 bij langere woorden; hoogste df wint).
-let VOCAB=null;
-function buildVocab(){VOCAB=new Map();for(const [t,df] of DF){if(df<3||t.length<5)continue;const L=t.length;let a=VOCAB.get(L);if(!a){a=[];VOCAB.set(L,a);}a.push(t);}}
-function editLE(a,b,max){ // Levenshtein-afstand <= max? (banded DP)
-  const la=a.length,lb=b.length;if(Math.abs(la-lb)>max)return false;
-  let prev=new Array(lb+1),cur=new Array(lb+1);
-  for(let j=0;j<=lb;j++)prev[j]=j;
-  for(let i=1;i<=la;i++){cur[0]=i;let rowMin=cur[0];
-    for(let j=1;j<=lb;j++){cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));if(cur[j]<rowMin)rowMin=cur[j];}
-    if(rowMin>max)return false;[prev,cur]=[cur,prev];}
-  return prev[lb]<=max;
-}
-function fuzzyFix(t){
-  if(t.length<5||(DF.get(t)||0)>0)return t;
-  if(!VOCAB)buildVocab();
-  const max=t.length>=8?2:1;let best=null,bestDf=0;
-  for(let L=t.length-max;L<=t.length+max;L++){
-    const arr=VOCAB.get(L);if(!arr)continue;
-    for(const c of arr){if(c[0]!==t[0]&&max<2)continue;if(editLE(t,c,max)){const df=DF.get(c);if(df>bestDf){best=c;bestDf=df;}}}
-  }
-  return best||t;
-}
-// Trefwoord-ranking met BM25 (term-frequentie + lengtenormalisatie + IDF). Zeldzame, vaak
-// voorkomende termen in korte/relevante pagina's scoren hoog. Onbekende woorden worden
-// eerst gecorrigeerd op spelling (fuzzyFix).
-function rank(q,limit){
-  if(!DF)buildDF();
-  const qt=[...new Set(tokenize(q).map(fuzzyFix))];if(!qt.length)return [];
-  const k1=1.5,b=0.75,s=[];
-  if(TIDX){
-    // Zelfde formule, andere route: alleen de postings van de gevraagde termen doorlopen in
-    // plaats van alle 4431 pagina's. scripts/index_test.mjs bewijst dat de uitkomst gelijk is.
-    const sc=TIDX.score;sc.fill(0);
-    for(const t of qt){
-      const id=TIDX.id.get(t);if(id===undefined)continue;
-      const w=bm25idf(t);
-      for(let k=TIDX.ptr[id],e=TIDX.ptr[id+1];k<e;k++){
-        const d=TIDX.postDoc[k],tf=TIDX.postTf[k];
-        sc[d]+=w*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[d]/AVGDL));
-      }
-    }
-    for(let i=0;i<NDOCS;i++)if(sc[i]>0)s.push([sc[i],i]);
-    s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
-  }
-  for(let i=0;i<NDOCS;i++){
-    const m=PTOKENS[i];let sc=0;
-    for(const t of qt){const tf=m.get(t);if(!tf)continue;sc+=bm25idf(t)*(tf*(k1+1))/(tf+k1*(1-b+b*DLEN[i]/AVGDL));}
-    if(sc>0)s.push([sc,i]);
-  }
-  s.sort((a,b)=>b[0]-a[0]);return s.slice(0,limit||TOPK).map(x=>x[1]);
-}
-function normalize(s){return s.replace(/\s+/g," ").trim().toLowerCase();}
-
-// ---- Landherkenning (afgeleid uit de corpus-URL-structuur) ----
-// Een laatste URL-segment dat onder >=7 verschillende rubrieken voorkomt is vrijwel zeker een land
-// (bv. /trouwen/frankrijk, /verklaring/.../frankrijk, /paspoort-id-kaart/buitenland/...-frankrijk).
-let COUNTRY=null,PCOUNTRY=null;
-function fold(s){return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
-function buildCountries(){
-  const parents=new Map();
-  for(const p of CORPUS){const parts=(p.url||"").replace(/\/+$/,"").split("/");if(parts.length<5)continue;const last=parts.pop();let s=parents.get(last);if(!s){s=new Set();parents.set(last,s);}s.add(parts.join("/"));}
-  const BLOCK=new Set(["buitenland","aanvragen","algemeen","overzicht","contact"]);
-  COUNTRY=new Set();for(const [seg,ps] of parents)if(ps.size>=7&&!BLOCK.has(seg))COUNTRY.add(seg);
-  PCOUNTRY=new Array(CORPUS.length).fill(null);
-  for(let i=0;i<CORPUS.length;i++){const last=(CORPUS[i].url||"").replace(/\/+$/,"").split("/").pop().toLowerCase();
-    if(COUNTRY.has(last)){PCOUNTRY[i]=last;continue;}
-    for(const c of COUNTRY)if(last.endsWith("-"+c)){PCOUNTRY[i]=c;break;}}
-}
-function detectCountries(text){if(!COUNTRY)buildCountries();const f=" "+fold(text).replace(/[^a-z0-9]+/g," ")+" ";const out=new Set();for(const c of COUNTRY)if(f.includes(" "+c.replace(/-/g," ")+" "))out.add(c);return out;}
-// Actieve handmatige filters (zoekgebied): land en onderwerp (eerste URL-segment).
-const FILTER={country:"",topic:""};
-function firstSeg(idx){return (CORPUS[idx].url||"").replace(/^https?:\/\/[^/]+\//,"").split("/")[0]||"";}
-// Beperk + herorden kandidaten op het zoekgebied: onderwerp-filter (met terugval als het te
-// streng is) en land (handmatig filter overschrijft autodetectie). Genoemd/gekozen land eerst,
-// dan algemene pagina's, andere landen achteraan.
-function applyScope(text,order){
-  if(!PCOUNTRY)buildCountries();
-  let o=order;
-  if(FILTER.topic){const m=o.filter(i=>firstSeg(i)===FILTER.topic);if(m.length>=2)o=m;}
-  const det=FILTER.country?new Set([FILTER.country]):detectCountries(text);
-  const g1=[],g2=[],g3=[];
-  for(const idx of o){const pc=PCOUNTRY[idx];if(pc&&det.has(pc))g1.push(idx);else if(pc)g3.push(idx);else g2.push(idx);}
-  return [...g1,...g2,...g3];
-}
-// Leesbare zoekwoorden van actieve filters (voor betere recall in de trefwoordzoeker).
-function scopeTerms(){const t=[];if(FILTER.country)t.push(FILTER.country.replace(/-/g," "));if(FILTER.topic)t.push(FILTER.topic.replace(/-/g," "));return t;}
-// Vul de land- en onderwerp-filters (afgeleid uit het corpus) en bedraad ze.
 function prettyTopic(seg){return seg.replace(/-(buiten-nederland|buitenland|nederland)$/,"").replace(/-/g," ").replace(/^./,c=>c.toUpperCase());}
 function initFilters(){
   if(!COUNTRY)buildCountries();
@@ -1564,16 +1441,9 @@ function initFilters(){
   clr.addEventListener("click",()=>{cSel.value="";tSel.value="";upd();});
 }
 
-// ---- Semantisch zoeken (embeddings in de browser, zelfde model als de vooraf berekende vectoren) ----
-const SEM={ready:false,meta:null,vecs:null,extractor:null,modelPromise:null,pct:0};
 // Gemeten grootte van model_quantized.onnx van Xenova/multilingual-e5-small: 118.308.185 bytes,
 // ongecomprimeerd. Alleen nodig om de voortgang in een percentage uit te drukken.
 const SEM_MODEL_BYTES=118.3e6;
-// Hoe lang een vraag hoogstens op dat model wacht. Stond er geen grens, dan hing de eerste vraag
-// na het openen van de pagina net zo lang als de download duurt — op een trage lijn minuten,
-// zonder dat je iets anders zag dan "Bezig met opzoeken…". Liever een antwoord dat alleen op
-// trefwoorden is gevonden (87% recall in plaats van 95%) dan een scherm dat stilstaat.
-const SEM_WACHT_MS=1500;
 function setSearchStatus(t){const el=document.getElementById("semstatus");if(el)el.textContent=t;}
 async function initSemantic(){
   try{
@@ -1610,123 +1480,6 @@ async function initSemantic(){
     })().catch(e=>{SEM.ready=false;setSearchStatus("trefwoord-zoeken (semantisch niet geladen)");});
   }catch(e){SEM.ready=false;setSearchStatus("trefwoord-zoeken");}
 }
-async function semanticRank(q,limit){
-  if(!SEM.ready){
-    // Wacht kort — is het model bijna binnen, dan is het die anderhalve seconde waard.
-    // Anders val terug op trefwoorden; het model laadt op de achtergrond gewoon door.
-    await Promise.race([SEM.modelPromise,new Promise(r=>setTimeout(r,SEM_WACHT_MS))]);
-    if(!SEM.ready)return rank(q,limit);
-  }
-  const out=await SEM.extractor([SEM.meta.query_prefix+q],{pooling:"mean",normalize:true});
-  const qv=out.data,dim=SEM.meta.dim,v=SEM.vecs,owner=SEM.owner;
-  let scored;
-  if(owner){
-    // Meerdere chunks per pagina: bewaar de hoogste chunk-score per pagina.
-    const best=new Map();
-    for(let k=0,nv=owner.length;k<nv;k++){let dot=0;const off=k*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];const pg=owner[k],c=best.get(pg);if(c===undefined||dot>c)best.set(pg,dot);}
-    scored=[...best.entries()].map(([pg,sc])=>[sc,pg]);
-  }else{
-    const n=SEM.meta.count;scored=new Array(n);
-    for(let i=0;i<n;i++){let dot=0;const off=i*dim;for(let d=0;d<dim;d++)dot+=qv[d]*v[off+d];scored[i]=[dot,i];}
-  }
-  scored.sort((a,b)=>b[0]-a[0]);
-  return scored.slice(0,limit||TOPK).map(x=>x[1]);
-}
-// URL -> index, voor het opzoeken van bovenliggende (algemenere) pagina's.
-let URL2IDX=null;
-function urlIndex(){if(!URL2IDX){URL2IDX=new Map();CORPUS.forEach((p,i)=>URL2IDX.set((p.url||"").replace(/\/+$/,""),i));}return URL2IDX;}
-// Bovenliggende pagina's (hub/overzicht) van een URL die ook echt in het corpus staan — niet de domeinroot.
-function ancestorsOf(url){
-  const m=urlIndex(),out=[];let u=(url||"").replace(/\/+$/,"");
-  const root=u.match(/^https?:\/\/[^/]+/);if(!root)return out;const base=root[0];
-  while(u.length>base.length){const cut=u.lastIndexOf("/");if(cut<base.length)break;u=u.slice(0,cut);if(u.length>base.length&&m.has(u))out.push(m.get(u));}
-  return out;
-}
-// ---- Productpagina's: harde regel voor genoemde vaktermen ----
-// Uit de site-structuur afgeleid: een pagina die zelf subpagina's heeft én waarvan het
-// URL-segment in de eigen titel voorkomt, is een PRODUCT (inreisvisum, nooddocument,
-// schengenvisum, ...). Noemt de burger zo'n term letterlijk, dan hoort die pagina bovenaan —
-// dat laten we niet aan het taalmodel over, want dat koos soms de algemene rubriekspagina.
-let PRODUCT=null;
-function buildProducts(){
-  PRODUCT=new Map();
-  const m=urlIndex(),kids=new Map();
-  for(const p of CORPUS){const u=(p.url||"").replace(/\/+$/,""),par=u.slice(0,u.lastIndexOf("/"));if(m.has(par))kids.set(par,(kids.get(par)||0)+1);}
-  const BLOCK=new Set(["buitenland","aanvragen","contact","thema","nederland","overzicht","landen"]);
-  const cand=[];
-  for(const [u,n] of kids){
-    const seg=u.slice(u.lastIndexOf("/")+1).toLowerCase();
-    // Alleen echte PRODUCTFAMILIES (veel subpagina's). Zonder deze drempel zouden gewone
-    // woorden als "pensioen" of "crisis" onterecht een pagina forceren.
-    if(n<50||BLOCK.has(seg)||seg.length<4||seg.includes("-"))continue;
-    const i=m.get(u);if(i===undefined)continue;
-    if(!(CORPUS[i].title||"").toLowerCase().replace(/-/g,"").includes(seg))continue;
-    cand.push([u,seg,i]);
-  }
-  // Ouderpagina's van andere productpagina's overslaan (bv. /verklaring boven
-  // /verklaring/woonplaats), anders verdringen ze hun eigen, specifiekere subpagina's.
-  const urls=new Set(cand.map(c=>c[0]));
-  for(const [u,seg,i] of cand){
-    if([...urls].some(o=>o!==u&&o.startsWith(u+"/")))continue;
-    PRODUCT.set(stem(seg),i);
-  }
-}
-// Geeft de paginaindex van de meest SPECIFIEKE genoemde vakterm (langste match), of -1.
-function productMatch(text){
-  if(!PRODUCT)buildProducts();
-  let best=-1,len=0;
-  for(const t of new Set(tokenize(text||""))){const i=PRODUCT.get(t);if(i!==undefined&&t.length>len){best=i;len=t.length;}}
-  return best;
-}
-// Zet de productpagina vooraan; verandert verder niets aan de volgorde.
-function forceProduct(text,list){
-  const i=productMatch(text);
-  if(i<0||!Array.isArray(list)||list[0]===i)return list;
-  return [i,...list.filter(x=>x!==i)];
-}
-// Pagina die een specifieke situatie aanneemt (eerste aanvraag, kind, verlies/diefstal).
-const SPECIFIC_RX=/voor het eerst|eerste keer|voor (mijn|uw|je|een) kind|verloren|gestolen|kwijt|vermist/i;
-const isSpecificPage=idx=>SPECIFIC_RX.test(CORPUS[idx].title||"");
-// Hybride kandidaten: Reciprocal Rank Fusion van semantisch (synoniemen/parafrase) en
-// trefwoord (exacte/zeldzame termen + zoektermen). Geen hub-logica; geeft top `limit`.
-async function hybrid(q,terms,limit){
-  const K=Math.max(limit,12);
-  let sem=[];
-  if(SEM.meta){try{sem=await semanticRank(q,K);}catch(e){/* val terug op trefwoord */}}
-  const kw=rank([q,...(terms||[]),...scopeTerms()].join(" "),K);
-  if(!sem.length&&!kw.length)return [];
-  const score=new Map();
-  // Gemeten weging (126 testvragen): semantiek x1,5 en k=10 gaf de beste uitkomst
-  // (recall@6 94% -> 95%, MRR 0,854 -> 0,860).
-  const add=(list,w)=>list.forEach((idx,r)=>score.set(idx,(score.get(idx)||0)+w/(RRF_K+r)));
-  add(sem,W_SEM);add(kw,W_KW);
-  const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
-  // Zoekgebied (filters) + landherkenning toepassen.
-  return applyScope([q,...(terms||[])].join(" "),fused).slice(0,limit);
-}
-// Voeg de algemene/hub-pagina van de beste treffer toe (en zet die vooraan als de beste
-// treffer situatie-specifiek is), zodat een algemene vraag altijd een algemene passage heeft.
-function withHub(cands){
-  if(!cands.length)return cands;
-  const top=cands[0],rest=cands.slice(1);
-  const anc=ancestorsOf(CORPUS[top].url).filter(i=>!cands.includes(i)).slice(0,2);
-  if(anc.length&&isSpecificPage(top))return [anc[0],top,...anc.slice(1),...rest];
-  if(anc.length)return [top,...anc,...rest];
-  return cands;
-}
-// Voeg bovenliggende hub-pagina's toe aan de kandidatenlijst (alleen voor recall, geen herordening),
-// zodat de AI-herrangschikking ook een algemene pagina kan kiezen als dat past.
-function hubCandidates(cands,text){
-  const extra=[];
-  for(const i of cands)for(const a of ancestorsOf(CORPUS[i].url))if(!cands.includes(a)&&!extra.includes(a))extra.push(a);
-  if(!extra.length)return cands;
-  // Zoekgebied opnieuw toepassen, zodat een toegevoegde ALGEMENE pagina (bv.
-  // /visum-nederland/inreisvisum) boven de vele land-specifieke varianten uitkomt
-  // wanneer er geen land genoemd is.
-  return applyScope(text||"",[...cands,...extra]);
-}
-// Eenvoudige retrieval (gebruikt in demo/zonder-sleutel pad).
-async function rankFor(q){return forceProduct(q,withHub(await hybrid(q,[],TOPK)));}
 
 // Repareer afgekapte JSON: knip terug tot na de laatst afgesloten haak en sluit
 // de nog openstaande haken. Afgemaakte citaten blijven zo behouden.
