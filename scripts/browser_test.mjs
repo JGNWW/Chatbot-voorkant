@@ -37,15 +37,21 @@ await page.waitForFunction(() => typeof PTOKENS !== "undefined" && PTOKENS.lengt
 const VRAGEN = ["waar blijft mijn paspoort", "paspoort kwijt in spanje", "wat is een apostille", "rijbewijs verlopen buitenland", "hoe word ik nederlander"];
 const inBrowser = await page.evaluate(async qs => {
   const uit = [];
-  for (const q of qs) {
-    const r = forceProduct(q, await hybrid(q, [], 6)).slice(0, 6);
-    uit.push(r.map(i => CORPUS[i].url));
-  }
+  for (const q of qs) uit.push((await rankFor(q)).map(i => CORPUS[i].url));
   return uit;
 }, VRAGEN);
 
 const corpusLen = await page.evaluate(() => CORPUS.length);
 const welkom = await page.textContent("#loadmsg").catch(() => "");
+
+// Echt een vraag stellen, zoals een voorlichter dat doet. Zonder AI-sleutel valt de app terug
+// op de demoweg: kandidaten zoeken en de bronnen tonen. Dat is precies de weg die het harnas
+// meet, en hier zie je of hij ook daadwerkelijk iets op het scherm zet.
+await page.fill("#input", "wat kost een paspoort vanuit het buitenland");
+await page.click("#send");
+await page.waitForSelector(".turn .src-title, .turn .error", { timeout: 60000 });
+const bronnen = await page.$$eval(".turn .src-title", els => els.map(e => e.textContent.trim()));
+const fout = await page.textContent(".turn .error").catch(() => "");
 await browser.close();
 server.close();
 
@@ -64,6 +70,8 @@ VRAGEN.forEach((q, i) => {
 
 console.log(`pagina geladen: ${corpusLen} pagina's, welkomtekst ${welkom.includes("Leo") ? "ok" : "ONTBREEKT"}`);
 console.log(`zoekresultaten browser == node: ${VRAGEN.length - verschil}/${VRAGEN.length}`);
+console.log(`echte vraag gesteld: ${bronnen.length} bronnen getoond${fout ? " — FOUTMELDING: " + fout.slice(0, 120) : ""}`);
+if (bronnen.length) console.log("  eerste bron: " + bronnen[0]);
 if (fouten.length) { console.error("JS-fouten:\n" + fouten.map(f => " - " + f).join("\n")); }
-if (verschil || fouten.length || !welkom.includes("Leo")) process.exit(1);
+if (verschil || fouten.length || !welkom.includes("Leo") || !bronnen.length) process.exit(1);
 console.log("rookproef OK");
