@@ -27,6 +27,10 @@
 //     uitzetten kost wel 4 punten. Laten staan.
 //   De paginascore anders opbouwen uit de tekstblokken (gemiddelde van de beste twee of drie
 //     in plaats van het maximum). Alles binnen de ruis.
+//   De veldgewichten en de titeldekking samen opnieuw afstellen (144 combinaties, over alle
+//     drie de sets). De beste combinatie (titel 6, url 5, dekking 1) wint 1 vraag op de
+//     vijandige dev-set en verliest er 1 op de blinde, bij +0,003 MRR op de 1000. Een wasgang;
+//     niet doorgevoerd, want het zou de binaire index vernieuwen zonder iets op te leveren.
 //   De algemene pagina laten voorgaan op haar landversies als de vraag geen land noemt.
 //     Ziet er goed uit op één voorbeeld ("papiertje dat bewijst dat ik nog leef" gaf de
 //     attestatie de vita in Pakistan) maar kost 5 punten op de 1000-set én 5 op de blinde
