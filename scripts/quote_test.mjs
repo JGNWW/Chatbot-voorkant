@@ -368,6 +368,12 @@ test("T6. een half aangewezen opsomming wordt afgemaakt", () => {
   waar(!cit.text.includes("geen Schengenlanden"), "citaat liep door in de lopende tekst erna");
 });
 
+// T7. Een citaat dat alleen uit een vraag bestaat is een kopje, geen antwoord.
+test("T7. een losse vraag is geen citaat", () => {
+  waar(Q.isWeakQuote("Beslis op tijd: blijven of vertrekken?"), "losse vraag werd als citaat geaccepteerd");
+  waar(!Q.isWeakQuote("Woont u in het buitenland? Dan vraagt u het aan bij de ambassade."), "vraag met antwoord erachter werd afgekeurd");
+});
+
 // --- steekproef op het echte corpus ---
 console.log("\nCORPUS-STEEKPROEF\n");
 test("citaten uit het echte corpus zijn compleet en letterlijk", () => {

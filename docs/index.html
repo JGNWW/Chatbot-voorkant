@@ -1910,6 +1910,11 @@ function isWeakQuote(q){
   const t=(q||"").trim();
   if(t.length<12)return true;
   if(t.includes("\n"))return false;
+  // Eén losse vraag is nooit een antwoord. "Beslis op tijd: blijven of vertrekken?" is een kopje
+  // boven de uitleg, en die uitleg is wat de voorlichter moet voorlezen. Een vraag MIDDEN in een
+  // citaat is wél gewoon goed ("Woont u in het buitenland? Dan geldt:"), dus alleen een citaat
+  // dat helemaal uit die ene vraag bestaat valt af.
+  if(/\?$/.test(t)&&!/[.!?]\s+\S/.test(t))return true;
   return looksLikeHeading(t);
 }
 // Sterke overlap tussen twee citaten (de één bevat (vrijwel) de ander).
