@@ -2156,7 +2156,8 @@ async function fuseRetrieval(semTexts,kwText,category,limit){
   if(category){const cat=fold(category);if(cat.length>=3)for(const idx of score.keys())if(fold(CORPUS[idx].url).includes(cat))score.set(idx,score.get(idx)+0.05);}
   const fused=[...score.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
   LAATSTE_SCORES=score;
-  return spread(applyScope(kwText,fused),limit);
+  const lijst=spread(withAlgemeneVariant(kwText,applyScope(kwText,fused)),limit);
+  return metKostenpagina(kwText,lijst,fused,limit);
 }
 // ---- Relevantie in procenten ----------------------------------------------------------------
 // Elke ranglijst wordt binnen de kandidaten van deze vraag geschaald naar 0..1, dus de somscore
