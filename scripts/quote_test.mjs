@@ -296,6 +296,55 @@ test("losse alinea's blijven gescheiden", () => {
   eq(alineas.length, 2);
 });
 
+// --- tabellen: het antwoord dat niet uit zinnen bestaat ---
+console.log("\nTABELLEN\n");
+
+// T1. Het geval waar de klacht mee begon: "wat kost een paspoort?" staat in een tabel, en de
+//     crawler zet elke cel op een eigen regel. Geen van die regels is een zin.
+test("T1. een prijstabel levert een compleet citaat op", () => {
+  const bron = "Wat u betaalt, hangt af van waar u de aanvraag doet.\n" +
+    "Kosten paspoort of ID-kaart bij ambassade of consulaat-generaal\nDocument\nKosten\n" +
+    "Paspoort 18 jaar en ouder\n\u20ac 169,15\nPaspoort t/m 17 jaar\n\u20ac 147,40\n" +
+    "Toeslag tijdelijke aanvraaglocatie\nEen pop-up ambassade is een tijdelijke locatie.";
+  const cit = citeer(bron, "Paspoort 18 jaar en ouder", { heads: ["Toeslag tijdelijke aanvraaglocatie"] });
+  waar(cit, "geen citaat: de tabel werd weggegooid");
+  waar(bron.includes(cit.text), "citaat staat niet letterlijk in de bron");
+  waar(cit.text.includes("\u20ac 147,40"), "tabel afgekapt: de rest van de rijen ontbreekt");
+  waar(cit.text.startsWith("Kosten paspoort of ID-kaart"), "aankondigingsregel boven de tabel ontbreekt: " + JSON.stringify(cit.text.slice(0, 40)));
+  waar(!cit.text.includes("pop-up"), "citaat liep door in de volgende sectie");
+});
+
+// T2. Twee losse regels zijn meestal geen tabel maar een restje van een lijst met links; dragen
+//     ze een BEDRAG, dan zijn ze wel inhoud.
+test("T2. twee regels met een bedrag tellen wel, twee landnamen niet", () => {
+  const geld = "Kosten voor naturalisatie\n\u2022    Naturalisatie 1 volwassene: \u20ac 1139\n\u2022    Mee-naturaliseren kind jonger dan 18: \u20ac 168\nLet op:";
+  const cit = citeer(geld, "Naturalisatie 1 volwassene: \u20ac 1139", { heads: ["Kosten voor naturalisatie"] });
+  waar(cit, "geen citaat voor de twee prijsregels");
+  waar(cit.text.includes("\u20ac 168"), "tweede prijsregel ontbreekt");
+  const landen = "Verdragslanden\nArgentini\u00eb\nAustrali\u00eb\nU leest hier meer over verdragslanden.";
+  waar(!citeer(landen, "Argentini\u00eb\nAustrali\u00eb", { heads: ["Verdragslanden"] }), "twee losse landnamen zijn als citaat getoond");
+});
+
+// T3. Staat de tweede kolom tussen haakjes, dan rijgt de zinsopbouw de hele tabel aan elkaar tot
+//     één eenheid. Ook dat is een tabel en geen halve zin.
+test("T3. tabel die als \u00e9\u00e9n regel is samengevoegd telt ook", () => {
+  const bron = "U kunt de code ophalen bij een balie.\nDigiD-balie in het buitenland\n" +
+    "Australi\u00eb\n(Sydney)\nCanada\n(Vancouver)\nThailand\n(Bangkok)";
+  const cit = citeer(bron, "Thailand\n(Bangkok)", { heads: ["DigiD-balie in het buitenland"] });
+  waar(cit, "geen citaat: de landenlijst werd weggegooid");
+  waar(cit.text.includes("Australi\u00eb") && cit.text.includes("(Bangkok)"), "lijst niet compleet: " + JSON.stringify(cit.text));
+});
+
+// T4. Een regel met een vraagteken aan het eind is een kopje of een aanloop, nooit het slot.
+test("T4. een citaat eindigt niet op een vraag", () => {
+  const bron = "U mag het volgende meenemen:\n110 liter bier, en:\n10 liter sterke drank\n" +
+    "U betaalt hierover geen belasting.\nWat moet ik doen als ik meer meeneem?\nNeemt u meer mee? Dan geldt iets anders.";
+  const cit = citeer(bron, "110 liter bier, en:");
+  waar(cit, "geen citaat");
+  waar(cit.text.includes("10 liter sterke drank"), "opsomming afgekapt");
+  waar(!/\?$/.test(cit.text.trim()), "citaat eindigt op een vraag: " + JSON.stringify(cit.text.slice(-50)));
+});
+
 // --- steekproef op het echte corpus ---
 console.log("\nCORPUS-STEEKPROEF\n");
 test("citaten uit het echte corpus zijn compleet en letterlijk", () => {
