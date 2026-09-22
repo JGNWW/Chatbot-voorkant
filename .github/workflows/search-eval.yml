@@ -20,6 +20,8 @@ on:
       - scripts/eval_set.json
       - scripts/eval_set_gauntlet_dev.json
       - scripts/eval_set_gauntlet_blind.json
+      - scripts/antwoord_eval.mjs
+      - scripts/standaardvragen.json
   push:
     paths:
       - docs/search-core.js
@@ -33,6 +35,8 @@ on:
       - scripts/eval_set_gauntlet_dev.json
       - scripts/eval_set_gauntlet_blind.json
       - scripts/quote_test.mjs
+      - scripts/antwoord_eval.mjs
+      - scripts/standaardvragen.json
 
 jobs:
   eval:
@@ -46,10 +50,19 @@ jobs:
         run: node scripts/quote_test.mjs
       - name: De voorgebouwde index rangschikt hetzelfde als de zoeker
         run: node scripts/index_test.mjs
+      # Kan de app op de standaardvragen van de site überhaupt een antwoord geven? Deze gate
+      # vangt wat een zoek-eval niet ziet: de juiste pagina gevonden, en tóch "Wij hebben geen
+      # informatie over dit onderwerp" omdat het antwoord in een tabel stond.
+      - name: Standaardvragen leveren een compleet citaat op (103)
+        run: node scripts/antwoord_eval.mjs --no-sem --gate
+      # De drempels hieronder horen bij de treffertoets zoals die sinds "Een landenpagina is geen
+      # antwoord op een vraag zonder land" telt: een landvariant is alleen een treffer als de
+      # vraag dat land noemt. De oude drempels (0,91 en 0,82) stamden van vóór die strengere
+      # toets en waren daarna niet meer haalbaar — deze staan met marge onder de gemeten waarden.
       - name: Gate op de handgemaakte vragen (126)
         env:
-          GATE_RECALL: "0.91"
-          GATE_MRR: "0.82"
+          GATE_RECALL: "0.90"
+          GATE_MRR: "0.80"
         run: node scripts/eval.mjs --no-sem --gate
       - name: Gate op de gegenereerde vragen (1000)
         env:

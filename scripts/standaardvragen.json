@@ -1,0 +1,723 @@
+[
+ {
+  "q": "Wat kost een paspoort?",
+  "pagina": "https://www.nederlandwereldwijd.nl/paspoort-id-kaart/kosten-buitenland",
+  "antwoord": [
+   "€ 169,15"
+  ]
+ },
+ {
+  "q": "Hoeveel moet ik betalen voor een ID-kaart voor mijn kind?",
+  "pagina": "https://www.nederlandwereldwijd.nl/paspoort-id-kaart/kosten-buitenland",
+  "antwoord": [
+   "€ 128,75"
+  ]
+ },
+ {
+  "q": "Hoe lang duurt het voor ik mijn paspoort heb?",
+  "pagina": "https://www.nederlandwereldwijd.nl/paspoort-id-kaart/tijdsduur-aanvragen",
+  "antwoord": [
+   "De reguliere verwerkingstijd is 4 weken."
+  ]
+ },
+ {
+  "q": "Mijn paspoort is gestolen in het buitenland, wat nu?",
+  "pagina": "https://www.nederlandwereldwijd.nl/paspoort-id-kaart/kwijt-gestolen",
+  "antwoord": [
+   "Doe aangifte van vermissing of diefstal"
+  ]
+ },
+ {
+  "q": "Hoe zie ik hoe ver mijn paspoortaanvraag is?",
+  "pagina": "https://www.nederlandwereldwijd.nl/paspoort-id-kaart/status-aanvraag",
+  "antwoord": [
+   "U volgt de status van uw aanvraag"
+  ]
+ },
+ {
+  "q": "Waar vind ik het aanvraagformulier voor een paspoort?",
+  "pagina": "https://www.nederlandwereldwijd.nl/paspoort-id-kaart/aanvraagformulier",
+  "antwoord": [
+   "U vult het aanvraagformulier online in."
+  ]
+ },
+ {
+  "q": "Welke nooddocumenten zijn er?",
+  "pagina": "https://www.nederlandwereldwijd.nl/paspoort-id-kaart/nooddocument/soorten-nooddocumenten",
+  "antwoord": [
+   "Er zijn 3 soorten nooddocumenten."
+  ]
+ },
+ {
+  "q": "Waar moet ik op letten bij het aanvragen van een paspoort in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/paspoort-id-kaart/waar-op-letten",
+  "antwoord": [
+   "Begin daarom op tijd en bereid uw aanvraag goed voor."
+  ]
+ },
+ {
+  "q": "Hoe laat ik mijn naam wijzigen in mijn paspoort?",
+  "pagina": "https://www.nederlandwereldwijd.nl/naamswijziging/paspoort-id-kaart",
+  "antwoord": [
+   "Dat kan alleen als Nederland uw naamswijziging erkent."
+  ]
+ },
+ {
+  "q": "Blijft mijn paspoort geldig na een naamswijziging?",
+  "pagina": "https://www.nederlandwereldwijd.nl/naamswijziging/paspoort-of-id-kaart-geldig",
+  "antwoord": [
+   "Dan moet u een nieuw paspoort of ID-kaart aanvragen."
+  ]
+ },
+ {
+  "q": "Hoe krijg ik een BSN als ik in het buitenland woon?",
+  "pagina": "https://www.nederlandwereldwijd.nl/bsn/bsn-krijgen",
+  "antwoord": [
+   "U krijgt een BSN als u zich inschrijft in de Registratie Niet-Ingezetenen (RNI)."
+  ]
+ },
+ {
+  "q": "Waar vind ik mijn burgerservicenummer?",
+  "pagina": "https://www.nederlandwereldwijd.nl/bsn/waar-bsn-vinden",
+  "antwoord": [
+   "staat meestal op uw Nederlandse paspoort, ID-kaart of rijbewijs"
+  ]
+ },
+ {
+  "q": "Hoe krijgt mijn kind een BSN in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/bsn/bsn-kind-buiten-nederland",
+  "antwoord": [
+   "Uw kind krijgt een BSN bij inschrijving in de Registratie Niet-Ingezetenen (RNI)."
+  ]
+ },
+ {
+  "q": "Hoe schrijf ik me uit bij de gemeente als ik emigreer?",
+  "pagina": "https://www.nederlandwereldwijd.nl/brp/hoe-uitschrijven-brp",
+  "antwoord": [
+   "U schrijft zich uit bij de gemeente in Nederland waar u woont."
+  ]
+ },
+ {
+  "q": "Wanneer moet ik me uitschrijven bij de gemeente?",
+  "pagina": "https://www.nederlandwereldwijd.nl/brp/wanneer-uitschrijven-gemeente",
+  "antwoord": [
+   "8 maanden"
+  ]
+ },
+ {
+  "q": "Wat is de BRP?",
+  "pagina": "https://www.nederlandwereldwijd.nl/brp/wat-is-brp",
+  "antwoord": [
+   "De Basisregistratie Personen (BRP) is een databank met persoonsgegevens"
+  ]
+ },
+ {
+  "q": "Hoe vraag ik een bewijs van uitschrijving aan?",
+  "pagina": "https://www.nederlandwereldwijd.nl/brp/bewijs-uitschrijving-gemeente",
+  "antwoord": [
+   "Vraag een bewijs van uitschrijving aan bij de gemeente"
+  ]
+ },
+ {
+  "q": "Hoe schrijf ik me in bij de RNI?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rni/inschrijven",
+  "antwoord": [
+   "bij een RNI-loket in Nederland"
+  ]
+ },
+ {
+  "q": "Hoe wijzig ik mijn adres in de RNI?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rni/adres-wijzigen",
+  "antwoord": [
+   "Geef uw adreswijziging door via MyRNI"
+  ]
+ },
+ {
+  "q": "Hoe schrijf ik me uit bij de RNI?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rni/uitschrijven",
+  "antwoord": [
+   "U wordt dan automatisch uitgeschreven uit de RNI."
+  ]
+ },
+ {
+  "q": "Wie mag mijn gegevens in de RNI zien?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rni/toegang-gegevens",
+  "antwoord": [
+   "Deze organisaties hebben alleen toegang tot de gegevens die zij nodig hebben"
+  ]
+ },
+ {
+  "q": "Hoe krijg ik mijn DigiD-activeringscode in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/digid-buiten-nederland/activeringscode-ontvangen",
+  "antwoord": [
+   "door te videobellen met NederlandWereldwijd"
+  ]
+ },
+ {
+  "q": "Waar zijn de DigiD-balies in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/digid-buiten-nederland/activeringscode-balie",
+  "antwoord": [
+   "(Bangkok)"
+  ]
+ },
+ {
+  "q": "Wat is de ID-check in de DigiD app?",
+  "pagina": "https://www.nederlandwereldwijd.nl/digid-buiten-nederland/wat-is-id-check-digid-app",
+  "antwoord": [
+   "Met de ID-check kunt u meer doen met uw DigiD app."
+  ]
+ },
+ {
+  "q": "Hoe log ik in op MijnOverheid vanuit het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/mijnoverheid-buiten-nederland/hoe-inloggen",
+  "antwoord": [
+   "logt u in met uw DigiD of met een Europees erkend inlogmiddel"
+  ]
+ },
+ {
+  "q": "Wat is de Berichtenbox?",
+  "pagina": "https://www.nederlandwereldwijd.nl/mijnoverheid-buiten-nederland/berichtenbox",
+  "antwoord": [
+   "De Berichtenbox is uw persoonlijke brievenbus"
+  ]
+ },
+ {
+  "q": "Wat is legaliseren van documenten?",
+  "pagina": "https://www.nederlandwereldwijd.nl/legaliseren/wat-is-legaliseren",
+  "antwoord": [
+   "Legaliseren is een document geschikt maken voor gebruik in een ander land."
+  ]
+ },
+ {
+  "q": "Wat is een apostille?",
+  "pagina": "https://www.nederlandwereldwijd.nl/legaliseren/apostille",
+  "antwoord": [
+   "Een apostille is een stempel of sticker op een openbaar document"
+  ]
+ },
+ {
+  "q": "Waar haal ik een apostille?",
+  "pagina": "https://www.nederlandwereldwijd.nl/legaliseren/waar-apostille-halen",
+  "antwoord": [
+   "Dan haalt u een apostille bij een rechtbank."
+  ]
+ },
+ {
+  "q": "Wanneer heb ik een apostille nodig?",
+  "pagina": "https://www.nederlandwereldwijd.nl/legaliseren/wanneer-apostille-nodig",
+  "antwoord": [
+   "hangt af van het document en het land waar u het gebruikt"
+  ]
+ },
+ {
+  "q": "Wat is een consulaire verklaring?",
+  "pagina": "https://www.nederlandwereldwijd.nl/verklaring/consulaire-verklaring",
+  "antwoord": [
+   "Dat officiële document heet een consulaire verklaring."
+  ]
+ },
+ {
+  "q": "Waar vraag ik een consulaire verklaring aan?",
+  "pagina": "https://www.nederlandwereldwijd.nl/verklaring/waar-consulaire-verklaring-aanvragen",
+  "antwoord": [
+   "bij de Nederlandse ambassade of het consulaat in het land waar u woont"
+  ]
+ },
+ {
+  "q": "Wanneer heb ik een verklaring van Nederlanderschap nodig?",
+  "pagina": "https://www.nederlandwereldwijd.nl/verklaring/nederlanderschap-wanneer-nodig",
+  "antwoord": [
+   "13 jaar of langer buiten Nederland"
+  ]
+ },
+ {
+  "q": "Hoe kom ik aan een attestatie de vita?",
+  "pagina": "https://www.nederlandwereldwijd.nl/verklaring/in-leven-zijn",
+  "antwoord": [
+   "kan een voorbedrukte verklaring ondertekenen en stempelen"
+  ]
+ },
+ {
+  "q": "Wat kost naturalisatie?",
+  "pagina": "https://www.nederlandwereldwijd.nl/nederlandse-nationaliteit/kosten-naturalisatie-buitenland",
+  "antwoord": [
+   "€ 1139"
+  ]
+ },
+ {
+  "q": "Wat kost het om mijn kind mee te laten naturaliseren?",
+  "pagina": "https://www.nederlandwereldwijd.nl/nederlandse-nationaliteit/kosten-naturalisatie-buitenland",
+  "antwoord": [
+   "€ 168"
+  ]
+ },
+ {
+  "q": "Hoe vraag ik naturalisatie aan vanuit het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/nederlandse-nationaliteit/hoe-naturalisatie-aanvragen-buitenland",
+  "antwoord": [
+   "bij de Nederlandse ambassade of het consulaat-generaal in uw woonland"
+  ]
+ },
+ {
+  "q": "Hoe krijg ik mijn Nederlandse nationaliteit terug?",
+  "pagina": "https://www.nederlandwereldwijd.nl/nederlandse-nationaliteit/hoe-terugkrijgen",
+  "antwoord": [
+   "via de optieprocedure of via naturalisatie"
+  ]
+ },
+ {
+  "q": "Wat is de naturalisatieceremonie?",
+  "pagina": "https://www.nederlandwereldwijd.nl/nederlandse-nationaliteit/naturalisatieceremonie",
+  "antwoord": [
+   "De naturalisatieceremonie is de laatste stap in uw naturalisatie."
+  ]
+ },
+ {
+  "q": "Hoe kom ik aan een geboorteakte van mijn kind in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/kind-krijgen-buiten-nederland/geboorteakte-krijgen",
+  "antwoord": [
+   "In de meeste landen krijgt u de geboorteakte van uw kind zodra u geboorteaangifte doet."
+  ]
+ },
+ {
+  "q": "Mijn kind is geboren in het buitenland, wat moet ik regelen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/kind-krijgen-buiten-nederland/wat-regelen",
+  "antwoord": [
+   "kunt u een paspoort aanvragen bij een Nederlandse ambassade"
+  ]
+ },
+ {
+  "q": "Krijg ik verlof als ik een kind krijg in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/kind-krijgen-buiten-nederland/verlof",
+  "antwoord": [
+   "recht op zwangerschapsverlof, geboorteverlof en/of ouderschapsverlof"
+  ]
+ },
+ {
+  "q": "Hoe zet ik een buitenlandse akte om naar een Nederlandse akte?",
+  "pagina": "https://www.nederlandwereldwijd.nl/buitenlandse-akte-omzetten/hoe-buitenlandse-akte-omzetten",
+  "antwoord": [
+   "U kunt alleen de gemeente Den Haag vragen om uw buitenlandse akte om te zetten"
+  ]
+ },
+ {
+  "q": "Waar meld ik een overlijden in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/overlijden-buitenland/overlijden-melden",
+  "antwoord": [
+   "U moet een overlijden in het buitenland altijd melden bij de lokale autoriteiten."
+  ]
+ },
+ {
+  "q": "Mag ik een urn meenemen naar Nederland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/overlijden-buitenland/urn-asbus-meenemen",
+  "antwoord": [
+   "moet de asbus 1 maand in het crematorium blijven"
+  ]
+ },
+ {
+  "q": "Wat moet ik regelen voor een begrafenis in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/overlijden-buitenland/begrafenis-crematie-buitenland",
+  "antwoord": [
+   "Wat u moet regelen, hangt af van waar de overledene woonde."
+  ]
+ },
+ {
+  "q": "Waar moet ik op letten als ik in het buitenland wil trouwen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/trouwen/buiten-nederland",
+  "antwoord": [
+   "Wat u nodig heeft om te trouwen buiten Nederland verschilt per land."
+  ]
+ },
+ {
+  "q": "Is mijn Nederlandse rijbewijs geldig in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rijbewijs-buitenland/geldig",
+  "antwoord": [
+   "U mag alleen autorijden met een geldig rijbewijs"
+  ]
+ },
+ {
+  "q": "Mijn rijbewijs is verlopen terwijl ik in het buitenland woon, wat nu?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rijbewijs-buitenland/verlopen",
+  "antwoord": [
+   "Rijden met een verlopen rijbewijs is strafbaar."
+  ]
+ },
+ {
+  "q": "Mijn rijbewijs is gestolen in het buitenland, wat moet ik doen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rijbewijs-buitenland/kwijt-gestolen",
+  "antwoord": [
+   "Dan mag u niet autorijden."
+  ]
+ },
+ {
+  "q": "Waar heb ik een internationaal rijbewijs nodig?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rijbewijs-buitenland/internationaal-rijbewijs",
+  "antwoord": [
+   "heeft u geen internationaal rijbewijs nodig"
+  ]
+ },
+ {
+  "q": "Kan ik mijn rijbewijs in het buitenland als identiteitsbewijs gebruiken?",
+  "pagina": "https://www.nederlandwereldwijd.nl/rijbewijs-buitenland/identiteitsbewijs",
+  "antwoord": [
+   "Uw Nederlandse rijbewijs is in het buitenland niet geldig als identiteitsbewijs."
+  ]
+ },
+ {
+  "q": "Hoelang mag ik in het buitenland rijden met een Nederlands kenteken?",
+  "pagina": "https://www.nederlandwereldwijd.nl/auto-exporteren/rijden-met-nederlands-kenteken",
+  "antwoord": [
+   "tussen de 3 en 6 maanden"
+  ]
+ },
+ {
+  "q": "Hoelang mag ik in Nederland rijden met een buitenlands kenteken?",
+  "pagina": "https://www.nederlandwereldwijd.nl/auto-importeren/rijden-met-buitenlands-kenteken",
+  "antwoord": [
+   "hangt af van het land waar u bent ingeschreven"
+  ]
+ },
+ {
+  "q": "Kan ik mijn auto meenemen als ik naar het buitenland verhuis?",
+  "pagina": "https://www.nederlandwereldwijd.nl/auto-exporteren/auto-meeverhuizen-buitenland",
+  "antwoord": [
+   "Dan moet u uw auto eerst uitschrijven uit Nederland."
+  ]
+ },
+ {
+  "q": "Hoe registreer ik me om te stemmen vanuit het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/stemmen-buitenland/registreren",
+  "antwoord": [
+   "Registreer uzelf dan als kiezer buiten Nederland via de gemeente Den Haag."
+  ]
+ },
+ {
+  "q": "Hoe kan ik stemmen als ik in het buitenland woon?",
+  "pagina": "https://www.nederlandwereldwijd.nl/stemmen-buitenland/hoe-stemmen",
+  "antwoord": [
+   "Dan kunt u stemmen per post of per volmacht."
+  ]
+ },
+ {
+  "q": "Voor welke verkiezingen kan ik stemmen vanuit het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/stemmen-buitenland/welke-verkiezingen",
+  "antwoord": [
+   "Tweede Kamer, het Europees Parlement"
+  ]
+ },
+ {
+  "q": "Hoe weet ik of ik geregistreerd sta als kiezer in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/stemmen-buitenland/controleren-registratie",
+  "antwoord": [
+   "U kunt via de gemeente Den Haag controleren of u geregistreerd bent."
+  ]
+ },
+ {
+  "q": "Wat is mijn AOW-leeftijd?",
+  "pagina": "https://www.nederlandwereldwijd.nl/aow-buiten-nederland/aow-leeftijd",
+  "antwoord": [
+   "Uw AOW-leeftijd hangt af van uw geboortedatum."
+  ]
+ },
+ {
+  "q": "Hoeveel AOW krijg ik in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/aow-buiten-nederland/hoogte",
+  "antwoord": [
+   "De hoogte van de AOW die u buiten Nederland krijgt is afhankelijk van uw situatie."
+  ]
+ },
+ {
+  "q": "Hoe vraag ik AOW aan vanuit het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/aow-buiten-nederland/hoe-aanvragen",
+  "antwoord": [
+   "U doet dit 6 maanden voor uw AOW-leeftijd."
+  ]
+ },
+ {
+  "q": "Hoe hoog is de Anw-uitkering?",
+  "pagina": "https://www.nederlandwereldwijd.nl/anw-uitkering-buiten-nederland/hoogte",
+  "antwoord": [
+   "De Anw-uitkering is een vast bedrag."
+  ]
+ },
+ {
+  "q": "Hoeveel kinderbijslag krijg ik in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/kinderbijslag-buiten-nederland/hoogte",
+  "antwoord": [
+   "Kinderbijslag is een vast bedrag per kwartaal."
+  ]
+ },
+ {
+  "q": "Hoe vraag ik kinderbijslag aan vanuit het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/kinderbijslag-buiten-nederland/hoe-aanvragen",
+  "antwoord": [
+   "Vraag kinderbijslag dan zelf aan bij de Sociale Verzekeringsbank (SVB) via Mijn SVB."
+  ]
+ },
+ {
+  "q": "Hoeveel kindgebonden budget kan ik krijgen in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/kindgebonden-budget-buiten-nederland/hoogte",
+  "antwoord": [
+   "hangt af van uw situatie"
+  ]
+ },
+ {
+  "q": "Heb ik recht op kinderopvangtoeslag in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/kinderopvangtoeslag-buiten-nederland/recht-op-kinderopvangtoeslag",
+  "antwoord": [
+   "Dan kunt u recht hebben op kinderopvangtoeslag uit Nederland."
+  ]
+ },
+ {
+  "q": "Hoeveel zorgtoeslag krijg ik in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/zorgtoeslag-buiten-nederland/hoogte",
+  "antwoord": [
+   "hangt af van uw situatie"
+  ]
+ },
+ {
+  "q": "Heb ik recht op zorgtoeslag buiten Nederland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/zorgtoeslag-buiten-nederland/recht-op",
+  "antwoord": [
+   "U kunt recht hebben op zorgtoeslag als u een Nederlandse zorgverzekering heeft"
+  ]
+ },
+ {
+  "q": "Kan ik mijn WW-uitkering meenemen naar het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/ww-uitkering-buiten-nederland/meenemen",
+  "antwoord": [
+   "dan kunt u deze uitkering meestal niet meenemen"
+  ]
+ },
+ {
+  "q": "Hoe vraag ik een werkloosheidsuitkering aan vanuit het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/ww-uitkering-buiten-nederland/hoe-aanvragen",
+  "antwoord": [
+   "bij de uitkeringsorganisatie van het land waar u bent verzekerd voor werkloosheid"
+  ]
+ },
+ {
+  "q": "Kan ik mijn ziektewetuitkering meenemen naar het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/ziektewetuitkering-buiten-nederland/meenemen",
+  "antwoord": [
+   "Dan kunt u uw ziektewetuitkering soms meenemen."
+  ]
+ },
+ {
+  "q": "Kan ik mijn WIA-uitkering meenemen naar het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/uitkering-arbeidsongeschiktheid-buitenland/meenemen-wia-wao-waz",
+  "antwoord": [
+   "Dan kunt u uw uitkering in sommige gevallen meenemen."
+  ]
+ },
+ {
+  "q": "Kan ik studiefinanciering krijgen als ik in het buitenland ga studeren?",
+  "pagina": "https://www.nederlandwereldwijd.nl/studiefinanciering-buitenland/studeren-buitenland",
+  "antwoord": [
+   "U moet in elk geval aan de voorwaarden voldoen."
+  ]
+ },
+ {
+  "q": "Hoeveel studiefinanciering kan ik krijgen van DUO?",
+  "pagina": "https://www.nederlandwereldwijd.nl/studiefinanciering-buitenland/hoogte",
+  "antwoord": [
+   "Het bedrag is in ieder land hetzelfde, tot een bepaald maximum per maand."
+  ]
+ },
+ {
+  "q": "Betaal ik inkomstenbelasting in Nederland als ik in het buitenland woon?",
+  "pagina": "https://www.nederlandwereldwijd.nl/belastingaangifte-buiten-nederland/betalen-inkomstenbelasting-buitenland",
+  "antwoord": [
+   "Dan moet u meestal inkomstenbelasting betalen in Nederland."
+  ]
+ },
+ {
+  "q": "Hoe doe ik belastingaangifte vanuit het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/belastingaangifte-buiten-nederland/hoe-aangifte-doen",
+  "antwoord": [
+   "Meestal kunt u online aangifte doen."
+  ]
+ },
+ {
+  "q": "Wat is de EHIC?",
+  "pagina": "https://www.nederlandwereldwijd.nl/zorgverzekering-buitenland/europese-ziekteverzekeringskaart",
+  "antwoord": [
+   "De European Health Insurance Card (EHIC) is een Europese zorgverzekeringspas."
+  ]
+ },
+ {
+  "q": "Wat is de buitenlandregeling van het CAK?",
+  "pagina": "https://www.nederlandwereldwijd.nl/zorgverzekering-buitenland/buitenlandregeling",
+  "antwoord": [
+   "De buitenlandregeling is een afspraak tussen Nederland en andere landen over medische zorg"
+  ]
+ },
+ {
+  "q": "Ik heb zorgkosten betaald in het buitenland, hoe krijg ik dat terug?",
+  "pagina": "https://www.nederlandwereldwijd.nl/zorgverzekering-buitenland/declareren",
+  "antwoord": [
+   "hangt af van waar u verzekerd bent"
+  ]
+ },
+ {
+  "q": "Hoeveel pensioen heb ik opgebouwd?",
+  "pagina": "https://www.nederlandwereldwijd.nl/pensioen/hoeveel-pensioen",
+  "antwoord": [
+   "mijnpensioenoverzicht.nl"
+  ]
+ },
+ {
+  "q": "Kan ik nog een remigratie-uitkering aanvragen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/remigratie-uitkering/wat-is-remigratie-uitkering",
+  "antwoord": [
+   "Vanaf 1 januari 2025 kunt u geen remigratie-uitkering meer aanvragen."
+  ]
+ },
+ {
+  "q": "Waar kan ik asiel aanvragen in Nederland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/asiel-aanvragen",
+  "antwoord": [
+   "In Nederland kunt u een asielaanvraag indienen bij de Immigratie- en Naturalisatiedienst (IND)."
+  ]
+ },
+ {
+  "q": "Welke landen horen bij de EU?",
+  "pagina": "https://www.nederlandwereldwijd.nl/landen-eu-eva-eer-schengen",
+  "antwoord": [
+   "De Europese Unie (EU) bestaat uit 27 landen:"
+  ]
+ },
+ {
+  "q": "Heb ik een visum nodig voor mijn reis naar het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/visum-buitenland",
+  "antwoord": [
+   "Check of u een visum nodig heeft in het reisadvies voor uw bestemming."
+  ]
+ },
+ {
+  "q": "Welke documenten heb ik nodig voor een visum voor Nederland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/visum-nederland/documenten-visumaanvraag",
+  "antwoord": [
+   "Klik op het type visum dat u wilt aanvragen."
+  ]
+ },
+ {
+  "q": "Mijn visumaanvraag is afgewezen, wat kan ik doen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/visum-nederland/bezwaar-afwijzing-aanvraag",
+  "antwoord": [
+   "Dan kunt u gratis bezwaar maken bij de Immigratie- en Naturalisatiedienst (IND)."
+  ]
+ },
+ {
+  "q": "Heb ik een visum nodig voor de Caribische Koninkrijksdelen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/caribisch-visum/visum-nodig",
+  "antwoord": [
+   "Sommige bezoekers hebben geen visum nodig voor de Caribische Koninkrijksdelen."
+  ]
+ },
+ {
+  "q": "Heb ik een ETIAS nodig om naar Nederland te reizen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reizen-naar-nederland/etias-nodig",
+  "antwoord": [
+   "Dan heeft u mogelijk een ETIAS reisautorisatie nodig."
+  ]
+ },
+ {
+  "q": "Hoeveel alcohol mag ik meenemen naar Nederland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reizen-naar-nederland/alcohol-meenemen-nederland",
+  "antwoord": [
+   "110 liter bier"
+  ]
+ },
+ {
+  "q": "Mag ik etenswaren meenemen naar Nederland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reizen-naar-nederland/etenswaren-meenemen-nederland",
+  "antwoord": [
+   "Er zijn regels voor het meenemen van etenswaren."
+  ]
+ },
+ {
+  "q": "Hoeveel geld mag ik meenemen naar het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reizen-naar-het-buitenland/geld-meenemen-buitenland",
+  "antwoord": [
+   "U mag zoveel geld meenemen als u wilt."
+  ]
+ },
+ {
+  "q": "Mag ik mijn medicijnen meenemen op reis?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reizen-naar-het-buitenland/medicijnen-mee-op-reis",
+  "antwoord": [
+   "Medicijnen die onder de Opiumwet vallen mag u niet zomaar meenemen naar het buitenland."
+  ]
+ },
+ {
+  "q": "Heb ik een reisverzekering nodig?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reizen-naar-het-buitenland/reisverzekering",
+  "antwoord": [
+   "Sluit voor vertrek een goede reisverzekering af."
+  ]
+ },
+ {
+  "q": "Ik ben ziek geworden op reis, wat nu?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reizen-naar-het-buitenland/ziek-op-reis",
+  "antwoord": [
+   "Controleer welke medische kosten uw verzekering vergoedt."
+  ]
+ },
+ {
+  "q": "Kan ik met mijn ID-kaart naar België reizen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reizen-paspoort-id-kaart/belgie",
+  "antwoord": [
+   "U kunt met een Nederlandse ID-kaart naar België reizen."
+  ]
+ },
+ {
+  "q": "Hoe voorkom ik dat ik beroofd word op reis?",
+  "pagina": "https://www.nederlandwereldwijd.nl/reisadvies/criminaliteit",
+  "antwoord": [
+   "Maak voor vertrek kopieën van belangrijke documenten."
+  ]
+ },
+ {
+  "q": "Wat moet ik doen bij een crisis in het buitenland?",
+  "pagina": "https://www.nederlandwereldwijd.nl/crisis/regelen-in-crisissituatie",
+  "antwoord": [
+   "Beslis op tijd: blijven of vertrekken?"
+  ]
+ },
+ {
+  "q": "Ik ben gearresteerd in het buitenland, wat kan ik doen?",
+  "pagina": "https://www.nederlandwereldwijd.nl/gearresteerd-buitenland/ik-ben-nederlander-en-gearresteerd",
+  "antwoord": [
+   "Zoek meteen contact met een advocaat in het land waar u bent opgepakt."
+  ]
+ },
+ {
+  "q": "Mijn zoon is opgepakt in het buitenland, wat nu?",
+  "pagina": "https://www.nederlandwereldwijd.nl/gearresteerd-buitenland/een-nederlands-familielid-of-vriend-is-gearresteerd",
+  "antwoord": [
+   "U kunt contact opnemen met het Nederlandse ministerie van Buitenlandse Zaken."
+  ]
+ },
+ {
+  "q": "Mijn familielid is vermist in het buitenland, wat nu?",
+  "pagina": "https://www.nederlandwereldwijd.nl/vermissing-buitenland",
+  "antwoord": [
+   "meld de vermissing bij de politie"
+  ]
+ },
+ {
+  "q": "Mijn kind is zonder mijn toestemming meegenomen naar het buitenland, waar krijg ik hulp?",
+  "pagina": "https://www.nederlandwereldwijd.nl/internationale-kinderontvoering",
+  "antwoord": [
+   "hulp krijgen van het Centrum IKO"
+  ]
+ },
+ {
+  "q": "Mag ik de transitzone op Schiphol verlaten bij een overstap?",
+  "pagina": "https://www.nederlandwereldwijd.nl/overstappen-luchthaven-nederland/transitzone-schiphol",
+  "antwoord": [
+   "De grens van de internationale transitzone is de paspoortcontrole."
+  ]
+ }
+]
