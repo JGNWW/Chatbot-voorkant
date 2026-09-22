@@ -85,6 +85,30 @@ naar de backend.
 | `SITEMAP_TTL_SECONDS` | Cache-duur sitemap | `86400` (1 dag) |
 | `CORS_ORIGINS` | Toegestane frontend-origins | `http://localhost:5173` |
 
+## Meten: zoekt hij goed, en komt er ook echt een antwoord uit?
+
+Twee harnassen, en ze meten verschillende dingen:
+
+```bash
+node scripts/eval.mjs --no-sem              # welke PAGINA vindt de zoeker? (recall@6, MRR)
+node scripts/antwoord_eval.mjs --no-sem     # komt er op een standaardvraag een ANTWOORD uit?
+node scripts/antwoord_eval.mjs              # idem, mét het semantische model erbij
+```
+
+`antwoord_eval.mjs` loopt per standaardvraag de hele keten na die zonder
+API-sleutel te meten is: staat de juiste pagina in de top 6, levert de
+citaatlogica daar een citaat uit op, staat het antwoord (het bedrag, de termijn)
+daar letterlijk in, en is het citaat leesbaar en compleet. De vragenlijst staat
+in `scripts/standaardvragen.json`: ruim honderd vragen die de site zelf als
+standaardvraag voert, met per vraag het stukje tekst dat in het antwoord hoort te
+staan. Staat dat stukje niet letterlijk op de opgegeven pagina, dan faalt de test
+op zichzelf — zo kan de meetlat niet stilletjes verschuiven.
+
+Waarom apart van `eval.mjs`: de zoeker kan de juiste pagina op plek 1 zetten en
+de voorlichter tóch "Wij hebben geen informatie over dit onderwerp" geven. Dat
+gebeurde bij elke vraag waarvan het antwoord in een TABEL staat — "wat kost een
+paspoort?" voorop. Een zoek-eval ziet dat niet; deze wel.
+
 ## Aandachtspunten / vervolg
 
 - De trefwoord-ranking is een eenvoudige eerste stap. Voor betere relevantie kan

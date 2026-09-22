@@ -39,7 +39,7 @@ function stem(w){
   }
   return w;
 }
-function tokenize(t){return t.toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w=>w.length>2&&!STOP.has(w)).map(stem);}
+function tokenize(t){return t.toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w=>w.length>1&&!STOP.has(w)).map(stem);}
 // ---- Ankertekst: de woorden waarmee de rest van de site naar een pagina verwijst ----
 // De titel van /verklaring/in-leven-zijn zegt niets over "attestatie de vita", maar de links
 // ernaartoe wel. Zo weet de site zelf al hoe burgers een pagina noemen; die kennis stond alleen
@@ -215,6 +215,59 @@ function spread(order,limit){
   }
   return [...voor,...achter].slice(0,n);
 }
+// ---- De algemene pagina van een landenfamilie erbij als de vraag geen land noemt ----------
+// Van bijna elk onderwerp bestaat een versie per land, en die lijken zo op elkaar dat ze samen
+// de hele lijst vullen. spread() houdt er hooguit twee per familie vooraan, maar bij een vraag
+// als "bewijs dat ik nog leef voor mijn pensioenfonds" zijn ALLE kandidaten uit die familie
+// landversies: dan staat er /verklaring/in-leven-zijn/kirgizie bovenaan en ontbreekt de
+// algemene pagina /verklaring/in-leven-zijn, terwijl die de vraag gewoon beantwoordt. De
+// voorlichter leest dan een regel uit Kirgizië voor op een vraag die over geen enkel land ging.
+//
+// De algemene pagina is mechanisch aan te wijzen: het is de familienaam van de landvariant, en
+// die staat vaak gewoon als eigen pagina in het corpus. Noemt de vraag dat land NIET, dan zetten
+// we die algemene pagina vlak vóór de eerste landversie van diezelfde familie. Noemt de vraag
+// het land wél ("pasfoto laten maken in thailand"), dan gebeurt er niets: dan is de landpagina
+// juist de goede.
+//
+// Dit is bewust iets anders dan withHub(), die de bovenliggende RUBRIEK (/verklaring) naar voren
+// haalde ongeacht de vraag; dat kostte 3,5 punten recall. Hier gaat het om dezelfde pagina in de
+// algemene uitvoering, en alleen bij een vraag zonder land.
+function algemeneVariant(i){
+  if(!FAMILY)buildFamilies();
+  const u=CORPUS[i].url||"";const root=u.match(/^https?:\/\/[^/]+/);
+  if(!root)return undefined;
+  return urlIndex().get(root[0]+FAMILY[i]);
+}
+// Twee gevallen, en het onderscheid is nodig:
+//  - de algemene pagina STAAT ER NIET -> zet hem vóór de eerste landversie. Dat kost niets: de
+//    lijst wordt alleen langer, en spread() knipt hem daarna toch af.
+//  - de algemene pagina staat er WEL, maar verderop -> haal hem alleen naar voren als de familie
+//    de lijst aan het VOLLOPEN is (twee of meer landversies in de eerste plaatsen). Bij
+//    "attestatie de vita" is dat zo: /verklaring/in-leven-zijn stond op plek 20, achter achttien
+//    landversies met dezelfde tekst. Haalden we hem altijd naar voren, dan verdringt hij ook de
+//    landpagina's die wél terecht bovenaan staan — gemeten op de 1000 gegenereerde vragen kostte
+//    dat 3 punten op plek 1.
+const CROWD_VENSTER=6, CROWD_MIN=2;
+function withAlgemeneVariant(text,order){
+  if(!PCOUNTRY)buildCountries();
+  if(!FAMILY)buildFamilies();
+  const genoemd=detectCountries(text||"");
+  const aanwezig=new Set(order);
+  const drukte=new Map();
+  for(const i of order.slice(0,CROWD_VENSTER))if(PCOUNTRY[i])drukte.set(FAMILY[i],(drukte.get(FAMILY[i])||0)+1);
+  const uit=[],gedaan=new Set();
+  for(const i of order){
+    const c=PCOUNTRY[i];
+    if(c&&!genoemd.has(c)){
+      const alg=algemeneVariant(i);
+      const mag=alg!==undefined&&alg!==i&&!gedaan.has(alg)&&
+        (!aanwezig.has(alg)||(drukte.get(FAMILY[i])||0)>=CROWD_MIN);
+      if(mag){gedaan.add(alg);uit.push(alg);}
+    }
+    if(!gedaan.has(i)){gedaan.add(i);uit.push(i);}
+  }
+  return uit;
+}
 // Actieve handmatige filters (zoekgebied): land en onderwerp (eerste URL-segment).
 const FILTER={country:"",topic:""};
 function firstSeg(idx){return (CORPUS[idx].url||"").replace(/^https?:\/\/[^/]+\//,"").split("/")[0]||"";}
@@ -340,6 +393,54 @@ function forceProduct(text,list){
 // Pagina die een specifieke situatie aanneemt (eerste aanvraag, kind, verlies/diefstal).
 const SPECIFIC_RX=/voor het eerst|eerste keer|voor (mijn|uw|je|een) kind|verloren|gestolen|kwijt|vermist/i;
 const isSpecificPage=idx=>SPECIFIC_RX.test(CORPUS[idx].title||"");
+// ---- Vraagt de burger om een BEDRAG, dan moet er een bedrag op de pagina staan ---------------
+// "Hoeveel moet ik betalen voor een ID-kaart voor mijn kind?" leverde /paspoort-id-kaart/
+// paspoort-kind op: een pagina die over kinderen gaat en waarop geen enkel bedrag staat. Die
+// pagina kán de vraag dus niet beantwoorden, hoe goed de woorden ook matchen. Of er een bedrag
+// op een pagina staat is geen smaakoordeel maar een controleerbare eigenschap van de bron.
+//
+// Eerst geprobeerd en weer weggehaald: elke pagina mét een bedrag een zetje geven in de score.
+// Dat veranderde op geen van de vier vragensets ook maar één uitkomst — de juiste pagina stond
+// op plek 15 en een zetje dat klein genoeg is om niets kapot te maken, is te klein om dat goed
+// te maken. Wat wel werkt staat hieronder: de tariefpagina van de rubriek erbij zetten.
+//
+// Alleen bij een vraag die onmiskenbaar naar geld vraagt.
+const PRIJSVRAAG=/\b(kost|kosten|kostte|betaal|betalen|prijs|prijzen|tarief|tarieven|hoeveel\s+(?:geld|euro)|bedrag)\b/i;
+let HASBEDRAG=null;
+function bouwBedragen(){HASBEDRAG=CORPUS.map(p=>/€|\beuro\b/i.test(p.text||""));}
+// Een zetje is soms niet genoeg: op "hoeveel moet ik betalen voor een ID-kaart voor mijn kind"
+// stond /paspoort-id-kaart/kosten-buitenland op plek 15 — het woord "kind" trok de hele lijst
+// naar de kinderpagina's, waar geen enkel bedrag op staat. Elke rubriek op deze site heeft één
+// pagina waar de bedragen staan, en die is aan de URL of de titel te herkennen. Vraagt de burger
+// naar een prijs en zit die pagina niet bij de kandidaten, dan hoort hij erbij: niet bovenaan,
+// maar op de laatste plek, zodat hij niets verdringt wat hoger scoorde.
+const KOSTPAGINA=/kost|tarief|prijs/i;
+// De tariefpagina per rubriek, uit de URL-structuur afgeleid: /paspoort-id-kaart ->
+// /paspoort-id-kaart/kosten-buitenland, /visum-nederland -> /visum-nederland/kosten-visum. De
+// pagina moet ook echt een bedrag bevatten, anders is het een verwijspagina. Staan er meerdere,
+// dan wint de kortste URL: dat is de algemene tarieflijst en niet een uitzonderingsgeval.
+let KOSTEN=null;
+function bouwKostenpaginas(){
+  if(!HASBEDRAG)bouwBedragen();
+  KOSTEN=new Map();
+  CORPUS.forEach((p,i)=>{
+    const pad=(p.url||"").replace(/^https?:\/\/[^/]+\//,"").replace(/\/+$/,"");
+    const delen=pad.split("/");
+    if(delen.length<2||!KOSTPAGINA.test(delen[delen.length-1])||!HASBEDRAG[i])return;
+    const seg=delen[0],huidig=KOSTEN.get(seg);
+    if(huidig===undefined||(CORPUS[huidig].url||"").length>(p.url||"").length)KOSTEN.set(seg,i);
+  });
+}
+function metKostenpagina(text,kort,vol,limit){
+  if(!PRIJSVRAAG.test(text||"")||!vol.length)return kort;
+  if(!KOSTEN)bouwKostenpaginas();
+  const n=limit||TOPK;
+  const isKost=i=>KOSTPAGINA.test((CORPUS[i].url||"")+" "+(CORPUS[i].title||""));
+  if(kort.some(isKost))return kort;
+  const k=KOSTEN.get(firstSeg(vol[0]));
+  if(k===undefined||kort.includes(k))return kort;
+  return [...kort.slice(0,n-1),k];
+}
 // Hybride kandidaten: semantisch (synoniemen/parafrase) en trefwoord (exacte/zeldzame termen)
 // samengevoegd op score. Geen hub-logica; geeft top `limit`.
 async function hybrid(q,terms,limit){
@@ -349,8 +450,11 @@ async function hybrid(q,terms,limit){
   const kw=rankScored([q,...(terms||[]),...scopeTerms()].join(" "),K);
   if(!sem.length&&!kw.length)return [];
   const {volgorde}=fuseScored([sem,kw],[W_SEM,W_KW]);
-  // Zoekgebied (handmatige filters) en spreiding over paginafamilies toepassen.
-  return spread(applyScope([q,...(terms||[])].join(" "),volgorde),limit);
+  // Zoekgebied (handmatige filters), de algemene variant van een landenfamilie, en spreiding
+  // over paginafamilies toepassen.
+  const tekst=[q,...(terms||[])].join(" ");
+  const lijst=spread(withAlgemeneVariant(tekst,applyScope(tekst,volgorde)),limit);
+  return metKostenpagina(tekst,lijst,volgorde,limit);
 }
 // Voeg de algemene/hub-pagina van de beste treffer toe (en zet die vooraan als de beste
 // treffer situatie-specifiek is), zodat een algemene vraag altijd een algemene passage heeft.
@@ -387,7 +491,7 @@ async function rankFor(q,limit){return forceProduct(q,await hybrid(q,[],limit||T
 // ---- Corpus en semantiek van buitenaf vullen (browser doet dit via de globals) ----
 function setCorpus(c){
   CORPUS=c;TIDX=null;TITLETOK=null;
-  DF=null;VOCAB=null;COUNTRY=null;PCOUNTRY=null;URL2IDX=null;PRODUCT=null;ANCHOR=null;
+  DF=null;VOCAB=null;COUNTRY=null;PCOUNTRY=null;URL2IDX=null;PRODUCT=null;ANCHOR=null;HASBEDRAG=null;FAMILY=null;KOSTEN=null;
   PTOKENS=CORPUS.map(tokensOf);
   buildDF();
 }
@@ -400,6 +504,7 @@ if(typeof module!=="undefined"&&module.exports){
     fold,detectCountries,applyScope,scopeTerms,
     urlIndex,ancestorsOf,productMatch,forceProduct,
     semanticRank,semanticScored,rankScored,fuseScored,hybrid,withHub,hubCandidates,rankFor,spread,
+    algemeneVariant,withAlgemeneVariant,metKostenpagina,
     get CORPUS(){return CORPUS;},
     get PTOKENS(){return PTOKENS;},
     weights:{get TOPK(){return TOPK;},get W_SEM(){return W_SEM;},get W_KW(){return W_KW;},get FUSE_DEPTH(){return FUSE_DEPTH;},
