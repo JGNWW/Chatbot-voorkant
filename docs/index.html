@@ -1749,6 +1749,17 @@ function buildCitation(text,span,heads,anchors,opts){
     if(!vorige.lijst)break;
   }
 
+  // 2b2. Een citaat dat met "Dan ..." begint, mist zijn voorwaarde. Deze site schrijft bijna
+  //      alles in de vorm vraag-antwoord: "Neemt u minder dan € 10.000 mee?" / "Dan hoeft u geen
+  //      aangifte te doen in Nederland." Alleen dat tweede tonen maakt van een uitzondering een
+  //      algemene regel, en precies dát mag een voorlichter niet voorlezen. De voorwaarde staat
+  //      in de zin ervoor; die hoort erbij.
+  while(a>0&&/^dan\b/i.test(units[a].text.trim())){
+    const vorige=units[a-1];
+    if(isBlokGrens(vorige,H,A)||!/\?$/.test(vorige.text.trim()))break;
+    a--;
+  }
+
   // 2c. Een TABEL hoort compleet in het citaat. Wijst het model één regel aan ("€ 169,15"), dan
   //     is dat bedrag zonder de rest van de tabel onleesbaar: je ziet niet waar het bij hoort.
   //     Rek de aanwijzing dus op tot de hele reeks — inclusief de aankondigingsregel erboven en
@@ -1907,6 +1918,11 @@ function bridgeIsSafe(bridge,quote){
   const b=(bridge||"").trim();
   if(!b)return true;                                   // leeg is prima, vaak zelfs beter
   if(telWoorden(b)>BRUG_MAX_WOORDEN)return false;
+  // Een brug die het begin van het citaat herhaalt voegt niets toe en laat de voorlichter
+  // dezelfde zin twee keer voorlezen. Dat gebeurt sinds een citaat zijn voorwaarde meekrijgt:
+  // het model schrijft die voorwaarde dan óók als brug.
+  const kaal=t=>t.toLowerCase().replace(/\s+/g," ").replace(/[.:;!?]+$/,"").trim();
+  if(kaal(quote||"").startsWith(kaal(b)))return false;
   const bron=(quote||"").toLowerCase();
   for(const m of b.matchAll(/\d[\d.,]*/g))if(!bron.includes(m[0].toLowerCase()))return false;
   if(/€|euro|procent|%/i.test(b)&&!/€|euro|procent|%/i.test(bron))return false;

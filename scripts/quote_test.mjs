@@ -97,6 +97,7 @@ test("7. brug met eigen feiten wordt geweigerd", () => {
   waar(!Q.bridgeIsSafe("De aanvraag duurt 3 weken.", "U vraagt het aan bij de gemeente."), "verzonnen termijn niet geweigerd");
   waar(!Q.bridgeIsSafe("Dat kost 83,85 euro.", "U vraagt het aan bij de gemeente."), "verzonnen bedrag niet geweigerd");
   waar(Q.bridgeIsSafe("Houd rekening met 3 weken.", "De aanvraag duurt 3 weken."), "termijn die WEL in de bron staat, geweigerd");
+  waar(!Q.bridgeIsSafe("Neemt u minder dan \u20ac 10.000 mee?", "Neemt u minder dan \u20ac 10.000 mee? Dan hoeft u geen aangifte te doen."), "brug die het citaat herhaalt niet geweigerd");
   waar(!Q.bridgeIsSafe("Dit is een veel te lange overbruggingszin die veel meer uitlegt dan strikt nodig is en die daarmee zelf een soort antwoord wordt in plaats van een verbinding.", "Bron."), "te lange brug niet geweigerd");
 });
 
@@ -343,6 +344,18 @@ test("T4. een citaat eindigt niet op een vraag", () => {
   waar(cit, "geen citaat");
   waar(cit.text.includes("10 liter sterke drank"), "opsomming afgekapt");
   waar(!/\?$/.test(cit.text.trim()), "citaat eindigt op een vraag: " + JSON.stringify(cit.text.slice(-50)));
+});
+
+// T5. Deze site schrijft in vraag-antwoordvorm. Het antwoord alleen is een halve waarheid.
+test("T5. een citaat dat met \"Dan\" begint krijgt zijn voorwaarde erbij", () => {
+  const bron = "U mag zoveel geld meenemen als u wilt.\nNeemt u minder dan \u20ac 10.000 mee?\nDan hoeft u geen aangifte te doen in Nederland.";
+  const cit = citeer(bron, "Dan hoeft u geen aangifte te doen in Nederland.");
+  eisCompleet(cit, bron);
+  waar(cit.text.startsWith("Neemt u minder dan"), "voorwaarde ontbreekt: " + JSON.stringify(cit.text));
+  // Maar niet zomaar de vorige zin erbij als het geen voorwaarde is.
+  const bron2 = "De aanvraag duurt drie weken.\nDan krijgt u een e-mail.";
+  const cit2 = citeer(bron2, "Dan krijgt u een e-mail.");
+  eq(cit2.text, "Dan krijgt u een e-mail.", "gewone vorige zin werd meegetrokken");
 });
 
 // --- steekproef op het echte corpus ---

@@ -16,6 +16,7 @@
 //   node scripts/gauntlet.mjs payloads --rerank=<map>  (fase 2: antwoordpayloads, met die keuze)
 //   node scripts/gauntlet.mjs payloads --turbo         (oude eenstapsweg: rankFor, geen herrangschikking)
 //   node scripts/gauntlet.mjs payloads --no-sem        (alleen trefwoordlaag, scheelt het model laden)
+//   node scripts/gauntlet.mjs payloads --set=standaardvragen.json --nrs=1,35,90   (steekproef)
 //   node scripts/gauntlet.mjs payloads --uit=<map>
 //   node scripts/gauntlet.mjs render <antwoordmap>     (leest vraag-01.json … en rendert)
 //   node scripts/gauntlet.mjs render <antwoordmap> --payloads=<map> --uit=<map>
@@ -73,7 +74,17 @@ async function payloads() {
   const TURBO = process.argv.includes("--turbo");
   const rerankMap = arg("rerank") ? absPad(arg("rerank")) : "";
   const uitMap = maakMap(absPad(arg("uit") || "scratch/gauntlet/payloads"));
-  const set = JSON.parse(fs.readFileSync(new URL("./aansluiting_set.json", import.meta.url), "utf-8"));
+  // Welke vragenlijst. aansluiting_set.json is de oorspronkelijke; --set=standaardvragen.json
+  // draait hetzelfde harnas op de standaardvragen van de site. Die lijst heeft andere veldnamen
+  // (pagina/antwoord in plaats van url/anker), dus die worden hier gelijkgetrokken.
+  const setNaam = arg("set") || "aansluiting_set.json";
+  const ruw = JSON.parse(fs.readFileSync(new URL("./" + setNaam, import.meta.url), "utf-8"));
+  // --nrs=1,7,12 beperkt tot die vragen (1-gebaseerd), zodat een steekproef niet 103 payloads
+  // van een halve megabyte oplevert. De nummering blijft die van de volledige lijst.
+  const nrs = (arg("nrs") || "").split(",").map(x => Number(x.trim())).filter(Boolean);
+  const set = ruw
+    .map((v, i) => ({ ...v, nr: i + 1, url: v.url || kort(v.pagina || ""), anker: v.anker || (v.antwoord || [])[0] || "" }))
+    .filter(v => !nrs.length || nrs.includes(v.nr));
   const BREED = 25;                                  // zelfde 25 als fuseRetrieval in het cloudpad
 
   const core = loadCore();
@@ -92,9 +103,9 @@ async function payloads() {
   if (!TURBO && !rerankMap) {
     const RERANK_SYSTEM = promptLiteral("RERANK_SYSTEM");
     if (!RERANK_SYSTEM) { console.error("RERANK_SYSTEM niet gevonden in docs/index.html — is de naam veranderd?"); process.exit(1); }
-    const index = { set: "aansluiting_set.json", model: meta ? meta.model : "geen (alleen trefwoorden)", breed: BREED, topk: TOPK, vragen: [] };
+    const index = { set: setNaam, model: meta ? meta.model : "geen (alleen trefwoorden)", breed: BREED, topk: TOPK, vragen: [] };
     for (let i = 0; i < set.length; i++) {
-      const v = set[i], n = i + 1;
+      const v = set[i], n = v.nr;
       const breed = await breedVoor(v.q);
       // Exact de lijst uit rerankCandidates: titel op de eerste regel, daaronder desc + tekst tot
       // 300 tekens (de cloudwaarde; 110-140 is de lokale), kandidaten gescheiden door een lege regel.
@@ -136,10 +147,10 @@ async function payloads() {
   if (rerankMap && !rIndexPad) { console.error("rerank-index.json niet gevonden — draai eerst `node scripts/gauntlet.mjs payloads`"); process.exit(1); }
   const rIndex = rerankMap ? JSON.parse(fs.readFileSync(rIndexPad, "utf-8")) : null;
 
-  const index = { set: "aansluiting_set.json", pad: TURBO ? "turbo (rankFor, geen herrangschikking)" : "cloud (hybrid+hubCandidates+herrangschikking)",
+  const index = { set: setNaam, pad: TURBO ? "turbo (rankFor, geen herrangschikking)" : "cloud (hybrid+hubCandidates+herrangschikking)",
     model: meta ? meta.model : "geen (alleen trefwoorden)", topk: TOPK, vragen: [] };
   for (let i = 0; i < set.length; i++) {
-    const v = set[i], n = i + 1;
+    const v = set[i], n = v.nr;
     let cands, herkomst;
     if (TURBO) {
       cands = await retrieve(core, v.q, TOPK);
