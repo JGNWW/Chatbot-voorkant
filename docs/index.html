@@ -1786,7 +1786,14 @@ function buildCitation(text,span,heads,anchors,opts){
     // volgende regel zelf nog een item is: een hele zin is daar de lopende tekst die na de
     // opsomming weer begint, en die hoort er niet meer bij.
     const naAankondiging=/:$/.test(units[b].text.trim());
-    if(!naAankondiging&&!(units[b].lijst&&!nx.af))break;
+    // "onder de AOW-leeftijd bent," / "en" / "een kind onder de 18 heeft," / "of" /
+    // "minstens 45% arbeidsongeschikt bent." — de crawler zet het voegwoord tussen twee
+    // voorwaarden op een eigen regel, en het laatste item is een hele zin. Zonder deze
+    // uitzondering stopte het citaat op dat kale "of" en las de voorlichter een halve
+    // voorwaarde voor. Eindigt de laatste regel op een voegwoord, dan is de opsomming
+    // aantoonbaar nog niet af en hoort het volgende item er nog bij.
+    const hangtNog=/\b(en|of)$/i.test(units[b].text.trim());
+    if(!naAankondiging&&!(units[b].lijst&&(!nx.af||hangtNog)))break;
     if(telWoorden(text.slice(units[a].start,nx.end))>MAXW*1.8)break;
     b++;
   }

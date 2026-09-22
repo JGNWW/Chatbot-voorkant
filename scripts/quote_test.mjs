@@ -374,6 +374,17 @@ test("T7. een losse vraag is geen citaat", () => {
   waar(!Q.isWeakQuote("Woont u in het buitenland? Dan vraagt u het aan bij de ambassade."), "vraag met antwoord erachter werd afgekeurd");
 });
 
+// T8. Een voorwaardenlijst waarvan het voegwoord op een eigen regel staat, mag niet op dat
+//     voegwoord eindigen: dan leest de voorlichter een halve voorwaarde voor.
+test("T8. citaat eindigt niet op een kaal \"en\" of \"of\"", () => {
+  const bron = "U kunt een Anw-uitkering krijgen als u:\nonder de AOW-leeftijd bent,\nen\neen kind onder de 18 heeft,\nof\nminstens 45% arbeidsongeschikt bent.\nWezenuitkering";
+  const cit = citeer(bron, "onder de AOW-leeftijd bent,", { heads: ["Wezenuitkering"] });
+  waar(cit, "geen citaat");
+  waar(cit.text.includes("45% arbeidsongeschikt bent."), "laatste voorwaarde ontbreekt: " + JSON.stringify(cit.text));
+  waar(!/\b(en|of)$/i.test(cit.text.trim()), "citaat eindigt op een kaal voegwoord");
+  waar(!cit.text.includes("Wezenuitkering"), "citaat liep door in de volgende sectie");
+});
+
 // --- steekproef op het echte corpus ---
 console.log("\nCORPUS-STEEKPROEF\n");
 test("citaten uit het echte corpus zijn compleet en letterlijk", () => {
