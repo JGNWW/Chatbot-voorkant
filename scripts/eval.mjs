@@ -23,12 +23,31 @@ loadCorpus(core);
 const meta = NO_SEM ? null : await loadSemantic(core, embArg);
 
 const url = i => core.CORPUS[i].url.replace("https://www.nederlandwereldwijd.nl", "");
-const hit = (u, exp) => exp.some(e => u.includes(e));
+// Een treffer is een URL die onder de verwachte pagina valt. Een SUBONDERWERP telt mee
+// (/paspoort-id-kaart/aanvragen beantwoordt "hoe vraag ik een paspoort aan"), maar een
+// LANDVARIANT alleen als de vraag dat land ook noemt.
+//
+// Waarom die uitzondering: van bijna elk onderwerp bestaat een versie per land, en die lijken
+// zo op elkaar dat ze de top 6 vullen. Met een kale substringtoets telde /verklaring/woonplaats
+// /ivoorkust als treffer voor "verklaring van woonplaats nodig" — terwijl de voorlichter dan een
+// regel uit Ivoorkust voorleest op een vraag die over geen enkel land ging. Dat is precies de
+// fout die we willen zien, en de meting maakte hem onzichtbaar: 97% gerapporteerd tegen 92%
+// eerlijk geteld, en de zes vragen die het verschil maken zijn stuk voor stuk van dit type.
+const hit = (u, exp, vraag) => exp.some(e => {
+  if (!u.includes(e)) return false;
+  const staart = u.slice(e.replace(/\/+$/, "").length).replace(/^\//, "");
+  if (!staart) return true;                                    // exact de verwachte pagina
+  const landen = core.detectCountries(staart.replace(/-/g, " "));
+  if (!landen.size) return true;                               // gewoon een subonderwerp
+  const gevraagd = core.detectCountries(vraag);
+  for (const l of landen) if (gevraagd.has(l)) return true;    // het land dat de vraag noemt
+  return false;
+});
 let recall = 0, mrrSum = 0, top1 = 0;
 const misses = [];
 for (const { q, expect } of evalSet) {
   const urls = (await retrieve(core, q, TOPK)).map(url);
-  const firstHit = urls.findIndex(u => hit(u, expect));
+  const firstHit = urls.findIndex(u => hit(u, expect, q));
   if (firstHit >= 0) { recall++; mrrSum += 1 / (firstHit + 1); if (firstHit === 0) top1++; }
   else misses.push({ q, expect, got: urls.slice(0, 4) });
 }
