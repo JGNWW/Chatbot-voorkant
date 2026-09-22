@@ -1772,15 +1772,23 @@ function buildCitation(text,span,heads,anchors,opts){
   //    tabelblok in het corpus is 181 woorden, dus dit laat de weergave niet ontsporen.
   while(b>a&&!units[b].tabel&&telWoorden(text.slice(units[a].start,units[b].end))>MAXW)b--;
 
-  // 4. Een opsomming hoort er compleet bij: eindigt het citaat op een dubbele punt, loop dan
-  //    door tot de lijst klaar is. Volledigheid weegt hier zwaarder dan de woordgrens.
-  if(/:$/.test(units[b].text.trim())){
-    while(b+1<units.length&&units[b+1].lijst){
-      const nx=units[b+1];
-      if(isBlokGrens(nx,H,A))break;
-      if(telWoorden(text.slice(units[a].start,nx.end))>MAXW*1.8)break;
-      b++;
-    }
+  // 4. Een opsomming hoort er compleet bij. Dat gold tot nu toe alleen als het citaat op een
+  //    dubbele punt eindigde; wees het model de eerste twee items aan, dan bleef het daarbij.
+  //    Op "welke landen horen bij de EU?" leverde dat een antwoord op met drie van de 27 landen
+  //    erin — letterlijk juist en toch fout. Een halve lijst is geen antwoord, dus we lopen ook
+  //    door als het citaat MIDDEN in de opsomming eindigt. Volledigheid weegt hier zwaarder dan
+  //    de woordgrens; de grens van 1,8 keer blijft als rem op een lijst van honderd landen.
+  while(b+1<units.length){
+    const nx=units[b+1];
+    if(!nx.lijst||isBlokGrens(nx,H,A))break;
+    // Na een aankondiging ("U heeft nodig:") hoort alles wat volgt bij de lijst, ook als de
+    // items hele zinnen zijn. Staan we MIDDEN in een lijst, dan lopen we alleen door zolang de
+    // volgende regel zelf nog een item is: een hele zin is daar de lopende tekst die na de
+    // opsomming weer begint, en die hoort er niet meer bij.
+    const naAankondiging=/:$/.test(units[b].text.trim());
+    if(!naAankondiging&&!(units[b].lijst&&!nx.af))break;
+    if(telWoorden(text.slice(units[a].start,nx.end))>MAXW*1.8)break;
+    b++;
   }
 
   // 5. Nooit eindigen midden in een zin. Een onafgemaakte laatste regel mag alleen blijven als

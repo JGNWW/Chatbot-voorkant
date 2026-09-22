@@ -358,6 +358,16 @@ test("T5. een citaat dat met \"Dan\" begint krijgt zijn voorwaarde erbij", () =>
   eq(cit2.text, "Dan krijgt u een e-mail.", "gewone vorige zin werd meegetrokken");
 });
 
+// T6. Wijst het model twee items van een opsomming aan, dan is de rest van de lijst geen
+//     overbodige tekst maar de rest van het antwoord.
+test("T6. een half aangewezen opsomming wordt afgemaakt", () => {
+  const bron = "De Europese Unie (EU) bestaat uit 27 landen:\nBelgi\u00eb\nBulgarije\nCyprus\nDenemarken\nZweden\nDe EU-landen Cyprus en Ierland zijn geen Schengenlanden.";
+  const cit = citeer(bron, "De Europese Unie (EU) bestaat uit 27 landen:\nBelgi\u00eb\nBulgarije");
+  waar(cit, "geen citaat");
+  waar(cit.text.includes("Zweden"), "lijst afgekapt: " + JSON.stringify(cit.text));
+  waar(!cit.text.includes("geen Schengenlanden"), "citaat liep door in de lopende tekst erna");
+});
+
 // --- steekproef op het echte corpus ---
 console.log("\nCORPUS-STEEKPROEF\n");
 test("citaten uit het echte corpus zijn compleet en letterlijk", () => {
