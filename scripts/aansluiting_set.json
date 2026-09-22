@@ -1,0 +1,114 @@
+[
+ {
+  "q": "wat zijn de eisen voor een pasfoto",
+  "url": "/paspoort-id-kaart/eisen-pasfoto",
+  "anker": "De pasfoto voor een Nederlands paspoort, ID-kaart of rijbewijs moet voldoen aan een aantal eisen.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "mijn visumaanvraag is afgewezen kan ik bezwaar maken",
+  "url": "/visum-nederland/bezwaar-afwijzing-aanvraag",
+  "anker": "Is uw visumaanvraag afgewezen, maar wilt u geen bezwaar maken?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "wat is een BSN en hoe krijg ik het in het buitenland",
+  "url": "/bsn",
+  "anker": "Een burgerservicenummer (BSN) is een persoonlijk nummer dat u gebruikt als u iets wilt regelen met de Nederlandse overheid. U kunt ook een BSN krijgen als u in het buitenland woont of niet de Nederlandse nationaliteit heeft.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "ik wil trouwen in het buitenland",
+  "url": "/trouwen",
+  "anker": "Wilt u als Nederlander trouwen buiten Nederland? Of woont u in het buitenland en wilt u in Nederland trouwen?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "scheiden in het buitenland",
+  "url": "/scheiden-buitenland",
+  "anker": "Bij een scheidingsprocedure in het buitenland heeft u mogelijk Nederlandse aktes en documenten nodig. Het kan zijn dat u deze geschikt moet maken voor gebruik in het land waar u wilt scheiden.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "buitenlands kind adopteren",
+  "url": "/adoptie-buitenlands-kind",
+  "anker": "Of u een kind kunt adopteren uit het buitenland hangt af van uw situatie.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "overledene terug naar nederland brengen",
+  "url": "/overlijden-buitenland/repatriering",
+  "anker": "De autoriteiten geven 2 documenten mee: de overlijdensakte en de laissez-passer (tijdelijk reisdocument). Deze documenten zijn nodig om de overledene terug te brengen naar Nederland.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "ik ben verkracht in het buitenland",
+  "url": "/slachtoffer-geweld/slachtoffer-van-seksueel-geweld-of-misbruik",
+  "anker": "Heeft u in het buitenland een nare seksuele ervaring gehad? Zoals seksueel geweld, verkrachting of ander grensoverschrijdend gedrag?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "ik heb geen stempapieren ontvangen",
+  "url": "/stemmen-buitenland/geen-stempapieren",
+  "anker": "U vindt de kandidatenlijst vlak voor de komende verkiezingen op de website van de gemeente Den Haag. Ik heb helemaal geen stempapieren ontvangen",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "basisexamen inburgering doen in het buitenland",
+  "url": "/basisexamen-inburgering",
+  "anker": "Kies het land of gebied waar u het basisexamen inburgering wilt doen. En bekijk of u daar het basisexamen inburgering buitenland kunt afleggen en wat u verder moet doen.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "afstand doen van de nederlandse nationaliteit",
+  "url": "/nederlandse-nationaliteit/hoe-afstand-doen",
+  "anker": "U kunt alleen afstand doen van uw Nederlandse nationaliteit als u 18 jaar of ouder bent en nog een andere nationaliteit heeft.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "mijn kind is geboren wat nu",
+  "url": "/geboorte-aangeven-buiten-nederland",
+  "anker": "Wordt uw kind buiten Nederland geboren?",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "verklaring van woonplaats nodig",
+  "url": "/verklaring/woonplaats",
+  "anker": "Wanneer u in het buitenland woont, heeft u soms een verklaring van woonplaats nodig.",
+  "score": 1,
+  "zeker": true
+ },
+ {
+  "q": "ziektewetuitkering ontvangen in het buitenland",
+  "url": "/ziektewetuitkering-buiten-nederland",
+  "anker": "Ik ontvang al een ziektewetuitkering van UWV",
+  "score": 0.832,
+  "zeker": true
+ },
+ {
+  "q": "arbeidsongeschiktheidsuitkering in het buitenland",
+  "url": "/uitkering-arbeidsongeschiktheid-buitenland",
+  "anker": "Ik ontvang nog geen arbeidsongeschiktheidsuitkering",
+  "score": 0.804,
+  "zeker": true
+ },
+ {
+  "q": "ik ga emigreren wat moet ik doorgeven",
+  "url": "/checklist-verhuizen-buitenland-emigreren",
+  "anker": "Nieuw woonadres in het buitenland doorgeven",
+  "score": 0.401,
+  "zeker": false
+ }
+]

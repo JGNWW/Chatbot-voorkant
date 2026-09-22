@@ -18,3 +18,7 @@ docs/data/embeddings.part.json
 # Lokale node-afhankelijkheden en tussenbestanden van het afstelscript
 node_modules/
 scripts/.tune_cache.json
+
+# Werkmap van de gauntlet: payloads, modelantwoorden en schermafdrukken van de
+# referentielat. Tussenresultaten van een meting, geen broncode.
+scratch/
