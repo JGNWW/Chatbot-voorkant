@@ -17,7 +17,7 @@ const fn = (naam) => { const i = html.indexOf("function " + naam + "("); return 
 const findFromSrc = fn("escRe") + "\n" + fn("findFrom");
 const Q = new Function(
   findFromSrc + "\n" + html.slice(A, B) +
-  "\nreturn {maakVerduidelijking,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch,citaatBlokken,blokkenAlsTekst,maakTabel};"
+  "\nreturn {maakVerduidelijking,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch,citaatBlokken,blokkenAlsTekst,maakTabel,lijstItems};"
 )();
 
 let gefaald = 0, gedaan = 0;
@@ -440,6 +440,38 @@ test("O5. platte tekst houdt de opbouw", () => {
   waar(t.includes("Paspoort 18 jaar en ouder: \u20ac 169,15"), "tabelrij niet als 'omschrijving: waarde': " + JSON.stringify(t));
   const l = Q.blokkenAlsTekst(blokken("U heeft nodig:\neen pasfoto\neen paspoort"));
   waar(/- een pasfoto/.test(l), "opsomming zonder streepjes: " + JSON.stringify(l));
+});
+
+// O6. Een ECHTE opsomming uit de bron-HTML (veld "lists", zie scripts/add_lists.py). Het
+//     stappenplan op de DigiD-pagina kwam als bolletjes op het scherm, een stap van twee zinnen
+//     werd twee bolletjes, en de "Let op:" eronder werd óók een bolletje.
+test("O6. genummerd stappenplan uit de bron blijft genummerd en compleet", () => {
+  const pagina = "Wilt u uw gebruikersnaam opvragen via de DigiD-website? Volg hiervoor deze stappen:\n" +
+    "Ga naar DigiD Gebruikersnaam opvragen\n.\nKlik op \u2018Volgende\u2019.\n" +
+    "Voer uw burgerservicenummer (BSN) en DigiD-wachtwoord in.\nLees waar u uw BSN vindt\n.\n" +
+    "U ontvangt een code per e-mail. Vul deze code in en tik op \u2018Volgende\u2019.\n" +
+    "Uw gebruikersnaam verschijnt in beeld.\nLet op:\nHeeft u geen toegang meer tot dit e-mailadres? Dan kunt u uw gebruikersnaam niet op deze manier opvragen.";
+  const item = (van, tot) => { const s = pagina.indexOf(van); return [s, pagina.indexOf(tot, s) + tot.length]; };
+  const lists = [[1, ...item("Ga naar", "\n."), ...item("Klik op", "\u2019."), ...item("Voer uw", "vindt\n."),
+    ...item("U ontvangt", "\u2019."), ...item("Uw gebruikers", "beeld.")]];
+  const anchors = new Set(["Ga naar DigiD Gebruikersnaam opvragen", "Lees waar u uw BSN vindt"]);
+  const b = Q.citaatBlokken(pagina, anchors, new Set(), Q.lijstItems(pagina, lists, pagina));
+  eq(b.map(x => x.soort).join(","), "alinea,lijst,alinea,alinea", "verkeerde opbouw: " + JSON.stringify(b));
+  const l = b[1];
+  eq(l.genummerd, true, "stappenplan niet genummerd");
+  eq(l.items.length, 5, "verkeerd aantal stappen: " + JSON.stringify(l.items));
+  eq(l.items[0], "Ga naar DigiD Gebruikersnaam opvragen.");
+  eq(l.items[2], "Voer uw burgerservicenummer (BSN) en DigiD-wachtwoord in. Lees waar u uw BSN vindt.");
+  eq(l.items[3], "U ontvangt een code per e-mail. Vul deze code in en tik op \u2018Volgende\u2019.");
+  eq(b[2].tekst, "Let op:", "'Let op:' werd een lijstitem");
+  // Begint het citaat halverwege, dan loopt de nummering door waar de bron is.
+  const deel = pagina.slice(pagina.indexOf("Voer uw"), pagina.indexOf("Let op:") - 1);
+  const b2 = Q.citaatBlokken(deel, anchors, new Set(), Q.lijstItems(pagina, lists, deel));
+  eq(b2[0].start, 3, "nummering begint niet bij stap 3");
+  const tekst = Q.blokkenAlsTekst(b2);
+  waar(/^3\. Voer uw/.test(tekst) && /\n5\. Uw gebruikersnaam/.test(tekst), "klembord zonder nummers: " + JSON.stringify(tekst));
+  // Zonder lijstgegevens (oude corpus) blijft de oude herkenning werken.
+  eq(Q.lijstItems(pagina, undefined, pagina), null);
 });
 
 // --- steekproef op het echte corpus ---

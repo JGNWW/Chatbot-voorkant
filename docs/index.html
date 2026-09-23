@@ -388,6 +388,8 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 .viewer-body .vp{margin:0 0 11px;line-height:1.62;white-space:normal;}
 /* Tabellen op de bronpagina blijven tabellen, met het gele citaat gewoon in de cellen. */
 .viewer-body .vtabeltitel{margin:0 0 5px;font-weight:600;}
+.viewer-body .vlijst{margin:0 0 11px;padding-left:24px;line-height:1.62;}
+.viewer-body .vlijst li{margin:0 0 4px;}
 .viewer-body .vtabel{border-collapse:collapse;width:100%;margin:0 0 13px;line-height:1.55;}
 .viewer-body .vtabel th{text-align:left;font-weight:700;color:var(--rijk-blauw);border-bottom:1px solid #cfdce7;padding:4px 12px 5px 0;}
 .viewer-body .vtabel td{padding:4px 12px 4px 0;border-bottom:1px solid #eef3f7;vertical-align:top;}
@@ -1330,6 +1332,11 @@ function anchorSet(i){
   if(!_ANCH[i])_ANCH[i]=new Set(((CORPUS[i]||{}).links||[]).map(l=>(Array.isArray(l)?l[0]:l||"").trim()).filter(Boolean));
   return _ANCH[i];
 }
+// De opbouw van een citaat (alinea's, opsommingen, tabellen), met de echte lijsten van de pagina.
+function blokkenVan(c){
+  const p=CORPUS[c.srcIdx]||{};
+  return citaatBlokken(c.text,anchorSet(c.srcIdx),headingSet(c.srcIdx),lijstItems(p.text,p.lists,c.text));
+}
 // ===== TURBOMODUS =============================================================================
 // Alles wat hieraan hangt is EXPERIMENTEEL en staat standaard uit. Staat het vinkje uit, dan
 // draait de app langs precies dezelfde weg als voordat turbo bestond — geen enkele codepad-
@@ -1438,7 +1445,7 @@ function startTekstDownload(){
     const zwaar=await t.json();
     if(zwaar.length!==CORPUS.length)throw new Error("corpus_text hoort niet bij corpus_lite");
     for(let i=0;i<CORPUS.length;i++){
-      CORPUS[i].text=zwaar[i].text;CORPUS[i].links=zwaar[i].links;CORPUS[i].headings=zwaar[i].headings;
+      CORPUS[i].text=zwaar[i].text;CORPUS[i].links=zwaar[i].links;CORPUS[i].headings=zwaar[i].headings;CORPUS[i].lists=zwaar[i].lists;
     }
   })();
   // Mislukt het zware deel, dan halen we alsnog het volledige corpus op. Liever een trage app
@@ -1450,7 +1457,7 @@ function startTekstDownload(){
     const vol=await r2.json();
     if(vol.length!==CORPUS.length)throw e;
     for(let i=0;i<CORPUS.length;i++){
-      CORPUS[i].text=vol[i].text;CORPUS[i].links=vol[i].links;CORPUS[i].headings=vol[i].headings;
+      CORPUS[i].text=vol[i].text;CORPUS[i].links=vol[i].links;CORPUS[i].headings=vol[i].headings;CORPUS[i].lists=vol[i].lists;
     }
   });
 }
@@ -1590,19 +1597,32 @@ function normForMatch(t){
 // Verdeelt een paginatekst in eenheden met offsets: elke eenheid is één hele zin, of anders een
 // kop, label of menu-item. Twee stappen: eerst regels samenvoegen die één alinea vormen, dan
 // die alinea's opsplitsen op zinsgrenzen.
-function buildUnits(text,anchors,heads){
+//
+// "items" (optioneel) zijn de ECHTE lijstitems uit de bron-HTML, als offsets in "text" (zie
+// lijstItems). Zijn die bekend, dan is een lijstitem precies één item — ook als het uit twee
+// zinnen of een zin met een link bestaat — en wordt er niet meer geraden: een regel na een
+// dubbele punt ("Let op:") is dan gewoon tekst. Zonder items (null) werkt het als altijd.
+function buildUnits(text,anchors,heads,items){
   const T=text||"";
   const H=heads instanceof Set?heads:new Set(heads||[]);
   const A=anchors instanceof Set?anchors:new Set(anchors||[]);
   const lines=[];let pos=0;
   for(const raw of T.split("\n")){lines.push({t:raw.trim(),start:pos,end:pos+raw.length});pos+=raw.length+1;}
+  const itemVan=k=>{if(!items||!lines[k]||!lines[k].t)return null;const l=lines[k];return items.find(it=>it.s<l.end&&it.e>l.start)||null;};
 
   // Stap 1: regels aaneenrijgen zolang de zin doorloopt. Na een dubbele punt volgt meestal een
   // OPSOMMING; die regels blijven juist los, anders plakt de weergave alle items aan elkaar.
   const alineas=[];let i=0,lijst=false;
   while(i<lines.length){
     if(!lines[i].t){i++;continue;}
-    if(lijst){
+    const it=itemVan(i);
+    if(it){
+      let j=i;while(j+1<lines.length&&(!lines[j+1].t||itemVan(j+1)===it)&&lines[j+1].start<it.e)j++;
+      while(j>i&&!lines[j].t)j--;
+      alineas.push({start:lines[i].start,end:lines[j].end,lijst:true,item:it});
+      i=j+1;continue;
+    }
+    if(lijst&&!items){
       const t=lines[i].t;
       if(H.has(t)||(eindigtZin(t)&&telWoorden(t)>15))lijst=false;             // lopende tekst hervat
       else{
@@ -1625,24 +1645,27 @@ function buildUnits(text,anchors,heads){
       if(!nx)break;
       if(eindigtZin(cur)||/:$/.test(cur))break;       // zin is af, of er volgt een opsomming
       if(H.has(cur)||H.has(nx))break;                 // een kop staat op zichzelf
+      if(itemVan(j+1))break;                          // een echt lijstitem begint
       // Doorlopen als de volgende regel de zin voortzet, of als er een inline element (link)
       // tussen staat waarna de zin aantoonbaar verdergaat.
       if(!(startVervolg(nx)||(nn&&startVervolg(nn))))break;
       j++;
     }
     alineas.push({start:lines[i].start,end:lines[j].end,lijst:false});
-    if(/:$/.test(lines[j].t))lijst=true;
+    if(/:$/.test(lines[j].t)&&!items)lijst=true;
     i=j+1;
   }
 
   // Stap 2: alinea's opdelen in zinnen, met behoud van offsets.
   const units=[];
-  const maak=(s,e,isLijst,al)=>{
+  const maak=(s,e,isLijst,al,item)=>{
     while(s<e&&/\s/.test(T[s]))s++;
     while(e>s&&/\s/.test(T[e-1]))e--;
     if(e<=s)return;
     const txt=T.slice(s,e);
-    units.push({start:s,end:e,text:txt,af:eindigtZin(txt),lijst:!!isLijst,al});
+    const u={start:s,end:e,text:txt,af:eindigtZin(txt),lijst:!!isLijst,al};
+    if(item)u.item=item;
+    units.push(u);
   };
   for(let ai=0;ai<alineas.length;ai++){
     const al=alineas[ai];
@@ -1652,10 +1675,10 @@ function buildUnits(text,anchors,heads){
       const na=seg.slice(m.index+m[0].length);
       // Alleen een zinsgrens als er daarna witruimte en een hoofdletter/cijfer volgt.
       if(na&&!/^\s+["'“(]?[A-ZÀ-Þ0-9]/.test(na))continue;
-      maak(al.start+last,al.start+m.index+m[0].length,al.lijst,ai);
+      maak(al.start+last,al.start+m.index+m[0].length,al.lijst,ai,al.item);
       last=m.index+m[0].length;
     }
-    if(last<seg.length)maak(al.start+last,al.end,al.lijst,ai);
+    if(last<seg.length)maak(al.start+last,al.end,al.lijst,ai,al.item);
   }
   markeerTabellen(units,H,A);
   return units;
@@ -2030,10 +2053,27 @@ function maakTabel(regels){
   if(waarden/data.length<0.8||links/data.length>0.2)return null;
   return {soort:"tabel",titel,kop,rijen:data};
 }
-function citaatBlokken(quote,anchors,heads){
+// De echte opsommingen van een pagina (veld "lists" uit scripts/add_lists.py: per lijst
+// [genummerd, s1, e1, s2, e2, …] als offsets in de paginatekst), omgerekend naar offsets BINNEN
+// het citaat. Geeft null als de pagina geen lijstgegevens heeft of het citaat niet letterlijk in
+// de tekst staat; dan valt de weergave terug op het raden aan de hand van dubbele punten.
+function lijstItems(paginaTekst,lists,quote){
+  if(!Array.isArray(lists)||!paginaTekst||!quote)return null;
+  const qs=paginaTekst.indexOf(quote);
+  if(qs<0)return null;
+  const qe=qs+quote.length,uit=[];
+  lists.forEach((L,li)=>{
+    for(let k=1;k+1<L.length;k+=2){
+      const s=L[k],e=L[k+1];
+      if(e>qs&&s<qe)uit.push({s:Math.max(s,qs)-qs,e:Math.min(e,qe)-qs,genummerd:!!L[0],nr:(k+1)/2,lijst:li});
+    }
+  });
+  return uit.sort((a,b)=>a.s-b.s);
+}
+function citaatBlokken(quote,anchors,heads,items){
   const H=heads instanceof Set?heads:new Set(heads||[]);
   const A=anchors instanceof Set?anchors:new Set(anchors||[]);
-  const units=buildUnits(quote||"",A,H);
+  const units=buildUnits(quote||"",A,H,items||null);
   const blokken=[];
   let i=0;
   while(i<units.length){
@@ -2050,8 +2090,20 @@ function citaatBlokken(quote,anchors,heads){
       blokken.push(maakTabel(regels)||{soort:"lijst",items:regels});
       i=j+1;continue;
     }
+    if(u.lijst&&u.item){
+      // Een echte opsomming uit de bron: elk item is één <li>, hoeveel zinnen het ook telt.
+      // Een genummerde lijst houdt zijn nummering, ook als het citaat halverwege begint.
+      const lijst=u.item.lijst,its=[];let vorige=null;
+      while(i<units.length&&units[i].lijst&&units[i].item&&units[i].item.lijst===lijst){
+        const x=units[i],t=vloeiendeRegel(x.text).replace(/^[•·∙◦*–-]\s+/,"");
+        if(t){if(x.item===vorige)its[its.length-1]+=" "+t;else its.push(t);vorige=x.item;}
+        i++;
+      }
+      if(its.length)blokken.push({soort:"lijst",items:its,genummerd:u.item.genummerd,start:u.item.nr});
+      continue;
+    }
     if(u.lijst){
-      let j=i;while(j+1<units.length&&units[j+1].lijst)j++;
+      let j=i;while(j+1<units.length&&units[j+1].lijst&&!units[j+1].item)j++;
       const items=[];
       for(const x of units.slice(i,j+1)){
         // Het bolletje uit de brontekst is de opsommingsMARKERING; in een <li> staat er al een.
@@ -2083,7 +2135,7 @@ function blokkenAlsTekst(blokken){
   const uit=[];
   for(const b of blokken){
     if(b.soort==="alinea"){uit.push(b.tekst);continue;}
-    if(b.soort==="lijst"){uit.push(b.items.map(t=>"- "+t).join("\n"));continue;}
+    if(b.soort==="lijst"){uit.push(b.items.map((t,k)=>(b.genummerd?((b.start||1)+k)+". ":"- ")+t).join("\n"));continue;}
     const regels=[];
     if(b.titel)regels.push(b.titel);
     if(b.kop)regels.push(b.kop[0]+": "+b.kop[1]);
@@ -2278,7 +2330,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 116";
+const APP_VERSION="build 117";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3602,7 +3654,7 @@ function brontegel(cit,nummer,i){
     +`</div>`
     +`<div class="bronkaart" id="bk${i}" role="tooltip">`
       +`<h4>${titel}</h4>`+sectieKruimel(cit)
-      +`<div class="pas">${blokkenHTML(citaatBlokken(cit.text,anchorSet(cit.srcIdx),headingSet(cit.srcIdx)),"pas")||escapeHtml(cit.text||"")}</div>`
+      +`<div class="pas">${blokkenHTML(blokkenVan(cit),"pas")||escapeHtml(cit.text||"")}</div>`
       +(rel?`<div class="voet">${rel}</div>`:"")
     +`</div></div>`;
 }
@@ -3626,7 +3678,7 @@ function fallbackCopy(t,cb){const ta=document.createElement("textarea");ta.value
 // een kolom losse bedragen zonder waar ze bij horen.
 function citaatAlsTekst(c){
   if(!c)return "";
-  const t=blokkenAlsTekst(citaatBlokken(c.text,anchorSet(c.srcIdx),headingSet(c.srcIdx)));
+  const t=blokkenAlsTekst(blokkenVan(c));
   return t||c.text||"";
 }
 function answerPlainText(r){
@@ -3711,8 +3763,10 @@ function exportFeedback(){
 function blokkenHTML(blokken,klasse){
   const k=klasse||"cite";
   return blokken.map(b=>{
-    if(b.soort==="lijst")
-      return `<ul class="${k}-lijst">`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</ul>`;
+    if(b.soort==="lijst"){
+      const tag=b.genummerd?"ol":"ul",start=b.genummerd&&b.start>1?` start="${b.start}"`:"";
+      return `<${tag} class="${k}-lijst"${start}>`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</${tag}>`;
+    }
     if(b.soort==="tabel"){
       const kop=b.kop?`<thead><tr><th>${escapeHtml(b.kop[0])}</th><th>${escapeHtml(b.kop[1])}</th></tr></thead>`:"";
       const rijen=b.rijen.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td class="${k}-waarde">${escapeHtml(r[1])}</td></tr>`).join("");
@@ -3723,7 +3777,7 @@ function blokkenHTML(blokken,klasse){
   }).join("");
 }
 function citeBodyHTML(c){
-  const blokken=citaatBlokken(c.text,anchorSet(c.srcIdx),headingSet(c.srcIdx));
+  const blokken=blokkenVan(c);
   return blokkenHTML(blokken,"cite")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
 }
 const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
@@ -3998,7 +4052,7 @@ function isContinuation(prev,cur){
 }
 // Render de paginatekst als een echte pagina: losse regels worden samengevoegd tot alinea's,
 // H2-koppen worden uitklapbare secties (de sectie met het citaat staat open) en het citaat blijft geel.
-function buildSourceHTML(fullText,quote,headings,links){
+function buildSourceHTML(fullText,quote,headings,links,lists){
   // Maak hrefs absoluut en linkify de (geëscapete) tekst met de echte pagina-links.
   const linkHref=h=>/^https?:|^mailto:|^tel:/i.test(h)?h:(h&&h[0]==="/"?"https://www.nederlandwereldwijd.nl"+h:h);
   const linkList=(links||[]).filter(l=>l&&l[0]&&l[0].length>=5).map(l=>[escapeHtml(l[0]),linkHref(l[1])]).sort((a,b)=>b[0].length-a[0].length);
@@ -4015,16 +4069,35 @@ function buildSourceHTML(fullText,quote,headings,links){
   const hmap=new Map();(headings||[]).forEach(([lvl,t])=>{if(t&&!hmap.has(t))hmap.set(t,lvl);});
   const lines=fullText.split("\n");
   const starts=[];let off=0;for(const l of lines){starts.push(off);off+=l.length+1;}
-  // 1) Blokken: kop, tabel, of samengevoegde alinea (char-offsets blijven 1:1 omdat \n -> spatie).
+  // De echte opsommingen van de pagina (zie scripts/add_lists.py): per regel het item waar hij
+  // bij hoort, zodat een stappenplan hier ook als genummerde lijst staat.
+  const items=[];
+  (Array.isArray(lists)?lists:[]).forEach((L,li)=>{for(let k=1;k+1<L.length;k+=2)items.push({s:L[k],e:L[k+1],genummerd:!!L[0],nr:(k+1)/2,lijst:li});});
+  const itemVan=k=>lines[k].trim()?items.find(it=>it.s<starts[k]+lines[k].length&&it.e>starts[k])||null:null;
+  // 1) Blokken: kop, tabel, lijst of samengevoegde alinea (char-offsets blijven 1:1 omdat \n -> spatie).
   const blocks=[];let i=0;
   while(i<lines.length){
     const line=lines[i],s=starts[i],e=s+line.length,lvl=hmap.get(line);
     if(lvl){blocks.push({h:lvl,s,e});i++;continue;}
     if(!line.trim()){i++;continue;}
+    const it=itemVan(i);
+    if(it){
+      // Alle opeenvolgende items van dezelfde lijst vormen één <ol>/<ul>.
+      const lijstItems=[];let j=i;
+      while(j<lines.length){
+        const x=itemVan(j);
+        if(!x){if(!lines[j].trim()){j++;continue;}break;}
+        if(x.lijst!==it.lijst)break;
+        if(!lijstItems.length||lijstItems[lijstItems.length-1]!==x)lijstItems.push(x);
+        j++;
+      }
+      blocks.push({h:0,lijst:it,items:lijstItems,s:lijstItems[0].s,e:lijstItems[lijstItems.length-1].e});
+      i=j;continue;
+    }
     // Een reeks korte regels zonder punt is op deze site een tabel; die hoort ook in de
     // bronviewer als tabel te staan, met het gele citaat gewoon in de cellen. Elke cel houdt
     // zijn eigen offsets, zodat de arcering precies blijft waar hij hoort.
-    const cel=k=>{const t=lines[k];return t.trim()&&!hmap.get(t)&&!eindigtZin(t)&&!/:$/.test(t.trim())&&telWoorden(t)<=MAX_TABELWOORDEN;};
+    const cel=k=>{const t=lines[k];return t.trim()&&!hmap.get(t)&&!eindigtZin(t)&&!/:$/.test(t.trim())&&telWoorden(t)<=MAX_TABELWOORDEN&&!itemVan(k);};
     if(cel(i)){
       let j=i;while(j+1<lines.length&&cel(j+1))j++;
       const cellen=[];for(let k=i;k<=j;k++)cellen.push({s:starts[k],e:starts[k]+lines[k].length,t:lines[k].trim()});
@@ -4035,7 +4108,7 @@ function buildSourceHTML(fullText,quote,headings,links){
       }
     }
     let pe=e,last=line,j=i+1;
-    while(j<lines.length){const nl=lines[j];if(hmap.get(nl)||!nl.trim())break;if(!isContinuation(last,nl))break;pe=starts[j]+nl.length;last=nl;j++;}
+    while(j<lines.length){const nl=lines[j];if(hmap.get(nl)||!nl.trim())break;if(itemVan(j)||!isContinuation(last,nl))break;pe=starts[j]+nl.length;last=nl;j++;}
     blocks.push({h:0,s,e:pe});i=j;
   }
   // 2) Render een tekstbereik met gele markering van het citaat (\n -> spatie).
@@ -4067,6 +4140,9 @@ function buildSourceHTML(fullText,quote,headings,links){
         let rijen="";
         for(let k=0;k+1<c.length;k+=2)rijen+=`<tr><td>${span(c[k].s,c[k].e)}</td><td class="vwaarde">${span(c[k+1].s,c[k+1].e)}</td></tr>`;
         piece=titel+`<table class="vtabel">${kop}<tbody>${rijen}</tbody></table>`;
+      }else if(b.lijst){
+        const tag=b.lijst.genummerd?"ol":"ul",start=b.lijst.genummerd&&b.lijst.nr>1?` start="${b.lijst.nr}"`:"";
+        piece=`<${tag} class="vlijst"${start}>`+b.items.map(x=>`<li>${span(x.s,x.e)}</li>`).join("")+`</${tag}>`;
       }else piece=`<p class="vp">${span(b.s,b.e)}</p>`;
       if(acc){acc.body+=piece;if(hits(b.s,b.e))acc.hit=true;}else out+=piece;
     }
@@ -4091,7 +4167,7 @@ async function openViewer(srcIdx,quote,url,title){
   await tekstKlaar();
   const page=Number.isInteger(srcIdx)?CORPUS[srcIdx]:null;
   const text=page?page.text:"";
-  const built=buildSourceHTML(text,quote,page&&page.headings,page&&page.links);
+  const built=buildSourceHTML(text,quote,page&&page.headings,page&&page.links,page&&page.lists);
   viewerTitle.textContent=title||(page&&page.title)||"Bronpagina";
   viewerOpen.href=textFragmentUrl(url||(page&&page.url),quote,page&&page.headings);
   viewerBody.innerHTML=(built.found?"":'<div class="viewer-note">Dit citaat kon niet exact op de pagina worden gemarkeerd; hieronder staat de volledige paginatekst.</div>')+built.html;
