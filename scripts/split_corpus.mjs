@@ -7,7 +7,7 @@
 // herrangschikking — seconden later, terwijl de voorlichter nog aan het typen is.
 //
 //   corpus_lite.json   titel + url + desc     1,4 MB rauw   0,11 MB gzip
-//   corpus_text.json   tekst + links + kopjes  18,9 MB rauw  1,40 MB gzip
+//   corpus_text.json   tekst + links + kopjes + lijsten 18,9 MB rauw  1,40 MB gzip
 //
 // De twee bestanden staan in DEZELFDE volgorde als corpus.json; de app voegt ze op index samen.
 // Klopt het aantal niet, dan valt turbo terug op het gewone corpus.json.
@@ -17,7 +17,13 @@ const corpus = JSON.parse(fs.readFileSync(new URL("../docs/data/corpus.json", im
 const dir = new URL("../docs/data/", import.meta.url).pathname;
 
 const lite = corpus.map(p => ({ title: p.title || "", url: p.url || "", desc: p.desc || "" }));
-const zwaar = corpus.map(p => ({ text: p.text || "", links: p.links || [], headings: p.headings || [] }));
+// "lists" alleen meenemen als hij er is: een ontbrekend veld betekent "niet gecontroleerd" (de app
+// raadt dan zelf), een lege lijst "gecontroleerd, geen opsommingen". Zie scripts/add_lists.py.
+const zwaar = corpus.map(p => {
+  const z = { text: p.text || "", links: p.links || [], headings: p.headings || [] };
+  if (Array.isArray(p.lists)) z.lists = p.lists;
+  return z;
+});
 
 // summary komt in het huidige corpus niet voor, maar tokensOf() leest het wel (p.summary||p.desc).
 // Zit het er ooit wel in, dan hoort het bij het lichte deel — anders wijkt de app af van de index.
