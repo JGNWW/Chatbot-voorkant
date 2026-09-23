@@ -1,0 +1,51 @@
+name: Samengevoegde branches opruimen
+
+# Elke Claude-sessie werkt op een eigen branch. Na het samenvoegen blijft die branch anders
+# eeuwig staan. Deze workflow verwijdert elke branch die niets meer bevat wat nog niet in main
+# zit (ahead_by == 0), behalve main zelf, beschermde branches en branches met een open PR.
+#
+# Draait na elke push naar main (dus na elke merge), elke nacht als vangnet, en handmatig via
+# Actions -> "Samengevoegde branches opruimen" -> Run workflow.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: branches-opruimen
+  cancel-in-progress: false
+
+jobs:
+  opruimen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verwijder branches die volledig in main zitten
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          main=$(gh api "repos/$REPO" --jq .default_branch)
+          open=$(gh pr list -R "$REPO" --state open --limit 200 --json headRefName --jq '.[].headRefName')
+
+          gh api --paginate "repos/$REPO/branches" --jq '.[] | select(.protected | not) | .name' |
+          while read -r b; do
+            [ "$b" = "$main" ] && continue
+            if grep -qxF -- "$b" <<<"$open"; then
+              echo "overslaan (open PR): $b"; continue
+            fi
+            ahead=$(gh api "repos/$REPO/compare/$main...$b" --jq .ahead_by)
+            if [ "$ahead" = "0" ]; then
+              echo "verwijderen (zit volledig in $main): $b"
+              gh api -X DELETE "repos/$REPO/git/refs/heads/$b"
+            else
+              echo "laten staan ($ahead commit(s) niet in $main): $b"
+            fi
+          done

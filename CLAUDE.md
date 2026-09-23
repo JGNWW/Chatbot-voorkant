@@ -21,3 +21,14 @@ genoeg, ook als een commit meerdere bestanden raakt.
 
 Vergeet je het toch, bump dan gewoon meteen naar het eerstvolgende nummer zodra het opvalt —
 het gaat om een oplopend, geen exact tellend nummer.
+
+# Oude branches
+
+Elke sessie maakt een eigen branch aan. Een branch die volledig in `main` zit (niets meer
+bevat wat `main` niet heeft) wordt automatisch verwijderd door
+`.github/workflows/branches-opruimen.yml`: na elke push naar `main`, elke nacht, en handmatig
+via Actions → "Samengevoegde branches opruimen" → Run workflow. Branches met een open PR of
+met nog niet samengevoegde commits blijven staan.
+
+Verwijder dus zelf geen branches (de sessieproxy staat alleen pushes naar de eigen branch toe)
+en pas deze workflow niet aan om ook branches met onsamengevoegd werk op te ruimen.
