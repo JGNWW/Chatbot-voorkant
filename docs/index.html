@@ -2278,7 +2278,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 115";
+const APP_VERSION="build 116";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2301,7 +2301,7 @@ function showWelcome(){
   document.body.classList.add("is-welcome");
   conv.innerHTML="";
   const p=document.createElement("p");p.className="empty welcome";
-  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij.<span class="hint">Typ de vraag van de beller, bijvoorbeeld:</span>';
+  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong><span class="hint">Typ de vraag van de beller, bijvoorbeeld:</span>';
   conv.appendChild(p);
   const s=document.createElement("div");s.className="samples";s.id="samples";
   SAMPLES.forEach(x=>{const b=document.createElement("button");b.textContent=x;b.onclick=()=>askText(x);s.appendChild(b);});
@@ -2355,9 +2355,8 @@ document.getElementById("reset").addEventListener("click",newConversation);
       if(licht)await tekstKlaar();
       PTOKENS=CORPUS.map(tokensOf);
     }
-    const withSum=CORPUS.filter(p=>p.summary).length;
-    document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
-      +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Typ de vraag van de beller, bijvoorbeeld:</span>";
+    document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong>"
+      +"<span class=\"hint\">Typ de vraag van de beller, bijvoorbeeld:</span>";
     corpusKlaar=true;refreshComposer();
     // Nu pas de zware bestanden: de app is bruikbaar, de rest komt terwijl er getypt wordt.
     if(licht)startTekstDownload();
