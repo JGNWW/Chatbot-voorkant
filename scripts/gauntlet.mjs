@@ -229,7 +229,7 @@ function citaatLogica() {
   const fn = naam => { const i = HTML.indexOf("function " + naam + "("); return HTML.slice(i, HTML.indexOf("\n}", i) + 2); };
   return new Function(
     fn("escRe") + "\n" + fn("findFrom") + "\n" + HTML.slice(A, B) +
-    "\nreturn {buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch};"
+    "\nreturn {buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,citaatBlokken,blokkenAlsTekst,normForMatch};"
   )();
 }
 
@@ -288,7 +288,9 @@ async function render() {
       const brugOk = Q.bridgeIsSafe(brugRuw, quote);
       rij.citaten.push({
         tekst: quote, url: kand.url, titel: kand.titel,
-        alineas: Q.quoteParagraphs(quote, anch),      // wat er letterlijk op het scherm komt
+        // Dezelfde opbouw als de app: een tabel of opsomming uit de bron blijft een tabel of
+        // opsomming op het scherm, niet losse regels achter elkaar geplakt.
+        blokken: Q.citaatBlokken(quote, anch, heads),
         brug: brugOk ? brugRuw : "", brugRuw, brugAfgekeurd: !!brugRuw && !brugOk,
         quoteExact: exact,                            // gaf het model de passage zelf letterlijk?
         letterlijk: plat(ptxt).includes(plat(quote)), // staat wat we TONEN op de pagina?
@@ -349,7 +351,13 @@ async function render() {
       tekst += "\n";
       if (c.brug) tekst += `  ${c.brug}\n`;
       else if (c.brugAfgekeurd) tekst += `  (brug afgekeurd door bridgeIsSafe: "${c.brugRuw}")\n`;
-      for (const a of c.alineas) tekst += `  | ${a}\n`;
+      for (const b of c.blokken) {
+        if (b.soort === "alinea") { tekst += `  | ${b.tekst}\n`; continue; }
+        if (b.soort === "lijst") { for (const it of b.items) tekst += `  | • ${it}\n`; continue; }
+        if (b.titel) tekst += `  | ${b.titel}\n`;
+        if (b.kop) tekst += `  | ${b.kop[0]} — ${b.kop[1]}\n`;
+        for (const [a, w] of b.rijen) tekst += `  | ${a}: ${w}\n`;
+      }
       tekst += `  bron: ${c.titel}\n        https://www.nederlandwereldwijd.nl${c.url}\n`;
     }
     tekst += "\n  FEITEN: " + [

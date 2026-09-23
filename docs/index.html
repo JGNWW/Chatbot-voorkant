@@ -169,6 +169,28 @@ body.is-welcome .empty{margin-top:0;}
 .cite-h:not(:first-child){margin-top:12px;}
 .cite-p{margin:0 0 7px;line-height:1.6;}
 .cite-p:last-child{margin-bottom:0;}
+/* Opsommingen en tabellen uit de bron houden hun vorm. Een tarieflijst die als losse regels
+   onder elkaar staat is aan de telefoon onbruikbaar: dan moet de voorlichter zelf uitzoeken
+   welk bedrag bij welk document hoort. */
+.cite-lijst{margin:0 0 7px;padding-left:20px;line-height:1.6;}
+.cite-lijst:last-child{margin-bottom:0;}
+.cite-lijst li{margin:0 0 3px;}
+.cite-lijst li::marker{color:var(--cap-blauw);}
+.cite-tabeltitel{margin:0 0 5px;font-weight:600;line-height:1.5;}
+.cite-tabel{border-collapse:collapse;width:100%;margin:0 0 7px;line-height:1.5;}
+.cite-tabel:last-child{margin-bottom:0;}
+.cite-tabel th{text-align:left;font-weight:600;color:var(--rijk-blauw);border-bottom:1px solid #bcd7ea;padding:3px 10px 4px 0;}
+.cite-tabel td{padding:3px 10px 3px 0;border-bottom:1px solid #e2edf5;vertical-align:top;}
+.cite-tabel tr:last-child td{border-bottom:0;}
+.cite-tabel .cite-waarde{white-space:nowrap;font-variant-numeric:tabular-nums;padding-right:0;}
+/* Zelfde opbouw, compacter, in de hover-kaart onder een bron. */
+.bronkaart .pas-lijst{margin:0;padding-left:18px;}
+.bronkaart .pas-p{margin:0 0 6px;}
+.bronkaart .pas-tabeltitel{margin:0 0 4px;font-weight:600;}
+.bronkaart .pas-tabel{border-collapse:collapse;width:100%;}
+.bronkaart .pas-tabel th{text-align:left;font-weight:600;padding:2px 8px 2px 0;}
+.bronkaart .pas-tabel td{padding:2px 8px 2px 0;vertical-align:top;}
+.bronkaart .pas-tabel .pas-waarde{white-space:nowrap;font-variant-numeric:tabular-nums;}
 /* Bron-kaartje direct onder de passage (bron dicht bij de bewering) */
 /* max-width op de VAKje-breedte en een krimpende titel: de kaart liep eerder buiten de bel
    omdat "Lees verder op de pagina →" niet mocht afbreken en de titel niet kromp. */
@@ -364,6 +386,13 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 .viewer-close:hover{background:var(--grijs);color:var(--rijk-blauw);}
 .viewer-body{padding:20px 22px;overflow-x:hidden;overflow-y:auto;line-height:1.65;font-size:.95rem;color:var(--ink);white-space:normal;overflow-wrap:anywhere;}
 .viewer-body .vp{margin:0 0 11px;line-height:1.62;white-space:normal;}
+/* Tabellen op de bronpagina blijven tabellen, met het gele citaat gewoon in de cellen. */
+.viewer-body .vtabeltitel{margin:0 0 5px;font-weight:600;}
+.viewer-body .vtabel{border-collapse:collapse;width:100%;margin:0 0 13px;line-height:1.55;}
+.viewer-body .vtabel th{text-align:left;font-weight:700;color:var(--rijk-blauw);border-bottom:1px solid #cfdce7;padding:4px 12px 5px 0;}
+.viewer-body .vtabel td{padding:4px 12px 4px 0;border-bottom:1px solid #eef3f7;vertical-align:top;}
+.viewer-body .vtabel tr:last-child td{border-bottom:0;}
+.viewer-body .vtabel .vwaarde{white-space:nowrap;font-variant-numeric:tabular-nums;padding-right:0;}
 .viewer-body .vh{font-weight:700;color:var(--rijk-blauw);line-height:1.3;}
 .viewer-body .vh1{font-size:1.22rem;margin:0 0 8px;}
 .viewer-body .vh3{font-size:1rem;color:#33495f;margin:14px 0 5px;}
@@ -1948,6 +1977,121 @@ function bridgeIsSafe(bridge,quote){
   if(/€|euro|procent|%/i.test(b)&&!/€|euro|procent|%/i.test(bron))return false;
   return true;
 }
+// ---- Wat STAAT er in een citaat: alinea's, opsommingen en tabellen --------------------------
+// De crawler levert een tabel als losse regels aan, en zo kwam hij ook op het scherm: twaalf
+// regels onder elkaar waarin de voorlichter zelf moet uitvogelen welk bedrag bij welk document
+// hoort. Deze functie geeft terug wat de brontekst IS, zodat de app een tabel als tabel en een
+// opsomming als opsomming kan tonen. Ze verandert geen woord: het zijn dezelfde regels, alleen
+// in kolommen en bolletjes gezet.
+//
+// Gedeeld met de bronviewer en met de kopieerfunctie, zodat het citaat in het antwoord, het
+// gearceerde citaat op de bronpagina en de tekst op het klembord dezelfde opbouw hebben.
+const vloeiendeRegel=t=>(t||"").replace(/\s*\n\s*/g," ").replace(/\s+([.,;:!?)\]])/g,"$1").replace(/([(\[])\s+/g,"$1").trim();
+// Een cel die niets anders IS dan een waarde: een bedrag (in welke munt dan ook), iets tussen
+// haakjes, een periode, of een van de vaste antwoorden uit de tarieftabellen. Hieraan is een
+// tabel te herkennen zonder de HTML: de ene kolom bestaat uit omschrijvingen, de andere uit
+// waarden.
+//
+// De toets kijkt naar hoe de cel BEGINT, niet of er ergens een cijfer in staat. Dat verschil is
+// het hele punt: "Paspoort 18 jaar en ouder" bevat een getal maar is een omschrijving, en met
+// een losse cijfertoets viel juist de kostentabel af waar dit allemaal om begonnen is.
+const MAANDEN="januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december";
+const TABELWAARDE=new RegExp(
+  "^(\\(" +                                   // (Sydney)
+  "|[€$£¥]" +                                 // € 169,15
+  "|[A-Z]{1,3}\\$" +                          // AU$ 43,00, US$ 23,10
+  "|[A-Z]{1,3}\\s*\\d" +                      // R 513,00
+  "|\\d" +                                    // 4 weken
+  "|gratis\\b|ja\\b|nee\\b|n\\.v\\.t\\." +
+  "|(week|" + MAANDEN + ")\\b[^a-z]*\\d" +      // Week 40, september 2026
+  ")","i");
+const lijktWaarde=s=>TABELWAARDE.test((s||"").trim());
+// Probeert van een reeks regels een tabel van twee kolommen te maken. Lukt dat niet overtuigend,
+// dan geeft hij null terug en tonen we de regels gewoon als opsomming — een tabel forceren waar
+// er geen is, is erger dan losse regels.
+const MIN_TABELRIJEN=2;
+function maakTabel(regels){
+  let titel=null,rest=regels;
+  // Een oneven aantal regels betekent dat de eerste regel de aankondiging van de tabel is
+  // ("Kosten paspoort of ID-kaart bij ambassade of consulaat-generaal").
+  if(rest.length%2===1){titel=rest[0];rest=rest.slice(1);}
+  if(rest.length<MIN_TABELRIJEN*2)return null;
+  const rijen=[];
+  for(let i=0;i<rest.length;i+=2)rijen.push([rest[i],rest[i+1]]);
+  // Kop of niet: staat er in de tweede cel van de eerste rij géén waarde ("Kosten", "EUR",
+  // "Toeslag") terwijl de rest wél waarden heeft, dan is dat de kolomkop.
+  const kop=!lijktWaarde(rijen[0][1])&&rijen.length>MIN_TABELRIJEN?rijen[0]:null;
+  const data=kop?rijen.slice(1):rijen;
+  if(data.length<MIN_TABELRIJEN)return null;
+  // De tweede kolom moet consequent waarden bevatten en de eerste juist niet; anders is het
+  // geen tabel maar een gewone lijst (een rij landnamen bijvoorbeeld).
+  const waarden=data.filter(r=>lijktWaarde(r[1])).length;
+  const links=data.filter(r=>lijktWaarde(r[0])).length;
+  if(waarden/data.length<0.8||links/data.length>0.2)return null;
+  return {soort:"tabel",titel,kop,rijen:data};
+}
+function citaatBlokken(quote,anchors,heads){
+  const H=heads instanceof Set?heads:new Set(heads||[]);
+  const A=anchors instanceof Set?anchors:new Set(anchors||[]);
+  const units=buildUnits(quote||"",A,H);
+  const blokken=[];
+  let i=0;
+  while(i<units.length){
+    const u=units[i];
+    if(u.tabel){
+      let j=i;while(j+1<units.length&&units[j+1].tabel)j++;
+      // Een tabelcel staat op een eigen regel, ook als meerdere cellen in één eenheid zitten
+      // (dat gebeurt als de tweede kolom tussen haakjes staat: "Australië" / "(Sydney)").
+      const regels=[];
+      for(const x of units.slice(i,j+1))for(const r of x.text.split("\n")){
+        const t=r.trim().replace(/^[•·∙◦*–-]\s+/,"");
+        if(t)regels.push(t);
+      }
+      blokken.push(maakTabel(regels)||{soort:"lijst",items:regels});
+      i=j+1;continue;
+    }
+    if(u.lijst){
+      let j=i;while(j+1<units.length&&units[j+1].lijst)j++;
+      const items=[];
+      for(const x of units.slice(i,j+1)){
+        // Het bolletje uit de brontekst is de opsommingsMARKERING; in een <li> staat er al een.
+        const t=vloeiendeRegel(x.text).replace(/^[•·∙◦*–-]\s+/,"");
+        if(!t)continue;
+        // Een kaal voegwoord op een eigen regel ("en", "of") is geen item maar hoort bij het
+        // vorige: los als bolletje leest het als een voorwaarde die er niet is.
+        if(/^(en|of)$/i.test(t)&&items.length)items[items.length-1]+=" "+t;
+        else items.push(t);
+      }
+      blokken.push({soort:"lijst",items});
+      i=j+1;continue;
+    }
+    // Gewone tekst: zinnen uit dezelfde bron-alinea vormen weer één alinea.
+    const al=u.al;let tekst="";
+    while(i<units.length&&!units[i].tabel&&!units[i].lijst&&units[i].al===al){
+      const t=vloeiendeRegel(units[i].text);
+      if(t)tekst+=(tekst?" ":"")+t;
+      i++;
+    }
+    if(tekst)blokken.push({soort:"alinea",tekst});
+  }
+  return blokken;
+}
+// Dezelfde opbouw als platte tekst, voor het klembord en voor "antwoord kopiëren": een tabel
+// wordt "omschrijving: waarde" per regel, een opsomming krijgt streepjes. Anders plakt de
+// voorlichter een kolom losse getallen in zijn e-mail.
+function blokkenAlsTekst(blokken){
+  const uit=[];
+  for(const b of blokken){
+    if(b.soort==="alinea"){uit.push(b.tekst);continue;}
+    if(b.soort==="lijst"){uit.push(b.items.map(t=>"- "+t).join("\n"));continue;}
+    const regels=[];
+    if(b.titel)regels.push(b.titel);
+    if(b.kop)regels.push(b.kop[0]+": "+b.kop[1]);
+    for(const [a,c] of b.rijen)regels.push(a+": "+c);
+    uit.push(regels.join("\n"));
+  }
+  return uit.join("\n\n");
+}
 // Splitst een citaat in alinea's voor weergave. De opdeling in ZINNEN is er voor het bepalen van
 // de citaatgrenzen; op het scherm hoort de tekst er weer uit te zien als in de bron. Zinnen uit
 // dezelfde bronalinea worden dus weer aaneengeschreven, en een inline link staat gewoon midden
@@ -3458,7 +3602,8 @@ function brontegel(cit,nummer,i){
       +`<span class="src-badge">${nummer}</span><span class="src-title">${titel}</span>`
     +`</div>`
     +`<div class="bronkaart" id="bk${i}" role="tooltip">`
-      +`<h4>${titel}</h4>`+sectieKruimel(cit)+`<p class="pas">${escapeHtml(cit.text||"")}</p>`
+      +`<h4>${titel}</h4>`+sectieKruimel(cit)
+      +`<div class="pas">${blokkenHTML(citaatBlokken(cit.text,anchorSet(cit.srcIdx),headingSet(cit.srcIdx)),"pas")||escapeHtml(cit.text||"")}</div>`
       +(rel?`<div class="voet">${rel}</div>`:"")
     +`</div></div>`;
 }
@@ -3477,6 +3622,14 @@ function copyText(t,btn){
 }
 function fallbackCopy(t,cb){const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);cb&&cb();}
 // Het hele antwoord als platte tekst (inleiding + citaten met bron) — handig om door te geven aan de burger.
+// Wat er op het klembord hoort te komen: dezelfde opbouw als op het scherm. Een tabel wordt
+// "omschrijving: waarde" per regel — plakt de voorlichter dit in een mail, dan staat er niet
+// een kolom losse bedragen zonder waar ze bij horen.
+function citaatAlsTekst(c){
+  if(!c)return "";
+  const t=blokkenAlsTekst(citaatBlokken(c.text,anchorSet(c.srcIdx),headingSet(c.srcIdx)));
+  return t||c.text||"";
+}
 function answerPlainText(r){
   const parts=[];
   for(const b of answerBlocks(r)){
@@ -3486,7 +3639,7 @@ function answerPlainText(r){
       // dan moet de voorwaarde waaronder het geldt er niet onderweg af vallen.
       const c=r.citations&&r.citations[b.ci];
       const pad=c&&c.sectie&&c.sectie.pad&&c.sectie.pad.length?"["+c.sectie.pad.join(" › ")+"] ":"";
-      parts.push(pad+"“"+b.text+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${b.sourceUrl})`:""));
+      parts.push(pad+"“"+(c?citaatAlsTekst(c):b.text)+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${b.sourceUrl})`:""));
     }
   }
   return parts.join("\n\n");
@@ -3550,12 +3703,29 @@ function exportFeedback(){
   const blob=new Blob(["﻿"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="leo-feedback.csv";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 }
-// Render de passage als rustige alinea's (kern-focus, geen ingesloten kop-opmaak).
+// Render de passage zoals hij op de bronpagina staat: alinea's als alinea's, opsommingen als
+// opsommingen en tabellen als tabellen. De tekst blijft letterlijk; alleen de vorm komt terug.
+//
+// Waarom dat uitmaakt: een tarieftabel kwam hiervoor op het scherm als twaalf losse regels
+// ("Document", "Kosten", "Paspoort 18 jaar en ouder", "€ 169,15", …) en dan moet de voorlichter
+// aan de telefoon zelf uitzoeken welk bedrag bij welk document hoort.
+function blokkenHTML(blokken,klasse){
+  const k=klasse||"cite";
+  return blokken.map(b=>{
+    if(b.soort==="lijst")
+      return `<ul class="${k}-lijst">`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</ul>`;
+    if(b.soort==="tabel"){
+      const kop=b.kop?`<thead><tr><th>${escapeHtml(b.kop[0])}</th><th>${escapeHtml(b.kop[1])}</th></tr></thead>`:"";
+      const rijen=b.rijen.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td class="${k}-waarde">${escapeHtml(r[1])}</td></tr>`).join("");
+      return (b.titel?`<p class="${k}-tabeltitel">${escapeHtml(b.titel)}</p>`:"")
+        +`<table class="${k}-tabel">${kop}<tbody>${rijen}</tbody></table>`;
+    }
+    return `<p class="${k}-p">${escapeHtml(b.tekst)}</p>`;
+  }).join("");
+}
 function citeBodyHTML(c){
-  // Eén alinea per ZIN-eenheid: een inline link staat in het corpus op een eigen regel, maar
-  // hoort in de weergave gewoon midden in zijn zin.
-  const alineas=quoteParagraphs(c.text,anchorSet(c.srcIdx));
-  return alineas.map(ln=>`<p class="cite-p">${escapeHtml(ln)}</p>`).join("")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
+  const blokken=citaatBlokken(c.text,anchorSet(c.srcIdx),headingSet(c.srcIdx));
+  return blokkenHTML(blokken,"cite")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
 }
 const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
 // Laat na een lokaal antwoord zien waar de tijd heen ging. Niet als opsmuk: zonder deze regel is
@@ -3779,7 +3949,7 @@ function renderResult(turn,r,voorlopig){
     const pre=b.getAttribute("data-prefill");
     b.onclick=pre?(()=>prefill(pre)):(()=>askText(b.getAttribute("data-q")));
   });
-  slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(r.citations[+b.getAttribute("data-ci")].text,b);});
+  slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(citaatAlsTekst(r.citations[+b.getAttribute("data-ci")]),b);});
   const openCite=el=>{const c=r.citations[+el.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);};
   slot.querySelectorAll(".cite-chip").forEach(el=>el.onclick=e=>{e.stopPropagation();openCite(el);});
   slot.querySelectorAll(".cite-body.clickable-cite, .src-card").forEach(el=>{
@@ -3846,12 +4016,25 @@ function buildSourceHTML(fullText,quote,headings,links){
   const hmap=new Map();(headings||[]).forEach(([lvl,t])=>{if(t&&!hmap.has(t))hmap.set(t,lvl);});
   const lines=fullText.split("\n");
   const starts=[];let off=0;for(const l of lines){starts.push(off);off+=l.length+1;}
-  // 1) Blokken: kop, of samengevoegde alinea (char-offsets blijven 1:1 omdat \n -> spatie).
+  // 1) Blokken: kop, tabel, of samengevoegde alinea (char-offsets blijven 1:1 omdat \n -> spatie).
   const blocks=[];let i=0;
   while(i<lines.length){
     const line=lines[i],s=starts[i],e=s+line.length,lvl=hmap.get(line);
     if(lvl){blocks.push({h:lvl,s,e});i++;continue;}
     if(!line.trim()){i++;continue;}
+    // Een reeks korte regels zonder punt is op deze site een tabel; die hoort ook in de
+    // bronviewer als tabel te staan, met het gele citaat gewoon in de cellen. Elke cel houdt
+    // zijn eigen offsets, zodat de arcering precies blijft waar hij hoort.
+    const cel=k=>{const t=lines[k];return t.trim()&&!hmap.get(t)&&!eindigtZin(t)&&!/:$/.test(t.trim())&&telWoorden(t)<=MAX_TABELWOORDEN;};
+    if(cel(i)){
+      let j=i;while(j+1<lines.length&&cel(j+1))j++;
+      const cellen=[];for(let k=i;k<=j;k++)cellen.push({s:starts[k],e:starts[k]+lines[k].length,t:lines[k].trim()});
+      const tab=cellen.length>=MIN_TABELREGELS?maakTabel(cellen.map(c=>c.t)):null;
+      if(tab&&!tab.titel&&cellen.length%2===0||tab&&tab.titel&&cellen.length%2===1){
+        blocks.push({h:0,tabel:tab,cellen,s:cellen[0].s,e:cellen[cellen.length-1].e});
+        i=j+1;continue;
+      }
+    }
     let pe=e,last=line,j=i+1;
     while(j<lines.length){const nl=lines[j];if(hmap.get(nl)||!nl.trim())break;if(!isContinuation(last,nl))break;pe=starts[j]+nl.length;last=nl;j++;}
     blocks.push({h:0,s,e:pe});i=j;
@@ -3873,7 +4056,21 @@ function buildSourceHTML(fullText,quote,headings,links){
     if(b.h===3){flushAcc();acc={sum:span(b.s,b.e),body:"",hit:hits(b.s,b.e)};}
     else if(b.h===2){flushAcc();out+=`<div class="vh vh2">${span(b.s,b.e)}</div>`;}
     else if(b.h===1){flushAcc();out+=`<div class="vh vh1">${span(b.s,b.e)}</div>`;}
-    else{const piece=`<p class="vp">${span(b.s,b.e)}</p>`;if(acc){acc.body+=piece;if(hits(b.s,b.e))acc.hit=true;}else out+=piece;}
+    else{
+      let piece;
+      if(b.tabel){
+        // De cellen staan op volgorde in de brontekst: eerst de eventuele aankondiging, dan
+        // (eventueel) de kolomkoppen, dan rij voor rij. span() per cel houdt de arcering heel.
+        const c=b.cellen.slice();
+        const titel=b.tabel.titel?`<p class="vp vtabeltitel">${span(c.shift().s,c[0]?c[0].s:b.e)}</p>`:"";
+        const kop=b.tabel.kop?`<thead><tr><th>${span(c[0].s,c[0].e)}</th><th>${span(c[1].s,c[1].e)}</th></tr></thead>`:"";
+        if(b.tabel.kop)c.splice(0,2);
+        let rijen="";
+        for(let k=0;k+1<c.length;k+=2)rijen+=`<tr><td>${span(c[k].s,c[k].e)}</td><td class="vwaarde">${span(c[k+1].s,c[k+1].e)}</td></tr>`;
+        piece=titel+`<table class="vtabel">${kop}<tbody>${rijen}</tbody></table>`;
+      }else piece=`<p class="vp">${span(b.s,b.e)}</p>`;
+      if(acc){acc.body+=piece;if(hits(b.s,b.e))acc.hit=true;}else out+=piece;
+    }
   }
   flushAcc();
   return {html:out,found:ms>=0};
