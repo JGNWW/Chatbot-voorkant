@@ -17,7 +17,7 @@ const fn = (naam) => { const i = html.indexOf("function " + naam + "("); return 
 const findFromSrc = fn("escRe") + "\n" + fn("findFrom");
 const Q = new Function(
   findFromSrc + "\n" + html.slice(A, B) +
-  "\nreturn {maakVerduidelijking,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch,citaatBlokken,blokkenAlsTekst,maakTabel,lijstItems};"
+  "\nreturn {maakVerduidelijking,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch,citaatBlokken,blokkenAlsTekst,maakTabel,lijstItems,structuurInAlinea};"
 )();
 
 let gefaald = 0, gedaan = 0;
@@ -472,6 +472,32 @@ test("O6. genummerd stappenplan uit de bron blijft genummerd en compleet", () =>
   waar(/^3\. Voer uw/.test(tekst) && /\n5\. Uw gebruikersnaam/.test(tekst), "klembord zonder nummers: " + JSON.stringify(tekst));
   // Zonder lijstgegevens (oude corpus) blijft de oude herkenning werken.
   eq(Q.lijstItems(pagina, undefined, pagina), null);
+});
+
+// O7. Volledig generatief: neemt de AI een stappenplan of tabel LETTERLIJK over, dan krijgt dat
+//     stuk zijn vorm uit de bron terug. Anders staan negen stappen achter elkaar in één alinea.
+test("O7. letterlijk overgenomen stappen en tabelrijen in een AI-alinea", () => {
+  const stappen = { soort: "lijst", genummerd: true, start: 1, items: ["Ga naar Mijn DigiD en log in met de DigiD app.",
+    "Klik op 'Meer details' (onder 'Met gebruikersnaam en wachtwoord').", "Kies 'Wachtwoord wijzigen'.", "Voer uw nieuwe wachtwoord 2 keer in."] };
+  const ai = "U kunt uw wachtwoord herstellen met de DigiD app. Ga naar Mijn DigiD en log in met de DigiD app. " +
+    "Klik op \u2018Meer details\u2019 (onder \u2018Met gebruikersnaam en wachtwoord\u2019). Kies 'Wachtwoord wijzigen'. Daarna bent u klaar.";
+  const b = Q.structuurInAlinea(ai, [stappen]);
+  eq(b.map(x => x.soort).join(","), "alinea,lijst,alinea", "verkeerde opbouw: " + JSON.stringify(b));
+  eq(b[0].tekst, "U kunt uw wachtwoord herstellen met de DigiD app.");
+  eq(b[1].items.length, 3); eq(b[1].genummerd, true); eq(b[1].start, 1);
+  eq(b[2].tekst, "Daarna bent u klaar.");
+  // Met nummers die het model zelf ervoor zette, en halverwege beginnend.
+  const b2 = Q.structuurInAlinea("3. Kies 'Wachtwoord wijzigen'. 4. Voer uw nieuwe wachtwoord 2 keer in.", [stappen]);
+  eq(b2.length, 1, JSON.stringify(b2)); eq(b2[0].start, 3);
+  // Eén losse stap is geen opsomming.
+  const b3 = Q.structuurInAlinea("Kies 'Wachtwoord wijzigen'. Dan bent u er.", [stappen]);
+  eq(b3.length, 1); eq(b3[0].soort, "alinea");
+  // Tabelrijen, met of zonder dubbele punt ertussen.
+  const tabel = { soort: "tabel", titel: null, kop: ["Document", "Kosten"], rijen: [["Paspoort 18 jaar en ouder", "\u20ac 169,15"], ["Paspoort t/m 17 jaar", "\u20ac 147,40"], ["ID-kaart", "\u20ac 167,80"]] };
+  const t = Q.structuurInAlinea("De kosten zijn: Paspoort 18 jaar en ouder: \u20ac 169,15, Paspoort t/m 17 jaar \u20ac 147,40.", [tabel]);
+  eq(t.map(x => x.soort).join(","), "alinea,tabel", JSON.stringify(t));
+  eq(t[1].rijen.length, 2);
+  waar(/^1\. Ga naar/.test(Q.blokkenAlsTekst(b.slice(1, 2))), "klembord zonder nummers");
 });
 
 // --- steekproef op het echte corpus ---
