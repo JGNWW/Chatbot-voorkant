@@ -142,6 +142,17 @@ body.is-welcome .empty{margin-top:0;}
 .gen-label{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a6d15;background:#fdf8ec;border:1px solid #ecdcae;border-radius:5px;padding:2px 7px;margin:0 0 8px;}
 .gen-p{font-size:.97rem;line-height:1.62;margin:0 0 10px;}
 .gen-p:last-child{margin-bottom:2px;}
+/* Een letterlijk overgenomen stappenplan of tabel in een AI-alinea houdt de vorm van de bron. */
+.gen-struct .gen-p{margin:0 0 6px;}
+.gen-lijst{margin:0 0 6px;padding-left:22px;line-height:1.6;font-size:.97rem;}
+.gen-lijst li{margin:0 0 3px;}
+.gen-lijst li::marker{color:var(--cap-blauw);}
+.gen-tabel{border-collapse:collapse;width:100%;margin:0 0 6px;line-height:1.5;font-size:.95rem;}
+.gen-tabel th{text-align:left;font-weight:600;color:var(--rijk-blauw);border-bottom:1px solid #bcd7ea;padding:3px 10px 4px 0;}
+.gen-tabel td{padding:3px 10px 3px 0;border-bottom:1px solid #e2edf5;vertical-align:top;}
+.gen-tabel tr:last-child td{border-bottom:0;}
+.gen-tabel .gen-waarde{white-space:nowrap;font-variant-numeric:tabular-nums;}
+.gen-tabeltitel{margin:0 0 4px;font-weight:600;}
 /* Bronnen onder een generatief antwoord: twee per regel, zodat vier bronnen twee regels beslaan
    in plaats van vier. Onder de 560px past er maar een naast elkaar. */
 .bronrooster{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:12px;}
@@ -2128,6 +2139,81 @@ function citaatBlokken(quote,anchors,heads,items){
   }
   return blokken;
 }
+// ---- Opsommingen en tabellen in een door AI geschreven alinea -------------------------------
+// In de generatieve modus schrijft het model lopende tekst ("Geen kopjes, geen opsommingstekens").
+// Neemt het een stappenplan of een tarieftabel LETTERLIJK over, dan verdwijnen daarmee de
+// nummers en de kolommen: negen stappen achter elkaar in één alinea. Deze functie zoekt in de
+// alinea naar stukken die woord voor woord een opsomming of tabel uit de bronnen zijn, en geeft
+// de alinea terug als blokken (zie citaatBlokken): tekst ervoor, de lijst of tabel, tekst erna.
+//
+// Alleen wat LETTERLIJK overeenkomt telt, en pas vanaf twee opeenvolgende items of rijen: één
+// losse zin die toevallig ook een lijstitem is, is geen opsomming. Wat getoond wordt is de tekst
+// uit de bron zelf; die was al gelijk aan wat het model schreef (op witruimte, hoofdletters en
+// typografische aanhalingstekens na).
+const LIJSTMERK=/^\s*(?:(?:\d{1,2}[.)]|[-•*])\s+)?/;
+function structuurInAlinea(tekst,bronBlokken){
+  const T=tekst||"";
+  const N=normForMatch(T),P=N.s;
+  const nf=t=>normForMatch(vloeiendeRegel(t)).s.trim();
+  // Staat needle (genormaliseerd) direct na pos, na een tussenstuk dat aan gap voldoet?
+  const volgt=(pos,needle,gap)=>{
+    if(!needle)return -1;
+    const m=P.slice(pos).match(gap);const st=pos+(m?m[0].length:0);
+    return P.startsWith(needle,st)?st+needle.length:-1;
+  };
+  const runs=[];
+  for(const b of bronBlokken||[]){
+    if(b.soort==="lijst"&&b.items.length>=2){
+      const its=b.items.map(nf);
+      let k=0,van=0;
+      while(k<its.length){
+        const i=its[k]?P.indexOf(its[k],van):-1;
+        if(i<0){k++;continue;}
+        let eind=i+its[k].length,j=k+1;
+        for(;j<its.length;j++){const e=volgt(eind,its[j],LIJSTMERK);if(e<0)break;eind=e;}
+        if(j-k>=2){
+          runs.push({a:i,b:eind,blok:{soort:"lijst",items:b.items.slice(k,j),genummerd:!!b.genummerd,start:(b.start||1)+k}});
+          van=eind;
+        }
+        k=j;
+      }
+    }
+    if(b.soort==="tabel"&&b.rijen.length>=2){
+      const rij=b.rijen.map(r=>[nf(r[0]),nf(r[1])]);
+      const CEL=/^\s*(?:[:=-]\s*)?/,RIJ=/^[\s,;.]*(?:en\s+)?/;
+      const rijNa=(pos,r,gap)=>{const e=volgt(pos,r[0],gap);return e<0?-1:volgt(e,r[1],CEL);};
+      let k=0,van=0;
+      while(k<rij.length){
+        const i=rij[k][0]?P.indexOf(rij[k][0],van):-1;
+        const e0=i<0?-1:rijNa(i,rij[k],/^/);
+        if(e0<0){k++;continue;}
+        let eind=e0,j=k+1;
+        for(;j<rij.length;j++){const e=rijNa(eind,rij[j],RIJ);if(e<0)break;eind=e;}
+        if(j-k>=2){
+          runs.push({a:i,b:eind,blok:{soort:"tabel",titel:null,kop:b.kop||null,rijen:b.rijen.slice(k,j)}});
+          van=eind;
+        }
+        k=j;
+      }
+    }
+  }
+  if(!runs.length)return [{soort:"alinea",tekst:T}];
+  runs.sort((x,y)=>x.a-y.a||(y.b-y.a)-(x.b-x.a));
+  const uit=[];let pos=0;
+  const orig=n=>n>=P.length?T.length:N.map[n];
+  const tekstStuk=(a,b)=>{
+    const t=T.slice(a,b).replace(/^[\s.,;]+/,"").replace(/\s*(?:\d{1,2}[.)]|[-•*])?\s*$/,"").trim();
+    if(/[a-z0-9à-ÿ]/i.test(t))uit.push({soort:"alinea",tekst:t});
+  };
+  for(const r of runs){
+    const a=orig(r.a);if(a<pos)continue;          // overlapt met een eerder gevonden blok
+    tekstStuk(pos,a);
+    uit.push(r.blok);
+    pos=r.b>=P.length?T.length:N.map[r.b-1]+1;
+  }
+  tekstStuk(pos,T.length);
+  return uit;
+}
 // Dezelfde opbouw als platte tekst, voor het klembord en voor "antwoord kopiëren": een tabel
 // wordt "omschrijving: waarde" per regel, een opsomming krijgt streepjes. Anders plakt de
 // voorlichter een kolom losse getallen in zijn e-mail.
@@ -2330,7 +2416,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 117";
+const APP_VERSION="build 118";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3101,7 +3187,7 @@ function answerBlocks(r){
   // naar dezelfde passages die anders letterlijk getoond zouden worden.
   if(r.generatief&&r.generatief.length){
     blokken.push({type:"generated",alineas:r.generatief,
-                  text:r.generatief.map(a=>a.tekst).join("\n\n")});
+                  text:r.generatief.map(a=>a.blokken?blokkenAlsTekst(a.blokken):a.tekst).join("\n\n")});
     (r.citations||[]).forEach((c,i)=>blokken.push({type:"source",text:c.text,
       sourceUrl:c.src?c.src.url:"",sourceTitle:c.src?c.src.title:"",
       verified:!!c.verified,srcIdx:c.srcIdx,ci:i,alleenBron:true}));
@@ -3561,7 +3647,9 @@ async function schrijfAntwoord(q,citations,key,onAlineas){
       afgevallen.push({soort:"getal",waarde:g,tekst:def});
       console.warn("alinea noemt een getal dat niet in de bron staat:",def.slice(0,80));continue;
     }
-    alineas.push({tekst:def,bronnen});
+    // Een letterlijk overgenomen stappenplan of tabel krijgt zijn vorm uit de bron terug.
+    const blokken=structuurInAlinea(def,bronnen.flatMap(n=>blokkenVan(citations[n-1])));
+    alineas.push(blokken.length>1||blokken[0].soort!=="alinea"?{tekst:def,bronnen,blokken}:{tekst:def,bronnen});
   }
   if(!alineas.length){
     GEN_REDEN=ruw.length?(afgevallen.length===1?"De enige alinea is afgekeurd: ":"Alle "+afgevallen.length+" alinea's zijn afgekeurd: ")+redenTekst(afgevallen)
@@ -3928,7 +4016,12 @@ function renderResult(turn,r,voorlopig){
         const lab=eersteAI?"AI":"";eersteAI=false;
         const alineas=blok.alineas.map(a=>{
           const chips=a.bronnen.map(n=>`<button type="button" class="cite-chip" data-ci="${n-1}" title="Bekijk de passage op de bronpagina">${n}</button>`).join("");
-          return `<p class="gen-p">${escapeHtml(a.tekst)} ${chips}</p>`;
+          if(!a.blokken)return `<p class="gen-p">${escapeHtml(a.tekst)} ${chips}</p>`;
+          // Met een opsomming of tabel erin: de bronnummers achter het laatste stuk tekst, of
+          // op een eigen regel als de alinea met de lijst eindigt.
+          const laatste=a.blokken[a.blokken.length-1];
+          const html=blokkenHTML(a.blokken,"gen");
+          return `<div class="gen-p gen-struct">`+(laatste.soort==="alinea"?html.replace(/<\/p>$/," "+chips+"</p>"):html+`<p class="gen-p gen-chips">${chips}</p>`)+`</div>`;
         }).join("");
         h+=`<div class="ans-row gen"><span class="ans-lab">${lab}</span><div class="ans-gen">`
           +`<span class="gen-label">door AI geschreven op basis van de bronnen hieronder</span>${alineas}`+(r.genHersteld&&r.genHersteld.length?`<p class="genherstel">${escapeHtml(herstelTekst(r.genHersteld))}</p>`:"")+`</div></div>`;
