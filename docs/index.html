@@ -321,7 +321,7 @@ body:not(.spraak-toon) .gesproken{display:none;}
 .welcome{font-style:normal;color:#3a4a5c;line-height:1.6;text-align:center;max-width:600px;margin:7vh auto 0;font-size:1.12rem;}
 .welcome-logo{display:block;width:84px;height:84px;border-radius:50%;object-fit:cover;margin:0 auto 18px;border:1px solid var(--rand);box-shadow:0 4px 16px rgba(20,40,70,.1);}
 .welcome strong{color:var(--rijk-blauw);font-size:1.32rem;display:block;margin-bottom:6px;font-weight:700;}
-.welcome .hint{display:block;margin-top:14px;color:var(--ink-licht);font-style:normal;font-size:.92rem;}
+.welcome .hint{display:block;margin-top:14px;color:var(--ink-licht);font-style:normal;font-size:1.12rem;}
 /* Typing-indicator: shimmer over de tekst (modern, zoals Claude) */
 /* display:inline-block + wat lucht links en rechts: de tekst is cursief, en bij
    background-clip:text steekt een schuine letter (de A van "Antwoord") buiten zijn vak en werd
@@ -2278,7 +2278,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 114";
+const APP_VERSION="build 115";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2301,7 +2301,7 @@ function showWelcome(){
   document.body.classList.add("is-welcome");
   conv.innerHTML="";
   const p=document.createElement("p");p.className="empty welcome";
-  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij.<span class="hint">Stel een vraag — bijvoorbeeld:</span>';
+  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij.<span class="hint">Typ de vraag van de beller, bijvoorbeeld:</span>';
   conv.appendChild(p);
   const s=document.createElement("div");s.className="samples";s.id="samples";
   SAMPLES.forEach(x=>{const b=document.createElement("button");b.textContent=x;b.onclick=()=>askText(x);s.appendChild(b);});
@@ -2357,7 +2357,7 @@ document.getElementById("reset").addEventListener("click",newConversation);
     }
     const withSum=CORPUS.filter(p=>p.summary).length;
     document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong> Ik zoek het letterlijke antwoord op de vraag van de burger op NederlandWereldwijd.nl en toon de bron erbij."
-      +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Stel een vraag — bijvoorbeeld:</span>";
+      +"<span class=\"hint\">"+CORPUS.length+" pagina's geladen"+(withSum?(" · "+withSum+" met AI-samenvatting"):"")+". Typ de vraag van de beller, bijvoorbeeld:</span>";
     corpusKlaar=true;refreshComposer();
     // Nu pas de zware bestanden: de app is bruikbaar, de rest komt terwijl er getypt wordt.
     if(licht)startTekstDownload();
