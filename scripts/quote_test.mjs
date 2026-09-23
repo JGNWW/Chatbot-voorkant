@@ -17,7 +17,7 @@ const fn = (naam) => { const i = html.indexOf("function " + naam + "("); return 
 const findFromSrc = fn("escRe") + "\n" + fn("findFrom");
 const Q = new Function(
   findFromSrc + "\n" + html.slice(A, B) +
-  "\nreturn {maakVerduidelijking,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch};"
+  "\nreturn {maakVerduidelijking,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch,citaatBlokken,blokkenAlsTekst,maakTabel};"
 )();
 
 let gefaald = 0, gedaan = 0;
@@ -383,6 +383,63 @@ test("T8. citaat eindigt niet op een kaal \"en\" of \"of\"", () => {
   waar(cit.text.includes("45% arbeidsongeschikt bent."), "laatste voorwaarde ontbreekt: " + JSON.stringify(cit.text));
   waar(!/\b(en|of)$/i.test(cit.text.trim()), "citaat eindigt op een kaal voegwoord");
   waar(!cit.text.includes("Wezenuitkering"), "citaat liep door in de volgende sectie");
+});
+
+// --- opmaak: wat de voorlichter op het scherm ziet ---
+console.log("\nOPMAAK\n");
+
+const blokken = (t) => Q.citaatBlokken(t, new Set(), new Set());
+
+// O1. Een tarieftabel wordt een tabel, met de aankondiging als titel en de kolomkoppen apart.
+test("O1. prijstabel wordt een tabel met kop en rijen", () => {
+  const b = blokken("Kosten paspoort of ID-kaart bij ambassade of consulaat-generaal\nDocument\nKosten\n" +
+    "Paspoort 18 jaar en ouder\n\u20ac 169,15\nPaspoort t/m 17 jaar\n\u20ac 147,40\nID-kaart 18 jaar en ouder\n\u20ac 167,80");
+  eq(b.length, 1, "verwachtte één blok");
+  eq(b[0].soort, "tabel", "geen tabel herkend");
+  eq(b[0].titel, "Kosten paspoort of ID-kaart bij ambassade of consulaat-generaal");
+  eq(JSON.stringify(b[0].kop), JSON.stringify(["Document", "Kosten"]));
+  eq(b[0].rijen.length, 3);
+  eq(JSON.stringify(b[0].rijen[0]), JSON.stringify(["Paspoort 18 jaar en ouder", "\u20ac 169,15"]));
+});
+
+// O2. Een rij landnamen is géén tabel: twee kolommen suggereren een verband dat er niet is.
+test("O2. een landenlijst blijft een opsomming", () => {
+  const b = blokken("De Europese Unie (EU) bestaat uit 27 landen:\nBelgi\u00eb\nBulgarije\nCyprus\nDenemarken");
+  eq(b.length, 2);
+  eq(b[0].soort, "alinea");
+  eq(b[1].soort, "lijst");
+  eq(b[1].items.length, 4);
+  waar(!b.some(x => x.soort === "tabel"), "landen als tabel getoond");
+});
+
+// O3. Staat de tweede kolom tussen haakjes, dan is er geen kolomkop: dat is meteen data.
+test("O3. tabel zonder kolomkop", () => {
+  const b = blokken("Australi\u00eb\n(Sydney)\nCanada\n(Vancouver)\nThailand\n(Bangkok)");
+  eq(b[0].soort, "tabel");
+  eq(b[0].kop, null, "eerste rij ten onrechte als kop gelezen");
+  eq(b[0].rijen.length, 3);
+});
+
+// O4. Het bolletje uit de bron is de markering, niet de inhoud; een kaal voegwoord hoort bij
+//     het item ervoor.
+test("O4. bolletjes en losse voegwoorden", () => {
+  const b = blokken("U kunt een Anw-uitkering krijgen als u:\nonder de AOW-leeftijd bent,\nen\neen kind onder de 18 heeft,\nof\nminstens 45% arbeidsongeschikt bent.");
+  const lijst = b.find(x => x.soort === "lijst");
+  waar(lijst, "geen opsomming herkend");
+  eq(lijst.items.length, 3, "voegwoorden werden losse bolletjes");
+  eq(lijst.items[0], "onder de AOW-leeftijd bent, en");
+  const met = blokken("Kosten voor naturalisatie\n\u2022    Naturalisatie 1 volwassene: \u20ac 1139\n\u2022    Mee-naturaliseren kind jonger dan 18: \u20ac 168");
+  const l2 = met.find(x => x.soort === "lijst");
+  waar(l2 && l2.items.every(t => !/^[\u2022*-]/.test(t)), "bolletje uit de bron bleef staan: " + JSON.stringify(l2 && l2.items));
+});
+
+// O5. Op het klembord hoort dezelfde opbouw te staan, anders plakt de voorlichter een kolom
+//     losse bedragen in zijn mail.
+test("O5. platte tekst houdt de opbouw", () => {
+  const t = Q.blokkenAlsTekst(blokken("Document\nKosten\nPaspoort 18 jaar en ouder\n\u20ac 169,15\nPaspoort t/m 17 jaar\n\u20ac 147,40\nID-kaart\n\u20ac 167,80"));
+  waar(t.includes("Paspoort 18 jaar en ouder: \u20ac 169,15"), "tabelrij niet als 'omschrijving: waarde': " + JSON.stringify(t));
+  const l = Q.blokkenAlsTekst(blokken("U heeft nodig:\neen pasfoto\neen paspoort"));
+  waar(/- een pasfoto/.test(l), "opsomming zonder streepjes: " + JSON.stringify(l));
 });
 
 // --- steekproef op het echte corpus ---

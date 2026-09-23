@@ -109,6 +109,29 @@ de voorlichter tóch "Wij hebben geen informatie over dit onderwerp" geven. Dat
 gebeurde bij elke vraag waarvan het antwoord in een TABEL staat — "wat kost een
 paspoort?" voorop. Een zoek-eval ziet dat niet; deze wel.
 
+## Hoe een citaat op het scherm komt
+
+Een citaat is altijd letterlijke brontekst, maar de VORM komt terug: alinea's blijven alinea's,
+opsommingen worden opsommingen en tabellen worden tabellen. Dat is nodig omdat de crawler een
+tabel als losse regels aanlevert — "Document", "Kosten", "Paspoort 18 jaar en ouder",
+"€ 169,15" — en zo onder elkaar moet de voorlichter aan de telefoon zelf uitzoeken welk bedrag
+bij welk document hoort.
+
+`citaatBlokken()` in `docs/index.html` bepaalt die opbouw, en alle plekken gebruiken dezelfde:
+het citaatblok in het antwoord, de hover-kaart onder de bron, het gearceerde citaat in de
+bronviewer, en de tekst die op het klembord belandt (daar wordt een tabelrij
+"omschrijving: waarde"). Een tabel wordt alleen als tabel getoond als de tweede kolom
+consequent waarden bevat (bedragen, periodes, iets tussen haakjes) en de eerste niet; anders
+blijft het een opsomming, want twee kolommen suggereren een verband dat er dan niet is.
+
+```bash
+node scripts/opmaak_proef.mjs [uitvoermap]   # schermafdrukken van citaat + bronviewer
+```
+
+Die beeldproef hoort bij deze regels: "onoverzichtelijk" is geen assertie, daar moet je naar
+kijken. `scripts/quote_test.mjs` bewaakt de regels zelf (tabel of opsomming, bolletjes,
+kolomkoppen, platte tekst).
+
 ## Aandachtspunten / vervolg
 
 - De trefwoord-ranking is een eenvoudige eerste stap. Voor betere relevantie kan
