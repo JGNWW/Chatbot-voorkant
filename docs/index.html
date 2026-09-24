@@ -271,14 +271,9 @@ ol.srclist li{margin:2px 0;}
 .keuze-optie[aria-pressed="true"]{border-color:var(--rijk-blauw);background:var(--blauw-bg);}
 .keuze-optie[aria-pressed="true"] .keuze-rond{border-color:var(--rijk-blauw);background:var(--rijk-blauw);box-shadow:inset 0 0 0 3px #fff;}
 .keuze-hint{margin:8px 0 0;font-size:.78rem;color:var(--ink-licht);}
-/* Een heel deel van de pagina: tussenkopjes, en gedempt wat bij elke keuze hetzelfde is. */
+/* Een heel deel van de pagina: met tussenkopjes. */
 .cite-kop{margin:10px 0 4px;font-weight:700;color:var(--rijk-blauw);line-height:1.4;}
 .cite-kop:first-child{margin-top:0;}
-.cite-body .zelfde{color:#8a8f96;}
-.alleen-verschil .cite-body .zelfde{display:none;}
-.zelfde-filter{display:flex;align-items:center;gap:7px;margin:8px 0 0 15px;font-size:.8rem;color:var(--ink-licht);cursor:pointer;}
-.zelfde-filter input{accent-color:var(--rijk-blauw);width:15px;height:15px;margin:0;}
-.zelfde-filter span{color:#8a8f96;}
 .followups{margin-top:18px;}
 .fup-list{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--rand);}
 .fup-list li:last-child .fup-row{border-bottom:none;}
@@ -1367,12 +1362,10 @@ function blokkenVan(c){
   const p=CORPUS[c.srcIdx]||{};
   return citaatBlokken(c.text,anchorSet(c.srcIdx),headingSet(c.srcIdx),lijstItems(p.text,p.lists,c.text));
 }
-// Een heel deel van een pagina (na een klik op een keuze): met tussenkopjes, en met de blokken
-// gemarkeerd die bij de andere keuzes letterlijk hetzelfde zijn.
+// Een heel deel van een pagina (na een klik op een keuze), met tussenkopjes.
 function sectieBlokken(c){
   const p=CORPUS[c.srcIdx]||{};
-  const bl=citaatBlokken(c.text,anchorSet(c.srcIdx),sectieKoppen(p,c.text),lijstItems(p.text,p.lists,c.text),{koppen:true});
-  return c.keuzeOpties?markeerGedeeld(bl,p,c.keuzeOpties,c.keuzeK):bl;
+  return citaatBlokken(c.text,anchorSet(c.srcIdx),sectieKoppen(p,c.text),lijstItems(p.text,p.lists,c.text),{koppen:true});
 }
 // ===== TURBOMODUS =============================================================================
 // Alles wat hieraan hangt is EXPERIMENTEEL en staat standaard uit. Staat het vinkje uit, dan
@@ -2421,22 +2414,6 @@ function sectiePad(p,k){
   for(let x=k;x>=0;x=boom[x].ouder)pad.unshift(boom[x].t);
   return pad;
 }
-// Welke blokken van een deel staan LETTERLIJK ook in alle andere keuzes? Op de rijbewijspagina
-// herhalen de drie situaties "Let op" en stap 1; wat écht verschilt is stap 2. Door het gedeelde
-// deel te dempen ziet de voorlichter in één oogopslag wat voor déze situatie anders is.
-const _vergelijk=t=>(t||"").replace(/\s*\n\s*/g," ").replace(/\s+([.,;:!?)\]])/g,"$1").replace(/([(\[])\s+/g,"$1").replace(/\s+/g," ").toLowerCase().trim();
-function markeerGedeeld(blokken,p,opties,k){
-  const anderen=opties.filter(x=>x!==k).map(x=>_vergelijk((sectieTekst(p,x)||{}).tekst));
-  if(!anderen.length)return blokken;
-  const overal=t=>{const v=_vergelijk(t);return v.length>0&&anderen.every(a=>a.includes(v));};
-  for(const b of blokken){
-    const delen=b.soort==="lijst"?b.items:b.soort==="tabel"?(b.rijen||[]).map(r=>r.join(" ")):[b.tekst];
-    b.zelfde=delen.length>0&&delen.every(overal);
-  }
-  // Alles gelijk (of niets) zegt niets: dan niets dempen.
-  if(blokken.every(b=>b.zelfde)||!blokken.some(b=>b.zelfde))blokken.forEach(b=>{b.zelfde=false;});
-  return blokken;
-}
 // ===== <</CITAAT-LOGICA>> ====================================================================
 
 const conv=document.getElementById("conv"),provSel=document.getElementById("provider"),modelSel=document.getElementById("model"),keyInput=document.getElementById("apikey"),keyLink=document.getElementById("keylink"),keyStatus=document.getElementById("keystatus"),modeBadge=document.getElementById("mode-badge"),sendBtn=document.getElementById("send");
@@ -2604,7 +2581,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 120";
+const APP_VERSION="build 121";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2863,7 +2840,7 @@ function kiesSectie(bronTurn,r,k){
   kz.beurt=turn;
   gesprekLoopt=true;
   const cit={text:sec.tekst,verified:true,src:srcOf(kz.idx),srcIdx:kz.idx,bridge:"",relevantie:null,
-    start:sec.start,sectie:{pad:sectiePad(p,k)},heleSectie:true,keuzeOpties:kz.opties,keuzeK:k};
+    start:sec.start,sectie:{pad:sectiePad(p,k)},heleSectie:true};
   const vorige=(r.restated_question||"").trim();
   const binnen=keuzeBinnen(p,k);
   const res={restated_question:vorige?vorige+" — "+n.t:n.t,citations:[cit],used:[srcOf(kz.idx)],related:[],note:"",
@@ -2871,20 +2848,11 @@ function kiesSectie(bronTurn,r,k){
   renderResult(turn,res);
   const bubble=turn.querySelector(".bubble.antwoord");
   if(bubble){
-    const body=bubble.querySelector(".cite-body");
-    if(body&&body.querySelector(".zelfde")){
-      const lab=document.createElement("label");lab.className="zelfde-filter";
-      lab.innerHTML=`<input type="checkbox"> Verberg wat bij elke keuze hetzelfde is <span>(grijs)</span>`;
-      lab.querySelector("input").onchange=e=>bubble.classList.toggle("alleen-verschil",e.target.checked);
-      body.insertAdjacentElement("afterend",lab);
-    }
     const m=document.createElement("div");m.className="meting";
     m.textContent="Direct uit de bronpagina · geen zoekronde, geen AI";
     bubble.appendChild(m);
   }
-  // Voor het gesprek: het eerste stuk dat voor deze keuze ANDERS is, niet het gedeelde "Let op".
-  const eigen=sectieBlokken(cit).find(b=>!b.zelfde&&b.soort!=="kop");
-  kz.hist={q:res.restated_question,summary:((eigen&&blokkenAlsTekst([eigen]))||sec.tekst).slice(0,220)};
+  kz.hist={q:res.restated_question,summary:sec.tekst.slice(0,220)};
   history.push(kz.hist);if(history.length>12)history.shift();
   refreshComposer();
   turn.scrollIntoView({behavior:"smooth",block:"start"});
@@ -4114,20 +4082,18 @@ function exportFeedback(){
 function blokkenHTML(blokken,klasse){
   const k=klasse||"cite";
   return blokken.map(b=>{
-    // "zelfde": dit blok staat letterlijk ook bij de andere keuzes (zie markeerGedeeld).
-    const z=b.zelfde?" zelfde":"";
     if(b.soort==="lijst"){
       const tag=b.genummerd?"ol":"ul",start=b.genummerd&&b.start>1?` start="${b.start}"`:"";
-      return `<${tag} class="${k}-lijst${z}"${start}>`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</${tag}>`;
+      return `<${tag} class="${k}-lijst"${start}>`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</${tag}>`;
     }
     if(b.soort==="tabel"){
       const kop=b.kop?`<thead><tr><th>${escapeHtml(b.kop[0])}</th><th>${escapeHtml(b.kop[1])}</th></tr></thead>`:"";
       const rijen=b.rijen.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td class="${k}-waarde">${escapeHtml(r[1])}</td></tr>`).join("");
-      return (b.titel?`<p class="${k}-tabeltitel${z}">${escapeHtml(b.titel)}</p>`:"")
-        +`<table class="${k}-tabel${z}">${kop}<tbody>${rijen}</tbody></table>`;
+      return (b.titel?`<p class="${k}-tabeltitel">${escapeHtml(b.titel)}</p>`:"")
+        +`<table class="${k}-tabel">${kop}<tbody>${rijen}</tbody></table>`;
     }
-    if(b.soort==="kop")return `<p class="${k}-kop${z}">${escapeHtml(b.tekst)}</p>`;
-    return `<p class="${k}-p${z}">${escapeHtml(b.tekst)}</p>`;
+    if(b.soort==="kop")return `<p class="${k}-kop">${escapeHtml(b.tekst)}</p>`;
+    return `<p class="${k}-p">${escapeHtml(b.tekst)}</p>`;
   }).join("");
 }
 function citeBodyHTML(c){
