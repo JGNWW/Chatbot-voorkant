@@ -248,13 +248,6 @@ ol.srclist li{margin:2px 0;}
 .section{margin-top:16px;font-size:.9rem;}
 .section ul{margin:4px 0 0;padding-left:18px;}
 .section .label{margin-bottom:6px;}
-/* Verduidelijkingen: zelfde rij-stijl als vervolgvragen, maar met blauwe tint = nog uit te vragen */
-/* Uitvraagvraag in de vervolgvragenlijst: geel streepje links, zodat zichtbaar is dat deze
-   vraag aan de BURGER gesteld wordt en het antwoord daarna preciezer wordt. */
-.fup-row.clar-row{border-left:3px solid var(--geel);background:#fffdf7;padding-left:11px;}
-.fup-row.clar-row:hover{background:#fff9ea;color:var(--rijk-blauw);}
-.fup-row.clar-row .fup-plus{color:#a87800;}
-.fup-row.clar-row:hover .fup-plus{background:#fdf0d0;}
 /* Keuzes uit de kopjes van de bronpagina: blauwe tint en rondjes, zodat het leest als "kies er
    één" en niet als nog een vervolgvraag. */
 .keuzeblok{margin-top:16px;border:1px solid var(--blauw-licht);background:#f6fafd;border-radius:12px;padding:11px 13px 12px;}
@@ -274,15 +267,31 @@ ol.srclist li{margin:2px 0;}
 /* Een heel deel van de pagina: met tussenkopjes. */
 .cite-kop{margin:10px 0 4px;font-weight:700;color:var(--rijk-blauw);line-height:1.4;}
 .cite-kop:first-child{margin-top:0;}
-.followups{margin-top:18px;}
-.fup-list{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--rand);}
-.fup-list li:last-child .fup-row{border-bottom:none;}
-.fup-list li{margin:0;}
-.fup-row{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--rand);padding:13px 2px;cursor:pointer;font-family:inherit;font-size:.95rem;color:var(--ink);transition:color .12s;}
-.fup-row:hover{color:var(--rijk-licht);}
-.fup-q{flex:1;line-height:1.4;}
-.fup-plus{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;color:var(--rijk-licht);transition:background .12s;}
-.fup-row:hover .fup-plus{background:var(--blauw-bg);}
+/* Uitvraag: wat de voorlichter aan de burger vraagt, met het antwoord direct in te vullen.
+   Zelfde familie als het keuzeblok: blauwe tint, vraag vet erboven. */
+.uitvraag{margin-top:16px;border:1px solid var(--blauw-licht);background:#f6fafd;border-radius:12px;padding:11px 13px 12px;}
+.uv-vraag{display:block;font-weight:700;color:var(--rijk-blauw);font-size:.98rem;margin-bottom:9px;}
+.uv-regel{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;}
+.uv-combo{position:relative;flex:1 1 240px;min-width:0;}
+.uv-combo input,.uv-tekst{width:100%;font:inherit;font-size:.95rem;color:var(--ink);background:#fff;border:1.5px solid var(--rand-sterk);border-radius:10px;padding:8px 36px 8px 12px;}
+.uv-tekst{padding-right:12px;flex:1 1 240px;width:auto;min-width:0;}
+.uv-combo input:focus,.uv-tekst:focus{outline:none;border-color:var(--rijk-licht);box-shadow:0 0 0 3px rgba(0,123,199,.15);}
+.uv-pijl{position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--ink-licht);}
+.uv-lijst{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);max-height:248px;overflow-y:auto;margin:0;padding:4px;list-style:none;background:#fff;border:1px solid var(--rand-sterk);border-radius:10px;box-shadow:0 8px 24px rgba(20,40,70,.14);}
+.uv-lijst li{padding:7px 10px;border-radius:7px;cursor:pointer;font-size:.93rem;}
+.uv-lijst li[aria-selected="true"],.uv-lijst li:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
+.uv-lijst li mark{background:none;color:inherit;font-weight:700;}
+.uv-lijst .leeg,.uv-lijst .leeg:hover{color:var(--ink-licht);cursor:default;background:none;}
+.uv-knop{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:.9rem;font-weight:600;color:#fff;background:var(--rijk-licht);border:none;border-radius:10px;padding:8px 16px;cursor:pointer;}
+.uv-knop:hover{background:var(--rijk-donker);}
+.uv-knop:disabled{background:#9fc6e2;cursor:not-allowed;}
+.uv-knop:focus-visible{outline:2px solid var(--rijk-blauw);outline-offset:2px;}
+.uv-hint{margin:8px 0 0;font-size:.78rem;color:var(--ink-licht);}
+/* Een deel van een samengestelde vraag dat niet beantwoord is: meteen te stellen. */
+.openblok{margin-top:16px;}
+.open-rij{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:.93rem;color:var(--rijk-blauw);font-weight:600;background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:8px 12px;margin-top:6px;cursor:pointer;}
+.open-rij:hover{border-color:var(--rijk-licht);background:var(--blauw-bg);}
+.open-rij svg{flex:0 0 auto;color:var(--rijk-licht);}
 a{color:var(--rijk-licht);}
 /* De wachtregel breekt over twee regels omdat de bel tijdens het laden weinig inhoud heeft en
    dus smal is. white-space:nowrap is geprobeerd en weer weggehaald: de bel groeit dan niet mee,
@@ -2603,7 +2612,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 122";
+const APP_VERSION="build 123";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2615,7 +2624,6 @@ setSettings(!aiKlaar());
 
 const inputEl=document.getElementById("input");
 function askText(t){inputEl.value=t;refreshComposer();document.getElementById("form").requestSubmit();}
-function prefill(t){inputEl.value=t;inputEl.focus();inputEl.setSelectionRange(t.length,t.length);}
 
 const samples=document.getElementById("samples");
 SAMPLES.forEach(s=>{const b=document.createElement("button");b.textContent=s;b.onclick=()=>askText(s);samples.appendChild(b);});
@@ -2866,7 +2874,7 @@ function kiesSectie(bronTurn,r,k){
   const vorige=(r.restated_question||"").trim();
   const binnen=keuzeBinnen(p,k);
   const res={restated_question:vorige?vorige+" — "+n.t:n.t,citations:[cit],used:[srcOf(kz.idx)],related:[],note:"",
-    clarifications:[],followups:[],uitSectie:true,keuze:binnen?Object.assign(binnen,{idx:kz.idx}):null};
+    clarifications:[],uitSectie:true,keuze:binnen?Object.assign(binnen,{idx:kz.idx}):null};
   renderResult(turn,res);
   const bubble=turn.querySelector(".bubble.antwoord");
   if(bubble){
@@ -2876,6 +2884,188 @@ function kiesSectie(bronTurn,r,k){
   }
   kz.hist={q:res.restated_question,summary:sec.tekst.slice(0,220)};
   history.push(kz.hist);if(history.length>12)history.shift();
+  refreshComposer();
+  turn.scrollIntoView({behavior:"smooth",block:"start"});
+}
+// ---- Uitvragen met een invulveld --------------------------------------------------------------
+// Moet de voorlichter iets aan de burger vragen, dan staat die vraag in het antwoord met een
+// veld eronder. Het begin van het antwoord staat er al in ("Ik woon in "); versturen stelt de
+// aangevulde vraag, met het gesprek als context.
+//
+// Gaat de vraag over een LAND en heeft de bronpagina een versie per land, dan is het veld een
+// landenkiezer. Een keuze toont dan direct de landenpagina, zonder zoekronde of model — net als
+// de keuzeknoppen uit de kopjes. Een land dat er niet bij staat, gaat als gewone vraag de
+// zoekmachine in.
+const LANDVRAAG=/\b(land|landen|woonland)\b|waar (woont|verblijft|bent|wonen)\b/i;
+const LANDPREFILL=/\b(woon|verblijf|ben|wonen|zit)\s+(in|op)\s*$/i;
+function isLandVraag(c){return LANDVRAAG.test(c.question||"")||LANDPREFILL.test(c.prefill||"");}
+// Leesbare landnaam bij een URL-segment ("filipijnen" -> "de Filipijnen"), uit de paginatitels:
+// die schrijven het land voluit, met hoofdletters, trema's en lidwoord.
+let _LANDNAAM=null;
+function landNaam(slug){
+  if(!_LANDNAAM){
+    _LANDNAAM=new Map();
+    if(!PCOUNTRY)buildCountries();
+    for(let i=0;i<CORPUS.length;i++){
+      const c=PCOUNTRY[i];if(!c||_LANDNAAM.has(c))continue;
+      // Alleen echte woorden: een titel eindigt vaak op "| NederlandWereldwijd".
+      const woorden=(CORPUS[i].title||"").replace(/[?!.,:;()|]/g," ").split(/\s+/).filter(w=>/[a-z0-9]/i.test(w));
+      const doel=c.replace(/-/g," "),n=doel.split(" ").length;
+      // "Amerikaans-Samoa" is één woord in de titel maar twee in het URL-segment: probeer dus
+      // elke lengte tot n.
+      zoek:for(let k=0;k<woorden.length;k++)for(let m=1;m<=n&&k+m<=woorden.length;m++){
+        const stuk=woorden.slice(k,k+m).join(" ");
+        if(fold(stuk).replace(/[^a-z0-9]+/g," ").trim()!==doel)continue;
+        const lw=k>0&&/^(de|het)$/i.test(woorden[k-1])?woorden[k-1].toLowerCase()+" ":"";
+        _LANDNAAM.set(c,{naam:stuk,metLidwoord:lw+stuk});break zoek;
+      }
+    }
+  }
+  const x=_LANDNAAM.get(slug);if(x)return x;
+  const naam=slug.replace(/-/g," ").replace(/^./,t=>t.toUpperCase());
+  return {naam,metLidwoord:naam};
+}
+// De landenpagina's die bij een bronpagina horen: /paspoort-id-kaart/buitenland heeft
+// /paspoort-id-kaart/buitenland/paspoort-spanje enz. Is de bron zelf al een landenpagina, dan
+// zijn het de zusters. Pas vanaf vijf landen is het een landenkiezer; minder is toeval.
+const _LANDENBIJ=new Map();
+const padVan=i=>((CORPUS[i]||{}).url||"").replace(/^https?:\/\/[^/]+/,"").replace(/\/+$/,"");
+const mapVan=pad=>pad.slice(0,pad.lastIndexOf("/"));
+function landenBij(idx){
+  if(_LANDENBIJ.has(idx))return _LANDENBIJ.get(idx);
+  if(!FAMILY)buildFamilies();
+  const eigen=padVan(idx),ouder=PCOUNTRY[idx]?mapVan(eigen):eigen;
+  const lijst=[],gezien=new Set();
+  for(let j=0;j<CORPUS.length;j++){
+    const c=PCOUNTRY[j];if(!c||gezien.has(c))continue;
+    const pj=padVan(j);
+    if(mapVan(pj)===ouder||(!PCOUNTRY[idx]&&FAMILY[j]===eigen)){gezien.add(c);lijst.push({j,slug:c,...landNaam(c)});}
+  }
+  lijst.sort((a,b)=>a.naam.localeCompare(b.naam,"nl"));
+  const uit=lijst.length>=5?lijst:null;
+  _LANDENBIJ.set(idx,uit);return uit;
+}
+function landenVoor(r){
+  for(const c of r.citations||[]){const l=landenBij(c.srcIdx);if(l)return l;}
+  return null;
+}
+function uitvraagHTML(r,c,n){
+  const id="uv-"+Math.random().toString(36).slice(2,8);
+  const landen=isLandVraag(c)?landenVoor(r):null;
+  const kop=`<label class="uv-vraag" for="${id}">${escapeHtml(c.question)}</label>`;
+  if(landen){
+    return `<form class="uitvraag" data-n="${n}" data-land="1" autocomplete="off">${kop}<div class="uv-regel">`
+      +`<div class="uv-combo"><input id="${id}" type="text" role="combobox" aria-expanded="false" aria-controls="${id}-l" aria-autocomplete="list" placeholder="Typ of kies een land…">`
+      +`<svg class="uv-pijl" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`
+      +`<ul class="uv-lijst" id="${id}-l" role="listbox" hidden></ul></div>`
+      +`<button class="uv-knop" type="submit" disabled>Toon antwoord ${ICON_ARROW}</button></div>`
+      +`<p class="uv-hint">Vraag de burger naar het land. De app toont dan direct de landenpagina, zonder nieuwe zoekronde.</p></form>`;
+  }
+  return `<form class="uitvraag" data-n="${n}" autocomplete="off">${kop}<div class="uv-regel">`
+    +`<input class="uv-tekst" id="${id}" type="text" value="${escapeHtml(c.prefill||"")}">`
+    +`<button class="uv-knop" type="submit">Vraag opnieuw ${ICON_ARROW}</button></div>`
+    +`<p class="uv-hint">Vul het antwoord van de burger aan. Leo zoekt dan opnieuw, met deze vraag erbij.</p></form>`;
+}
+function koppelUitvraag(fm,bronTurn,r){
+  const c=(r.clarifications||[])[+fm.dataset.n];if(!c)return;
+  const inp=fm.querySelector("input"),knop=fm.querySelector(".uv-knop");
+  if(!fm.dataset.land){
+    // Cursor achter de prefill, zodat de voorlichter meteen verder typt. Bij een klik zet de
+    // browser de cursor pas bij het loslaten neer, dus dan nog een keer.
+    let net=false;
+    const naarEind=()=>{const n=inp.value.length;inp.setSelectionRange(n,n);};
+    inp.addEventListener("focus",()=>{net=true;naarEind();});
+    inp.addEventListener("mouseup",()=>{if(net)naarEind();net=false;});
+    fm.addEventListener("submit",e=>{
+      e.preventDefault();
+      const t=inp.value.trim();
+      if(!t||t===(c.prefill||"").trim()){inp.focus();return;}
+      askText(t);
+    });
+    return;
+  }
+  const landen=landenVoor(r)||[];
+  const lijst=fm.querySelector(".uv-lijst");
+  let treffers=[],actief=-1,gekozen=null;
+  const zoek=q=>{
+    const f=fold(q.trim());
+    if(!f)return landen.map((l,i)=>i);
+    const begin=[],midden=[];
+    landen.forEach((l,i)=>{const nm=fold(l.naam);const p=nm.indexOf(f);
+      if(p===0||nm.includes(" "+f)||nm.includes("-"+f))begin.push(i);else if(p>0)midden.push(i);});
+    return begin.concat(midden);
+  };
+  const markeer=(naam,q)=>{
+    const f=fold(q.trim());const p=f?fold(naam).indexOf(f):-1;
+    if(p<0)return escapeHtml(naam);
+    return escapeHtml(naam.slice(0,p))+"<mark>"+escapeHtml(naam.slice(p,p+f.length))+"</mark>"+escapeHtml(naam.slice(p+f.length));
+  };
+  const toon=()=>{
+    treffers=zoek(inp.value);
+    lijst.innerHTML=treffers.length
+      ?treffers.map((i,n)=>`<li role="option" id="${lijst.id}-${i}" data-i="${i}" aria-selected="${n===actief}">${markeer(landen[i].naam,inp.value)}</li>`).join("")
+      :'<li class="leeg" role="option" aria-disabled="true">Geen land gevonden. Leo zoekt dan opnieuw met wat je typte.</li>';
+    lijst.hidden=false;inp.setAttribute("aria-expanded","true");
+    const a=lijst.querySelector('[aria-selected="true"]');
+    if(a){a.scrollIntoView({block:"nearest"});inp.setAttribute("aria-activedescendant",a.id);}else inp.removeAttribute("aria-activedescendant");
+  };
+  const sluit=()=>{lijst.hidden=true;inp.setAttribute("aria-expanded","false");actief=-1;};
+  const kies=i=>{gekozen=i;inp.value=landen[i].naam;knop.disabled=false;sluit();};
+  inp.addEventListener("focus",()=>{actief=-1;toon();});
+  inp.addEventListener("input",()=>{
+    actief=0;const f=fold(inp.value.trim());
+    const e=landen.findIndex(l=>fold(l.naam)===f||fold(l.metLidwoord)===f);
+    gekozen=e>=0?e:null;
+    knop.disabled=!inp.value.trim();     // een onbekend land mag ook: dan zoekt Leo opnieuw
+    toon();
+  });
+  inp.addEventListener("keydown",e=>{
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){
+      e.preventDefault();if(lijst.hidden){toon();return;}
+      const n=treffers.length;if(!n)return;
+      actief=(actief+(e.key==="ArrowDown"?1:-1)+n)%n;toon();
+    }else if(e.key==="Enter"&&!lijst.hidden&&actief>=0&&treffers[actief]!==undefined){e.preventDefault();kies(treffers[actief]);}
+    else if(e.key==="Escape")sluit();
+  });
+  lijst.addEventListener("mousedown",e=>{const li=e.target.closest("li[data-i]");if(li){e.preventDefault();kies(+li.dataset.i);}});
+  inp.addEventListener("blur",()=>setTimeout(sluit,100));
+  fm.addEventListener("submit",e=>{
+    e.preventDefault();
+    if(gekozen!==null){toonLandenpagina(bronTurn,r,c,landen[gekozen]);return;}
+    const t=inp.value.trim();if(!t)return;
+    askText((c.prefill||"")+t);
+  });
+}
+// Toon de landenpagina als nieuwe beurt: de openingszin van de pagina als citaat, met de
+// keuzeknoppen uit de kopjes eronder als die er zijn. Geen zoekronde en geen model.
+function toonLandenpagina(bronTurn,r,c,land){
+  const p=CORPUS[land.j];if(!p)return;
+  const vraag=((c.prefill||"").trim()+" "+land.metLidwoord).trim();
+  const zin=eersteProza(land.j);
+  const start=zin?p.text.indexOf(zin):-1;
+  const tekst=start>=0?zin:((p.desc||"").trim()||(p.title||""));
+  // Een andere keuze uit dezelfde kiezer terwijl het vorige land nog onderaan staat: vervang dat.
+  let turn=r.__landBeurt;
+  if(turn&&turn.isConnected&&conv.lastElementChild===turn){
+    const vb=turn.querySelector(".bubble.vraag");if(vb)vb.textContent=vraag;
+    if(r.__landHist&&history[history.length-1]===r.__landHist)history.pop();
+  }else turn=addTurn(vraag);
+  r.__landBeurt=turn;
+  gesprekLoopt=true;
+  const cit={text:tekst,verified:start>=0,src:srcOf(land.j),srcIdx:land.j,bridge:"",relevantie:null,
+    start:start>=0?start:undefined,sectie:start>=0?sectieVan(land.j,start):null};
+  const vorige=(r.restated_question||"").trim();
+  const res={restated_question:vorige?vorige+" — "+land.metLidwoord:vraag,citations:[cit],used:[srcOf(land.j)],
+    related:[],note:"",clarifications:[],uitSectie:true,keuze:start>=0?keuzeVoor([cit]):null};
+  renderResult(turn,res);
+  const bubble=turn.querySelector(".bubble.antwoord");
+  if(bubble){
+    const m=document.createElement("div");m.className="meting";
+    m.textContent="Direct uit de landenpagina · geen zoekronde, geen AI";
+    bubble.appendChild(m);
+  }
+  r.__landHist={q:res.restated_question,summary:tekst.slice(0,220)};
+  history.push(r.__landHist);if(history.length>12)history.shift();
   refreshComposer();
   turn.scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -2966,7 +3156,7 @@ async function runQuestion(rawQ,gesproken){
     stap(turn,"Pagina's zoeken");stapModel(turn);
     if(!pre.inScope){                                           // buiten het domein -> niet zoeken
       logMiss(rawQ,"buiten-domein");
-      const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[],clarifications:[],followups:[]};
+      const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[],clarifications:[]};
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }
     let broad;
@@ -2993,7 +3183,7 @@ async function runQuestion(rawQ,gesproken){
     if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
     else if(picked.length===0){                                 // niets past echt -> lage confidence
       logMiss(rawQ,"geen-passende-pagina");
-      const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],followups:[]};
+      const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[]};
       renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }else cands=picked;
     cands=forceProduct(rawQ+" "+q,cands);   // genoemde vakterm hoort bovenaan
@@ -3478,52 +3668,6 @@ function demoAnswer(q,cands){
     keuze:keuzeVoor([{text:body,srcIdx:cands[0]}])};
 }
 
-// ---- Vervolgvragen die nergens heen leiden eruit filteren -----------------------------------
-// Het model verzint 2 tot 4 vervolgvragen zonder ooit te kijken of NederlandWereldwijd ze kán
-// beantwoorden. Een voorlichter die er een aanklikt en niets krijgt, is slechter af dan zonder.
-// De zoeklaag kost 13 ms per vraag, dus vier extra zoekopdrachten zijn gratis.
-//
-// SIGNAAL: welk deel van de onderscheidende woorden uit de vervolgvraag komt terug in de
-// gevonden pagina's? Vraagt de vervolgvraag naar "spoedprocedure" en kent geen enkele
-// toppagina dat woord, dan levert doorklikken niets op.
-//
-// WAAROM DEZE DREMPEL EN NIET STRENGER: gemeten over de 126 vragen uit eval_set.json haalt de
-// slechtste 50% dekking en de mediaan 100%. Op 60% valt één van de 126 echte vragen af (0,8%).
-// Strenger afstellen kost meteen goede vragen: op 70% sneuvelen er zes. Dit is dus een filter
-// tegen duidelijke missers, GEEN kwaliteitsoordeel — een plausibele maar nutteloze
-// vervolgvraag glipt er nog steeds doorheen.
-const VERVOLG_DEKKING=0.6;
-// Komt term t voor op pagina i? In turbomodus staat dat niet in een Map per pagina maar in de
-// postings van de term; die staan op oplopend paginanummer, dus we kunnen vroeg stoppen.
-function paginaHeeftTerm(i,t){
-  if(!TIDX)return PTOKENS[i]?PTOKENS[i].has(t):false;
-  const id=TIDX.id.get(t);if(id===undefined)return false;
-  for(let k=TIDX.ptr[id],e=TIDX.ptr[id+1];k<e;k++){
-    const d=TIDX.postDoc[k];
-    if(d===i)return true;
-    if(d>i)return false;
-  }
-  return false;
-}
-function vraagDekking(v){
-  const qt=[...new Set(tokenize(v))];
-  if(!qt.length)return 0;
-  const top=rank(v,6);
-  if(!top.length)return 0;
-  const gezien=new Set();
-  for(const i of top)for(const t of qt)if(paginaHeeftTerm(i,t))gezien.add(t);
-  return gezien.size/qt.length;
-}
-function bruikbareVervolgvragen(lijst){
-  if(!lijst.length||!CORPUS.length)return lijst;
-  const uit=[];
-  for(const v of lijst){
-    const d=vraagDekking(v);
-    if(d>=VERVOLG_DEKKING)uit.push(v);
-    else console.warn("vervolgvraag levert niets op ("+Math.round(d*100)+"% dekking), valt af:",v);
-  }
-  return uit;
-}
 // ---- Dekking bij een samengestelde vraag ----------------------------------------------------
 // "Wat kost het en hoe lang duurt het" wordt opgesplitst in deelvragen, en per deelvraag worden
 // pagina's opgehaald. Daarna controleert niets meer of de GEKOZEN citaten elk deel ook raken:
@@ -3587,17 +3731,14 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   let note=r.note||"";
   let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[])
     .map(c=>maakVerduidelijking(c.question,c.prefill)).filter(Boolean).slice(0,3);
-  let followups=(Array.isArray(r.followups)?r.followups:[]).map(f=>(f||"").trim()).filter(Boolean);
-  // Eerst de vragen eruit die aan de BELLER gericht zijn: die horen bij de uitvraag, met een
-  // prefill, en niet bij de vragen die aan de zoeker gesteld worden.
-  const rest=[];
-  for(const fu of followups){
-    const u=alsUitvraag(fu);
-    if(u===null)rest.push(fu);                                  // gewone, zoekbare vervolgvraag
-    else if(u!=="weg"&&clarifications.length<3&&!clarifications.some(c=>c.question===u.question))
+  // Er is geen lijst met vervolgvragen meer: die verzon het model zonder te weten of de site ze
+  // kan beantwoorden. Wat er wel uit komt: een vraag die aan de BELLER gericht is ("Bent u
+  // ingeschreven in de RNI?"). Die hoort bij de uitvraag, met een prefill.
+  for(const fu of (Array.isArray(r.followups)?r.followups:[])){
+    const u=alsUitvraag((fu||"").trim());
+    if(u&&u!=="weg"&&clarifications.length<3&&!clarifications.some(c=>c.question===u.question))
       clarifications.push(u);
   }
-  followups=bruikbareVervolgvragen(rest);
   // Splitst de bronpagina het antwoord op in keuzes (situaties, plekken), dan toont de app die
   // keuzes als knoppen, letterlijk uit de kopjes (zie keuzeVoor). Een uitvraag van het model
   // over hetzelfde ("Waar woont u?") is dan dubbelop en valt weg.
@@ -3622,23 +3763,17 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
       note="De passage kon niet exact op de bronpagina worden teruggevonden. Bekijk de bron hieronder.";
     }else{
       // Het model vond niets relevants op de pagina's: alleen 'Geen antwoord gevonden'.
-      related=[];clarifications=[];followups=[];note=GEEN_INFO;
+      related=[];clarifications=[];note=GEEN_INFO;
     }
   }
   // Intro: korte herformulering van de informatiebehoefte; alleen tonen als er een citaat is.
   const intro=citations.length?((r.intro||"").toString().trim().replace(/\s+/g," ").slice(0,200)):"";
-  // Samengestelde vraag: dekken de citaten ALLE delen? Zo niet, zeg dat en bied het ontbrekende
-  // deel aan als eerste vervolgvraag.
-  if(citations.length&&subs&&subs.length>=2){
-    const open=ongedekteDelen(subs,citations);
-    if(open.length){
-      followups=[...open,...followups.filter(f=>!open.includes(f))].slice(0,4);
-      const staart=open.length===1?"één onderdeel":open.length+" onderdelen";
-      note=(note?note+" ":"")+"Let op: van deze samengestelde vraag is "+staart+" niet beantwoord — zie de vervolgvragen.";
-    }
-  }
+  // Samengestelde vraag: dekken de citaten ALLE delen? Zo niet, dan staat het ontbrekende deel
+  // onder het antwoord als "Nog niet beantwoord", met een knop om het meteen te vragen.
+  let open=[];
+  if(citations.length&&subs&&subs.length>=2)open=ongedekteDelen(subs,citations).slice(0,3);
   if(voorlopig&&!citations.length)return null;
-  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups,keuze};
+  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,open,keuze};
 }
 async function askAI(q,cands,key,subs,opGeneratief){
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
@@ -4002,9 +4137,7 @@ function brontegel(cit,nummer,i){
 function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ol>`;}
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
-// Potlood = de vraag wordt in het invoerveld gezet zodat je hem kunt aanvullen;
-// pijl = de vraag wordt meteen gesteld.
-const ICON_PENCIL='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+// Pijl = de vraag wordt meteen gesteld.
 const ICON_ARROW='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 // Twee regels tekst, de onderste korter: "minder woorden".
 const ICON_SIMPEL='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h9"/></svg>';
@@ -4374,21 +4507,19 @@ function renderResult(turn,r,voorlopig){
   // De losse melding blijft alleen bestaan naast een echt antwoord (bv. "dit antwoord was
   // mogelijk niet volledig" of een onbeantwoord deel van een samengestelde vraag).
   if(hasCites&&r.note)h+=`<div class="note">${escapeHtml(r.note)}</div>`;
-  // Footer: vervolgvragen (Perplexity-stijl) en acties.
+  if(hasCites&&!voorlopig&&r.open&&r.open.length)h+=`<div class="note">Let op: van deze samengestelde vraag is ${r.open.length===1?"één onderdeel":r.open.length+" onderdelen"} niet beantwoord.</div>`;
+  // Footer: wat de voorlichter nu kan doen, en de acties.
   let f="";
-  // Eén lijst met alles wat de voorlichter nu kan doen. Bovenaan de vragen die hij aan de
-  // burger stelt om een preciezer antwoord te krijgen — die staan voorop omdat ze het antwoord
-  // écht beter maken, en zijn herkenbaar aan een geel streepje en een potlood.
-  const fups=r.followups||[];
-  const uitvraag=hasCites?clar:[];
-  // Keuzes uit de kopjes van de bronpagina staan vóór de vervolgvragen: ze maken het antwoord
-  // preciezer, en een klik kost niets.
-  if(hasCites&&r.keuze&&!voorlopig)f+=keuzeHTML(r.keuze);
-  if(uitvraag.length||fups.length){
-    f+=`<div class="followups"><span class="label">Vervolgvragen</span><ul class="fup-list">`;
-    uitvraag.forEach(c=>{f+=`<li><button class="fup-row clar-row" data-prefill="${escapeHtml(c.prefill||c.question)}" title="Zet deze vraag in het invoerveld om aan te vullen"><span class="fup-q">${escapeHtml(c.question)}</span><span class="fup-plus">${ICON_PENCIL}</span></button></li>`;});
-    fups.forEach(fu=>{f+=`<li><button class="fup-row" data-q="${escapeHtml(fu)}"><span class="fup-q">${escapeHtml(fu)}</span><span class="fup-plus">${ICON_ARROW}</span></button></li>`;});
-    f+=`</ul></div>`;
+  // Eerst de keuzes uit de kopjes van de bronpagina (een klik kost niets), dan wat hij de burger
+  // moet vragen: per vraag een invulblok, bij een land een landenkiezer. Tijdens het streamen
+  // nog niet: een half antwoord kan nog van uitvraag veranderen.
+  if(hasCites&&!voorlopig){
+    if(r.keuze)f+=keuzeHTML(r.keuze);
+    clar.slice(0,2).forEach((c,n)=>{f+=uitvraagHTML(r,c,n);});
+    if(r.open&&r.open.length){
+      f+=`<div class="openblok"><span class="label">Nog niet beantwoord</span>`
+        +r.open.map(q=>`<button type="button" class="open-rij" data-q="${escapeHtml(q)}" title="Stel dit deel van de vraag"><span>${escapeHtml(q)}</span>${ICON_ARROW}</button>`).join("")+`</div>`;
+    }
   }
   if(!hasCites&&r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   if(hasCites)f+=`<div class="consulted">Bron geraadpleegd op ${consultDate()}</div>`;
@@ -4407,10 +4538,8 @@ function renderResult(turn,r,voorlopig){
   const slot=turn.querySelector(".slot");slot.innerHTML=h;
   koppelBronkaarten(slot);
   slot.querySelectorAll(".keuze-optie").forEach(b=>{b.onclick=()=>kiesSectie(turn,r,+b.dataset.k);});
-  slot.querySelectorAll(".followups button").forEach(b=>{
-    const pre=b.getAttribute("data-prefill");
-    b.onclick=pre?(()=>prefill(pre)):(()=>askText(b.getAttribute("data-q")));
-  });
+  slot.querySelectorAll(".uitvraag").forEach(fm=>koppelUitvraag(fm,turn,r));
+  slot.querySelectorAll(".open-rij").forEach(b=>{b.onclick=()=>askText(b.getAttribute("data-q"));});
   slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(citaatAlsTekst(r.citations[+b.getAttribute("data-ci")]),b);});
   const openCite=el=>{const c=r.citations[+el.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);};
   slot.querySelectorAll(".cite-chip").forEach(el=>el.onclick=e=>{e.stopPropagation();openCite(el);});
