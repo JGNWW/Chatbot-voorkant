@@ -385,6 +385,12 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 /* Venster onder het antwoord bij een duim omlaag. Een oordeel zonder reden zegt weinig; hier
    staat waaróm het niet klopte. Bij een duim omhoog verschijnt niets: bevestigen moet gratis
    blijven, anders wordt het net zo duur als afkeuren. */
+.b1-panel{margin-top:12px;border:1px solid var(--rand);border-left:3px solid var(--rijk-licht);border-radius:12px;background:#fdfdfe;padding:14px 16px;}
+.b1-titel{font-size:.78rem;font-weight:700;color:var(--ink-licht);text-transform:uppercase;letter-spacing:.03em;margin:0 0 8px;}
+.b1-panel p{margin:0 0 10px;line-height:1.55;}
+.b1-bezig{color:var(--ink-licht);font-size:.88rem;}
+.b1-waarschuwing{font-size:.8rem;color:#8a5a00;background:#fff7e0;border-radius:8px;padding:6px 10px;margin:4px 0 10px;}
+.b1-panel .error{color:#b3261e;font-size:.88rem;margin:0;}
 .fb-panel{margin-top:12px;border:1px solid var(--rand);border-radius:12px;background:#fdfdfe;padding:14px 16px;}
 .fbp-titel{font-size:.88rem;font-weight:700;color:var(--rijk-blauw);margin:0 0 8px;}
 .fbp-tekst{width:100%;border:1px solid var(--rand-sterk);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:.88rem;resize:vertical;min-height:66px;color:var(--ink);background:#fff;}
@@ -669,6 +675,22 @@ Regels:
   Die zin is een HEEL antwoord op zichzelf: hij is dan de ENIGE alinea, zonder bronnen. Plak hem nooit achter, voor of tussen een alinea die wel antwoord geeft, en gebruik hem nooit voor een ONDERDEEL van de vraag terwijl een passage dat onderdeel wel beantwoordt. Beantwoordt een passage een deel van de vraag, schrijf dat deel dan gewoon op.
 
 Antwoord UITSLUITEND met JSON: {"alineas":[{"tekst":"<alinea>","bronnen":[<passagenummers>]}]}`;
+// "Simpelere taal": het antwoord herschreven in eenvoudig Nederlands (taalniveau B1), zoals
+// postbus42.nl dat doet. Het blijft een herschrijving van wat er al staat — geen nieuwe feiten.
+const B1_SYSTEM=`Je krijgt een antwoord van NederlandWereldwijd voor een burger. Herschrijf het in eenvoudig Nederlands op taalniveau B1, zodat iemand die niet zo goed kan lezen het ook begrijpt.
+
+Regels:
+- Gebruik korte zinnen: één boodschap per zin, liefst niet meer dan 15 woorden.
+- Gebruik gewone, bekende woorden. Vermijd ambtelijke taal ("indien" -> "als", "verstrekken" -> "geven", "overleggen" -> "laten zien").
+- Schrijf actief en spreek de lezer aan met "u".
+- Een vakterm die de lezer nodig heeft (bijvoorbeeld "inreisvisum", "MVV", "apostille", "DigiD") laat u staan, maar leg hem de eerste keer kort uit in gewone woorden.
+- Verander NIETS aan de inhoud. Voeg geen informatie toe en laat geen voorwaarde, uitzondering, stap of waarschuwing weg.
+- Neem bedragen, termijnen, datums, aantallen en namen TEKEN VOOR TEKEN over. Reken niets om en rond niets af.
+- Geldt iets alleen in een bepaalde situatie, zeg dat dan duidelijk.
+- Gaat het om stappen, zet ze dan in de goede volgorde, elke stap in een eigen korte alinea.
+- Geen kopjes, geen bronvermelding, geen inleiding of afsluiting van uzelf.
+
+Antwoord UITSLUITEND met JSON: {"alineas":["<alinea>","<alinea>"]}`;
 const RERANK_SYSTEM=`Je krijgt de vraag van een burger en een genummerde lijst kandidaat-pagina's van NederlandWereldwijd.nl (titel + een tekstfragment), over uiteenlopende onderwerpen (paspoort, visum, DigiD, rijbewijs, geboorte/overlijden, trouwen, legaliseren, BRP, uitkeringen, reisadvies, enz.). Kies de pagina's die de SPECIFIEKE informatiebehoefte/INTENTIE van de burger het best dekken — let op de bedoeling en op het fragment, niet op losse overeenkomende woorden. Regels (voor elk onderwerp): heeft de vraag een duidelijke DEELBEHOEFTE (bv. hoe lang het duurt, kosten, ophalen, verlengen, verloren/gestolen, voorwaarden, een specifiek land), kies dan de pagina over JUIST die deelbehoefte — NIET de algemene overzichtspagina. Kies de overzichtspagina alleen bij een echt brede, oriënterende vraag (bv. "hoe vraag ik een paspoort aan"). NOEMT de burger een SPECIFIEK PRODUCT of vakterm (bv. "inreisvisum", "MVV", "nooddocument", "apostille", "attestatie de vita", "laissez-passer"), kies dan ALTIJD de pagina die over JUIST dat product gaat — ook als de vraag uit één woord bestaat. Een losse vakterm is een SPECIFIEKE vraag, geen brede vraag; kies dan dus NIET de algemene overzichtspagina van de rubriek. Voorbeelden: "hoe lang duurt het voor ik mijn paspoort krijg" -> de doorlooptijd-pagina; "mijn rijbewijs is verlopen" -> de pagina over rijbewijs verlengen/vernieuwen. Bestaat de vraag uit MEERDERE behoeften (bv. paspoort én zorgverzekering), kies dan pagina's die SAMEN alle aspecten dekken — minstens één pagina per aspect. Past GEEN ENKELE pagina echt bij de vraag, geef dan {"pages":[]} (dan weet de voorlichter dat er geen duidelijk antwoord is). Antwoord UITSLUITEND met JSON: {"pages":[<nummers van de gekozen pagina's, beste eerst, maximaal 6>]}.`;
 
 // Gespreksgeheugen: laatste beurten (zelfstandige vraag + korte samenvatting van het antwoord).
@@ -2581,7 +2603,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 121";
+const APP_VERSION="build 122";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3984,6 +4006,8 @@ const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" strok
 // pijl = de vraag wordt meteen gesteld.
 const ICON_PENCIL='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
 const ICON_ARROW='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+// Twee regels tekst, de onderste korter: "minder woorden".
+const ICON_SIMPEL='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h9"/></svg>';
 // Kopieer tekst naar het klembord, met korte visuele bevestiging op de knop.
 function copyText(t,btn){
   const flash=()=>{if(!btn)return;const o=btn.innerHTML,hadLabel=/span/.test(o);btn.classList.add("ok");btn.innerHTML=ICON_OK+(hadLabel?"<span>Gekopieerd</span>":"");setTimeout(()=>{btn.innerHTML=o;btn.classList.remove("ok");},1400);};
@@ -4013,6 +4037,60 @@ function answerPlainText(r){
     }
   }
   return parts.join("\n\n");
+}
+// De inhoud van het antwoord zonder bronlinks en kopjespaden: dat is wat de AI in eenvoudige
+// taal moet zetten. Links en paden zouden in de B1-tekst alleen ruis geven.
+function antwoordInhoud(r){
+  const parts=[];
+  for(const b of answerBlocks(r)){
+    if(b.type==="bridge"||b.type==="generated")parts.push(b.text);
+    // Generatief antwoord: de passages staan er alleen als bron onder; de AI-tekst IS het antwoord.
+    else if(!b.alleenBron){const c=r.citations&&r.citations[b.ci];parts.push(c?citaatAlsTekst(c):b.text);}
+  }
+  return parts.filter(Boolean).join("\n\n");
+}
+// Getallen in de B1-tekst die niet in het origineel staan: dan heeft het model iets
+// omgerekend of verzonnen. Dat melden we in plaats van het stil te tonen.
+function nieuweGetallen(origineel,simpel){
+  const norm=t=>(t.match(/\d+(?:[.,]\d+)*/g)||[]).map(g=>g.replace(/[.,]/g,""));
+  const oud=new Set(norm(origineel));
+  return [...new Set(norm(simpel).filter(g=>!oud.has(g)))];
+}
+// Knop "Simpelere taal": laat het antwoord in eenvoudig Nederlands (B1) herschrijven en toon
+// dat in een paneel onder de knoppen, met een eigen kopieerknop. Nogmaals klikken klapt het
+// paneel weer in; de herschrijving wordt bewaard, dus opnieuw openen kost geen tweede aanroep.
+async function toonSimpel(r,btn){
+  const acties=btn.closest(".answer-actions");if(!acties)return;
+  const oud=acties.parentNode.querySelector(".b1-panel");
+  if(oud){oud.remove();btn.setAttribute("aria-expanded","false");return;}
+  const paneel=document.createElement("div");
+  paneel.className="b1-panel";paneel.setAttribute("aria-live","polite");
+  acties.parentNode.insertBefore(paneel,acties.nextSibling);
+  btn.setAttribute("aria-expanded","true");
+  const titel='<p class="b1-titel">In eenvoudige taal (B1) — door AI herschreven</p>';
+  const toon=()=>{
+    const s=r.__b1;
+    const waarsch=s.nieuw.length?`<p class="b1-waarschuwing">Let op: in deze versie staan getallen die niet in het originele antwoord staan (${escapeHtml(s.nieuw.join(", "))}). Controleer ze voordat u dit doorgeeft.</p>`:"";
+    paneel.innerHTML=titel+waarsch+s.alineas.map(a=>`<p>${escapeHtml(a)}</p>`).join("")
+      +`<div class="answer-actions"><button class="act-btn copy-b1" title="Zet de eenvoudige versie op het klembord">${ICON_COPY}<span>Kopieer eenvoudige versie</span></button></div>`;
+    const kb=paneel.querySelector(".copy-b1");kb.onclick=()=>copyText(s.alineas.join("\n\n"),kb);
+  };
+  if(r.__b1){toon();return;}
+  if(!aiKlaar()){paneel.innerHTML=titel+'<p class="error">Hiervoor is AI nodig. Vul bij de instellingen (tandwiel) een sleutel in.</p>';return;}
+  paneel.innerHTML=titel+'<p class="b1-bezig">Bezig met herschrijven…</p>';
+  btn.disabled=true;
+  const origineel=antwoordInhoud(r);
+  try{
+    const text=await PROVIDERS[provSel.value].call(keyInput.value.trim(),modelSel.value,B1_SYSTEM,"Antwoord:\n"+origineel);
+    const j=parseModelJSON(text);
+    const alineas=(Array.isArray(j.alineas)?j.alineas:[]).map(a=>((a&&a.tekst)||a||"").toString().trim().replace(/\s+/g," ")).filter(Boolean);
+    if(!alineas.length)throw new Error("het model gaf geen tekst terug");
+    r.__b1={alineas,nieuw:nieuweGetallen(origineel,alineas.join(" "))};
+    if(paneel.isConnected)toon();
+  }catch(e){
+    console.warn("simpelere taal:",e);
+    paneel.innerHTML=titel+'<p class="error">Herschrijven lukte niet: '+escapeHtml(((e&&e.message)||e).toString().slice(0,160))+'</p>';
+  }finally{btn.disabled=false;}
 }
 // Datum waarop de bron is geraadpleegd (vandaag), in Nederlandse notatie.
 function consultDate(){return new Date().toLocaleDateString("nl-NL",{day:"numeric",month:"long",year:"numeric"});}
@@ -4322,6 +4400,7 @@ function renderResult(turn,r,voorlopig){
   }else{
     f+=`<div class="answer-actions">`;
     if(hasCites)f+=`<button class="act-btn copy-answer" title="Zet het antwoord, het citaat en de bronlink op het klembord">${ICON_COPY}<span>Kopieer antwoord</span></button>`;
+    if(hasCites&&aiKlaar())f+=`<button class="act-btn simpel-answer" title="Herschrijf het antwoord in eenvoudig Nederlands (taalniveau B1)">${ICON_SIMPEL}<span>Simpelere taal</span></button>`;
     f+=`<span class="spacer"></span><span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">👍</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">👎</button></span></div>`;
   }
   h+=`<div class="answer-footer">${f}</div></div>`;
@@ -4340,6 +4419,7 @@ function renderResult(turn,r,voorlopig){
     el.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&el.classList.contains("src-card")){e.preventDefault();openCite(el);}};
   });
   const ca=slot.querySelector(".copy-answer");if(ca)ca.onclick=()=>copyText(answerPlainText(r),ca);
+  const sa=slot.querySelector(".simpel-answer");if(sa)sa.onclick=()=>toonSimpel(r,sa);
   const up=slot.querySelector(".fb-up"),dn=slot.querySelector(".fb-down");
   if(up)up.onclick=()=>logFeedback(r,1,up);
   if(dn)dn.onclick=()=>logFeedback(r,-1,dn);
