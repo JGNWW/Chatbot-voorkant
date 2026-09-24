@@ -255,6 +255,30 @@ ol.srclist li{margin:2px 0;}
 .fup-row.clar-row:hover{background:#fff9ea;color:var(--rijk-blauw);}
 .fup-row.clar-row .fup-plus{color:#a87800;}
 .fup-row.clar-row:hover .fup-plus{background:#fdf0d0;}
+/* Keuzes uit de kopjes van de bronpagina: blauwe tint en rondjes, zodat het leest als "kies er
+   één" en niet als nog een vervolgvraag. */
+.keuzeblok{margin-top:16px;border:1px solid var(--blauw-licht);background:#f6fafd;border-radius:12px;padding:11px 13px 12px;}
+.keuze-kop{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:2px 12px;margin-bottom:9px;}
+.keuze-vraag{font-weight:700;color:var(--rijk-blauw);font-size:.98rem;}
+.keuze-herkomst{font-size:.76rem;color:var(--ink-licht);}
+.keuze-opties{display:flex;flex-direction:column;gap:6px;}
+.keuze-optie{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;font-size:.93rem;font-weight:600;color:var(--rijk-blauw);background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:8px 12px;cursor:pointer;transition:border-color .12s,background .12s;}
+.keuze-optie:hover{border-color:var(--rijk-licht);background:var(--blauw-bg);}
+.keuze-optie:focus-visible{outline:2px solid var(--rijk-licht);outline-offset:2px;}
+.keuze-rond{flex:0 0 auto;width:15px;height:15px;border-radius:50%;border:2px solid var(--rand-sterk);background:#fff;}
+.keuze-t{flex:1;line-height:1.35;}
+.keuze-actie{flex:0 0 auto;font-weight:400;font-size:.78rem;color:var(--rijk-licht);}
+.keuze-optie[aria-pressed="true"]{border-color:var(--rijk-blauw);background:var(--blauw-bg);}
+.keuze-optie[aria-pressed="true"] .keuze-rond{border-color:var(--rijk-blauw);background:var(--rijk-blauw);box-shadow:inset 0 0 0 3px #fff;}
+.keuze-hint{margin:8px 0 0;font-size:.78rem;color:var(--ink-licht);}
+/* Een heel deel van de pagina: tussenkopjes, en gedempt wat bij elke keuze hetzelfde is. */
+.cite-kop{margin:10px 0 4px;font-weight:700;color:var(--rijk-blauw);line-height:1.4;}
+.cite-kop:first-child{margin-top:0;}
+.cite-body .zelfde{color:#8a8f96;}
+.alleen-verschil .cite-body .zelfde{display:none;}
+.zelfde-filter{display:flex;align-items:center;gap:7px;margin:8px 0 0 15px;font-size:.8rem;color:var(--ink-licht);cursor:pointer;}
+.zelfde-filter input{accent-color:var(--rijk-blauw);width:15px;height:15px;margin:0;}
+.zelfde-filter span{color:#8a8f96;}
 .followups{margin-top:18px;}
 .fup-list{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--rand);}
 .fup-list li:last-child .fup-row{border-bottom:none;}
@@ -1339,8 +1363,16 @@ function anchorSet(i){
 }
 // De opbouw van een citaat (alinea's, opsommingen, tabellen), met de echte lijsten van de pagina.
 function blokkenVan(c){
+  if(c&&c.heleSectie)return sectieBlokken(c);
   const p=CORPUS[c.srcIdx]||{};
   return citaatBlokken(c.text,anchorSet(c.srcIdx),headingSet(c.srcIdx),lijstItems(p.text,p.lists,c.text));
+}
+// Een heel deel van een pagina (na een klik op een keuze): met tussenkopjes, en met de blokken
+// gemarkeerd die bij de andere keuzes letterlijk hetzelfde zijn.
+function sectieBlokken(c){
+  const p=CORPUS[c.srcIdx]||{};
+  const bl=citaatBlokken(c.text,anchorSet(c.srcIdx),sectieKoppen(p,c.text),lijstItems(p.text,p.lists,c.text),{koppen:true});
+  return c.keuzeOpties?markeerGedeeld(bl,p,c.keuzeOpties,c.keuzeK):bl;
 }
 // ===== TURBOMODUS =============================================================================
 // Alles wat hieraan hangt is EXPERIMENTEEL en staat standaard uit. Staat het vinkje uit, dan
@@ -2075,14 +2107,18 @@ function lijstItems(paginaTekst,lists,quote){
   });
   return uit.sort((a,b)=>a.s-b.s);
 }
-function citaatBlokken(quote,anchors,heads,items){
+// opts.koppen: tussenkopjes als eigen blok (soort "kop") in plaats van als alinea. Alleen voor
+// een heel deel van een pagina (zie kiesSectie); een gewoon citaat bevat geen kopjes.
+function citaatBlokken(quote,anchors,heads,items,opts){
   const H=heads instanceof Set?heads:new Set(heads||[]);
   const A=anchors instanceof Set?anchors:new Set(anchors||[]);
   const units=buildUnits(quote||"",A,H,items||null);
   const blokken=[];
+  const koppen=!!(opts&&opts.koppen);
   let i=0;
   while(i<units.length){
     const u=units[i];
+    if(koppen&&H.has(u.text.trim())){blokken.push({soort:"kop",tekst:u.text.trim()});i++;continue;}
     if(u.tabel){
       let j=i;while(j+1<units.length&&units[j+1].tabel)j++;
       // Een tabelcel staat op een eigen regel, ook als meerdere cellen in één eenheid zitten
@@ -2214,7 +2250,7 @@ function structuurInAlinea(tekst,bronBlokken){
 function blokkenAlsTekst(blokken){
   const uit=[];
   for(const b of blokken){
-    if(b.soort==="alinea"){uit.push(b.tekst);continue;}
+    if(b.soort==="alinea"||b.soort==="kop"){uit.push(b.tekst);continue;}
     if(b.soort==="lijst"){uit.push(b.items.map((t,k)=>(b.genummerd?((b.start||1)+k)+". ":"- ")+t).join("\n"));continue;}
     const regels=[];
     if(b.titel)regels.push(b.titel);
@@ -2242,6 +2278,164 @@ function quoteParagraphs(quote,anchors,heads){
     vorige=u.al;
   }
   return uit;
+}
+// ---- Keuzes uit de kopjes van de bronpagina -------------------------------------------------
+// Veel pagina's splitsen het antwoord op onder kopjes: "Wat is uw situatie?" met daaronder
+// "Ik woon in Nederland…" / "Ik woon in een ander EU-land" / "Ik woon buiten de EU", of op de
+// kostenpagina "Nederlandse ambassade…" / "VFS Global" / "Nederlandse grensgemeente…". Het model
+// verzon daar een losse uitvraag bij ("Waar woont u?"), terwijl de keuzes letterlijk op de pagina
+// staan. Hier halen we ze uit CORPUS[i].headings, zodat de app ze als knoppen kan tonen en bij
+// een klik meteen het juiste deel van de pagina laat zien — zonder zoekronde en zonder model.
+//
+// Niet elk rijtje kopjes is een keuze. "Stap 1 / Stap 2" is een volgorde, "Visumkosten /
+// Servicekosten" zijn onderwerpen, "Wat neem ik mee? / Hoeveel moet ik betalen?" zijn
+// toelichtingen. Een rijtje telt alleen als het aantoonbaar een keuze is (zie keuzeUitKinderen).
+const _BOOM=new WeakMap();
+// De kopjes van een pagina als boom: per kopje de plek in de tekst, waar zijn deel eindigt, en
+// onder welk kopje het valt (-1 = direct onder de pagina).
+function kopjesBoom(p){
+  if(!p)return [];
+  if(_BOOM.has(p))return _BOOM.get(p);
+  const hs=(p.headings||[]).map(h=>[h[0],(h[1]||"").trim()]).filter(h=>h[1]);
+  const T=p.text||"",knopen=[];
+  let pos=0,k=0;
+  for(const raw of T.split("\n")){
+    const t=raw.trim();
+    // Op volgorde zoeken, met een klein venster vooruit: staat één kopje niet in de tekst, dan
+    // mag dat de rest niet blokkeren.
+    for(let j=k;j<Math.min(hs.length,k+4)&&t;j++){
+      if(t===hs[j][1]){knopen.push({lvl:hs[j][0],t,pos,kopEind:pos+raw.length});k=j+1;break;}
+    }
+    pos+=raw.length+1;
+  }
+  knopen.forEach((n,i)=>{
+    n.i=i;n.ouder=-1;n.eind=T.length;
+    for(let j=i-1;j>=0;j--)if(knopen[j].lvl<n.lvl){n.ouder=j;break;}
+    for(let j=i+1;j<knopen.length;j++)if(knopen[j].lvl<=n.lvl){n.eind=knopen[j].pos;break;}
+  });
+  _BOOM.set(p,knopen);
+  return knopen;
+}
+const KEUZE_STAP=/^(stap\s*\d|\d+[.)]\s)/i;
+const KEUZE_GEEN=/^(check|controleer|lees|bekijk|meer informatie|let op|uitzondering(en)?|hulp nodig|contact|zie ook|snel naar|onderwerpen|in het kort|meteen regelen)\b/i;
+// Ik-vorm telt pas vanaf drie woorden: "Ik woon buiten de EU" is een situatie, "Mijn SVB" of
+// "Mijn situatie" is een link of een kopje.
+const KEUZE_IK=/^(ik|mijn|wij|we|ons|onze)\s+\S+\s+\S+/i;
+// Een plek-keuze BEGINT met de plek ("Nederlandse ambassade…", "VFS Global", "Bij de lokale
+// autoriteiten"). Alleen "bevat Nederland" is te ruim: dat geldt voor half het corpus.
+const KEUZE_PLEK=/^(bij|in|via|naar|buiten|binnen)\s|^(nederlandse\s+)?(ambassade|consulaat|vfs|gemeente|grensgemeente|schiphol|nederland|buitenland|lokale autoriteiten|tijdelijke aanvraaglocatie|honorair consul)\b/i;
+const KEUZE_PLEKWOORD=/\b(nederland|buitenland|eu|europese unie|ambassade|consulaat|gemeente)\b/i;
+const KEUZE_SITUATIE=/^(wat is uw situatie\??|kies uw situatie|uw situatie|mijn situatie|verandert uw situatie\?)$/i;
+// Een vraag als kopje is alleen een keuzevraag als de kopjes eronder elkaars ALTERNATIEF zijn.
+// Onder "Welke documenten heb ik nodig?" staan documenten die je allemaal nodig hebt.
+// En "Waarom…", "Wat is een…" of "Hoe werkt…" is uitleg, geen keuze: alleen een kopje dat de
+// burger naar zijn situatie, plek of werkwijze vraagt telt.
+const KEUZE_GEEN_VRAAG=/document|papieren|stukken|nodig|meenemen|neem ik mee/i;
+const KEUZE_VRAAGAANHEF=/^(waar\b|welke\b|hoe (geeft|wilt|kunt|kan|log)\b|wat (wilt|stuurt) u\b|bent u|heeft u|hebt u|woont u|wilt u|was de|hoelang blijft u|hoeveel moet u|is mijn)/i;
+// Is het rijtje kopjes direct onder `o` (-1 = de pagina zelf) een keuze? Zo ja: de vraag die de
+// voorlichter stelt, en de kopjes die als keuze tellen.
+function keuzeUitKinderen(p,boom,o){
+  const kind=boom.filter(n=>n.ouder===o);
+  if(kind.length<2)return null;
+  if(kind.filter(n=>KEUZE_STAP.test(n.t)).length>=2)return null;       // een stappenplan
+  let opties=kind.filter(n=>n.t.length<=70&&!/\?$/.test(n.t)&&!KEUZE_GEEN.test(n.t)&&!KEUZE_STAP.test(n.t));
+  // "Ik ben in Nederland ingeschreven" / "Uitzonderingen" / "Ik ben in een ander land
+  // ingeschreven": de ik-kopjes zijn de situaties, de rest is toelichting ertussen.
+  const ik=opties.filter(n=>KEUZE_IK.test(n.t));
+  if(ik.length>=2)opties=ik;
+  if(opties.length<2||opties.length>6)return null;
+  const ouder=o>=0?boom[o].t:"";
+  const woorden=opties.map(n=>n.t.toLowerCase().split(/\s+/));
+  let gedeeld=0;
+  while(woorden.every(w=>w.length>gedeeld+1&&w[gedeeld]===woorden[0][gedeeld]))gedeeld++;
+  const plekVraag=()=>/aanvra|paspoort|id-kaart|visum|nooddocument/i.test(ouder+" "+(p.title||"")+" "+(p.url||""))?"Waar wilt u het aanvragen?":"Waar wilt u dit regelen?";
+  const alsPlek=n=>KEUZE_PLEK.test(n.t)||(KEUZE_IK.test(n.t)&&KEUZE_PLEKWOORD.test(n.t));
+  let vraag=null;
+  if(KEUZE_SITUATIE.test(ouder)||(ik.length>=2&&ik.length===opties.length))vraag="Wat is uw situatie?";
+  else if(/\?$/.test(ouder)){if(KEUZE_VRAAGAANHEF.test(ouder)&&!KEUZE_GEEN_VRAAG.test(ouder))vraag=ouder;}
+  else if(opties.every(alsPlek)||(gedeeld&&/^(in|bij|via)$/.test(woorden[0][gedeeld-1])))vraag=plekVraag();
+  // "Stap 5: Paspoort ophalen of laten opsturen" met "Ophalen" / "Laten opsturen" eronder.
+  else if(/\bof\b/i.test(ouder)&&opties.every(n=>ouder.toLowerCase().includes(n.t.toLowerCase().split(/\s+/)[0])))vraag=ouder;
+  if(!vraag)return null;
+  return {vraag,ouder,opties:opties.map(n=>n.i)};
+}
+// De keuze die bij een citaat hoort. Twee gevallen:
+//  1. het citaat staat BINNEN een van de keuzes: dan geldt het alleen daar, en de andere keuzes
+//     zijn de alternatieven (huidig = dat kopje);
+//  2. het citaat staat er vlak VÓÓR ("Wat u kunt doen, hangt af van uw situatie."), met hooguit
+//     een korte tussenregel: dan komt de keuze direct hierna (huidig = -1). Staat het citaat in
+//     de inleiding van de pagina, boven het eerste kopje, dan geldt de afstand niet: dan IS de
+//     indeling van de pagina de keuze ("Waar vraag ik mijn paspoort aan?" -> Buitenland /
+//     Nederland / Caribisch Nederland, na een lang "Let op"-blok).
+const KEUZE_MAX_TUSSEN=400;
+function keuzeBijCitaat(p,start,eind){
+  const boom=kopjesBoom(p);
+  if(boom.length<2||!(start>=0))return null;
+  let n=-1;
+  for(const k of boom)if(k.pos<=start&&start<k.eind)n=k.i;             // diepste kopje erboven
+  for(let x=n;x>=0;x=boom[x].ouder){
+    const s=keuzeUitKinderen(p,boom,boom[x].ouder);
+    if(s&&s.opties.includes(x))return Object.assign(s,{huidig:x});
+  }
+  const volg=boom.find(k=>k.pos>=eind);
+  if(volg&&(n<0||(p.text||"").slice(eind,volg.pos).replace(/\s+/g," ").trim().length<=KEUZE_MAX_TUSSEN)){
+    const onder=keuzeUitKinderen(p,boom,volg.i);
+    if(onder)return Object.assign(onder,{huidig:-1});
+    const naast=keuzeUitKinderen(p,boom,volg.ouder);
+    if(naast&&naast.opties.includes(volg.i))return Object.assign(naast,{huidig:-1});
+  }
+  return null;
+}
+// Een keuze die BINNEN een gekozen deel ligt ("Stap 5: ophalen of laten opsturen" onder
+// "Ik woon buiten de EU"). Die tonen we bij dat deel, zodat je verder kunt kiezen.
+function keuzeBinnen(p,k){
+  const boom=kopjesBoom(p),n=boom[k];
+  if(!n)return null;
+  for(const d of boom){
+    if(d.pos<=n.pos||d.pos>=n.eind)continue;
+    const s=keuzeUitKinderen(p,boom,d.i);
+    if(s)return Object.assign(s,{huidig:-1});
+  }
+  return null;
+}
+// De tekst onder een kopje, tot het volgende kopje van hetzelfde of een hoger niveau.
+function sectieTekst(p,k){
+  const n=kopjesBoom(p)[k];
+  if(!n)return null;
+  const T=p.text||"";
+  let s=Math.min(n.kopEind+1,T.length),e=n.eind;
+  while(s<e&&/\s/.test(T[s]))s++;
+  while(e>s&&/\s/.test(T[e-1]))e--;
+  return e>s?{start:s,end:e,tekst:T.slice(s,e)}:null;
+}
+// Kopjes voor de weergave van een heel deel: de echte kopjes, plus regels als "Stap 2: Nieuw
+// rijbewijs aanvragen" die op de site wel als kopje ogen maar niet als kop zijn gecrawld.
+// Zonder die aanvulling plakt de tussenkop aan de alinea eronder vast.
+function sectieKoppen(p,tekst){
+  const H=new Set(((p&&p.headings)||[]).map(h=>(h[1]||"").trim()).filter(Boolean));
+  for(const r of (tekst||"").split("\n")){const t=r.trim();if(/^stap\s*\d+\s*[:.]\s*\S/i.test(t)&&t.length<=90&&!/[.!?]$/.test(t))H.add(t);}
+  return H;
+}
+function sectiePad(p,k){
+  const boom=kopjesBoom(p),pad=[];
+  for(let x=k;x>=0;x=boom[x].ouder)pad.unshift(boom[x].t);
+  return pad;
+}
+// Welke blokken van een deel staan LETTERLIJK ook in alle andere keuzes? Op de rijbewijspagina
+// herhalen de drie situaties "Let op" en stap 1; wat écht verschilt is stap 2. Door het gedeelde
+// deel te dempen ziet de voorlichter in één oogopslag wat voor déze situatie anders is.
+const _vergelijk=t=>(t||"").replace(/\s*\n\s*/g," ").replace(/\s+([.,;:!?)\]])/g,"$1").replace(/([(\[])\s+/g,"$1").replace(/\s+/g," ").toLowerCase().trim();
+function markeerGedeeld(blokken,p,opties,k){
+  const anderen=opties.filter(x=>x!==k).map(x=>_vergelijk((sectieTekst(p,x)||{}).tekst));
+  if(!anderen.length)return blokken;
+  const overal=t=>{const v=_vergelijk(t);return v.length>0&&anderen.every(a=>a.includes(v));};
+  for(const b of blokken){
+    const delen=b.soort==="lijst"?b.items:b.soort==="tabel"?(b.rijen||[]).map(r=>r.join(" ")):[b.tekst];
+    b.zelfde=delen.length>0&&delen.every(overal);
+  }
+  // Alles gelijk (of niets) zegt niets: dan niets dempen.
+  if(blokken.every(b=>b.zelfde)||!blokken.some(b=>b.zelfde))blokken.forEach(b=>{b.zelfde=false;});
+  return blokken;
 }
 // ===== <</CITAAT-LOGICA>> ====================================================================
 
@@ -2410,7 +2604,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 119";
+const APP_VERSION="build 120";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2609,6 +2803,91 @@ function variantVraag(idx,offset){
   // kopje bevat vaak zelf al het woord "of" ("Nederlandse grensgemeente of Schiphol"), en dan
   // leest een opsomming met "of" als een lijst zonder einde.
   return maakVerduidelijking("Om welke situatie gaat het: "+lijst.join(" / ")+"?","Het gaat om ");
+}
+// ---- Keuzes uit de kopjes: de app-kant ------------------------------------------------------
+// De herkenning zelf staat in het CITAAT-LOGICA-blok (keuzeBijCitaat); hier het koppelen aan
+// een antwoord en wat er gebeurt als de voorlichter een keuze aanklikt.
+function keuzeVoor(citations){
+  for(const c of citations||[]){
+    const p=CORPUS[c.srcIdx];if(!p||!p.text||!c.text)continue;
+    const start=Number.isInteger(c.start)?c.start:p.text.indexOf(c.text);
+    if(start<0)continue;
+    const s=keuzeBijCitaat(p,start,start+c.text.length);
+    if(s)return {idx:c.srcIdx,vraag:s.vraag,ouder:s.ouder,opties:s.opties,huidig:s.huidig};
+  }
+  return null;
+}
+// Vraagt een uitvraag van het model naar hetzelfde als de keuze? Dat meten we aan gedeelde
+// woordstammen: "Waar woont u?" en "Ik woon in een ander EU-land" delen "woon".
+const KEUZE_STAMSTOP=new Set(["waar","welk","wilt","heef","hebt","bent","deze","voor","gaat","over","hier","daar","wordt","moet","kunt","nede"]);
+function stammen(t){
+  return new Set(((t||"").toLowerCase().match(/[a-zà-ÿ]{4,}/g)||[]).map(w=>w.slice(0,4)).filter(w=>!KEUZE_STAMSTOP.has(w)));
+}
+function overlaptKeuze(vraag,kz){
+  const boom=kopjesBoom(CORPUS[kz.idx]);
+  const kant=stammen([kz.vraag,...kz.opties.map(k=>(boom[k]||{}).t)].join(" "));
+  for(const w of stammen(vraag))if(kant.has(w))return true;
+  return /^(om welke situatie|wat is uw situatie|welke situatie)/i.test((vraag||"").trim());
+}
+function keuzeHTML(kz){
+  const boom=kopjesBoom(CORPUS[kz.idx]);
+  const herkomst=kz.ouder&&kz.ouder!==kz.vraag?`Kopjes onder “${escapeHtml(kz.ouder)}” op de bronpagina`:"Kopjes van de bronpagina";
+  const knoppen=kz.opties.map(k=>{
+    const hier=k===kz.huidig;
+    return `<button type="button" class="keuze-optie" data-k="${k}" aria-pressed="${kz.gekozen===k}"`
+      +` title="${hier?"Het citaat hierboven komt uit dit deel. Klik om het hele deel te zien.":"Toon dit deel van de bronpagina"}">`
+      +`<span class="keuze-rond" aria-hidden="true"></span><span class="keuze-t">${escapeHtml((boom[k]||{}).t||"")}</span>`
+      +`<span class="keuze-actie">${hier?"hierboven · toon alles":"toon"}</span></button>`;
+  }).join("");
+  return `<div class="keuzeblok" role="group" aria-label="${escapeHtml(kz.vraag)}">`
+    +`<div class="keuze-kop"><span class="keuze-vraag">${escapeHtml(kz.vraag)}</span><span class="keuze-herkomst">${herkomst}</span></div>`
+    +`<div class="keuze-opties">${knoppen}</div>`
+    +`<p class="keuze-hint">Vraag de burger welke van toepassing is. Klikken toont direct dat deel van de pagina.</p></div>`;
+}
+// Klik op een keuze: toon het deel onder dat kopje als nieuwe beurt. Geen zoekronde en geen
+// model — de app weet welke tekst onder het kopje staat. De keuze gaat wel mee in het gesprek,
+// zodat een getypte vervolgvraag daarna weet om welke situatie het gaat.
+function kiesSectie(bronTurn,r,k){
+  const kz=r&&r.keuze;if(!kz)return;
+  const p=CORPUS[kz.idx],n=kopjesBoom(p)[k],sec=sectieTekst(p,k);
+  if(!n||!sec)return;
+  kz.gekozen=k;
+  bronTurn.querySelectorAll(".keuze-optie").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.k===k)));
+  // Een andere keuze uit hetzelfde blok terwijl het vorige gekozen deel nog onderaan staat:
+  // vervang dat, anders groeit het gesprek met bijna gelijke beurten.
+  let turn=kz.beurt;
+  if(turn&&turn.isConnected&&conv.lastElementChild===turn){
+    const vb=turn.querySelector(".bubble.vraag");if(vb)vb.textContent=n.t;
+    if(kz.hist&&history[history.length-1]===kz.hist)history.pop();
+  }else turn=addTurn(n.t);
+  kz.beurt=turn;
+  gesprekLoopt=true;
+  const cit={text:sec.tekst,verified:true,src:srcOf(kz.idx),srcIdx:kz.idx,bridge:"",relevantie:null,
+    start:sec.start,sectie:{pad:sectiePad(p,k)},heleSectie:true,keuzeOpties:kz.opties,keuzeK:k};
+  const vorige=(r.restated_question||"").trim();
+  const binnen=keuzeBinnen(p,k);
+  const res={restated_question:vorige?vorige+" — "+n.t:n.t,citations:[cit],used:[srcOf(kz.idx)],related:[],note:"",
+    clarifications:[],followups:[],uitSectie:true,keuze:binnen?Object.assign(binnen,{idx:kz.idx}):null};
+  renderResult(turn,res);
+  const bubble=turn.querySelector(".bubble.antwoord");
+  if(bubble){
+    const body=bubble.querySelector(".cite-body");
+    if(body&&body.querySelector(".zelfde")){
+      const lab=document.createElement("label");lab.className="zelfde-filter";
+      lab.innerHTML=`<input type="checkbox"> Verberg wat bij elke keuze hetzelfde is <span>(grijs)</span>`;
+      lab.querySelector("input").onchange=e=>bubble.classList.toggle("alleen-verschil",e.target.checked);
+      body.insertAdjacentElement("afterend",lab);
+    }
+    const m=document.createElement("div");m.className="meting";
+    m.textContent="Direct uit de bronpagina · geen zoekronde, geen AI";
+    bubble.appendChild(m);
+  }
+  // Voor het gesprek: het eerste stuk dat voor deze keuze ANDERS is, niet het gedeelde "Let op".
+  const eigen=sectieBlokken(cit).find(b=>!b.zelfde&&b.soort!=="kop");
+  kz.hist={q:res.restated_question,summary:((eigen&&blokkenAlsTekst([eigen]))||sec.tekst).slice(0,220)};
+  history.push(kz.hist);if(history.length>12)history.shift();
+  refreshComposer();
+  turn.scrollIntoView({behavior:"smooth",block:"start"});
 }
 // De eerste echte zin van een pagina, voor in de hover-kaart. Navigatie en linkteksten vallen af,
 // net als bij het citeren: een menu-item is geen antwoord.
@@ -3205,7 +3484,8 @@ function demoAnswer(q,cands){
   return {restated_question:q,demo:true,
     citations:[{text:body,verified:true,src:srcOf(cands[0]),srcIdx:cands[0]}],
     note:"DEMO-modus: begin van de best-matchende pagina, niet door AI geselecteerd of geciteerd. Vul een sleutel in voor een echte inleiding + letterlijke citaten.",
-    used:[srcOf(cands[0])],related:cands.slice(1).map(srcOf)};
+    used:[srcOf(cands[0])],related:cands.slice(1).map(srcOf),
+    keuze:keuzeVoor([{text:body,srcIdx:cands[0]}])};
 }
 
 // ---- Vervolgvragen die nergens heen leiden eruit filteren -----------------------------------
@@ -3328,9 +3608,14 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
       clarifications.push(u);
   }
   followups=bruikbareVervolgvragen(rest);
-  // Beschrijft de bronpagina meerdere situaties, dan is het citaat er één van. Vraag uit welke
-  // geldt, met de keuzes letterlijk uit de kopjes van die pagina.
-  for(const c of citations){
+  // Splitst de bronpagina het antwoord op in keuzes (situaties, plekken), dan toont de app die
+  // keuzes als knoppen, letterlijk uit de kopjes (zie keuzeVoor). Een uitvraag van het model
+  // over hetzelfde ("Waar woont u?") is dan dubbelop en valt weg.
+  const keuze=voorlopig?null:keuzeVoor(citations);
+  if(keuze)clarifications=clarifications.filter(c=>!overlaptKeuze(c.question,keuze));
+  else for(const c of citations){
+    // Geen herkenbare keuze, maar het citaat staat wel onder een van meerdere kopjes: vraag
+    // dan uit welke geldt, met de kopjes als opsomming.
     if(clarifications.length>=3)break;
     const v=c.start!==undefined?variantVraag(c.srcIdx,c.start):null;
     if(v&&!clarifications.some(x=>x.question===v.question))clarifications.unshift(v);
@@ -3363,7 +3648,7 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
     }
   }
   if(voorlopig&&!citations.length)return null;
-  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups};
+  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,followups,keuze};
 }
 async function askAI(q,cands,key,subs,opGeneratief){
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
@@ -3829,20 +4114,24 @@ function exportFeedback(){
 function blokkenHTML(blokken,klasse){
   const k=klasse||"cite";
   return blokken.map(b=>{
+    // "zelfde": dit blok staat letterlijk ook bij de andere keuzes (zie markeerGedeeld).
+    const z=b.zelfde?" zelfde":"";
     if(b.soort==="lijst"){
       const tag=b.genummerd?"ol":"ul",start=b.genummerd&&b.start>1?` start="${b.start}"`:"";
-      return `<${tag} class="${k}-lijst"${start}>`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</${tag}>`;
+      return `<${tag} class="${k}-lijst${z}"${start}>`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</${tag}>`;
     }
     if(b.soort==="tabel"){
       const kop=b.kop?`<thead><tr><th>${escapeHtml(b.kop[0])}</th><th>${escapeHtml(b.kop[1])}</th></tr></thead>`:"";
       const rijen=b.rijen.map(r=>`<tr><td>${escapeHtml(r[0])}</td><td class="${k}-waarde">${escapeHtml(r[1])}</td></tr>`).join("");
-      return (b.titel?`<p class="${k}-tabeltitel">${escapeHtml(b.titel)}</p>`:"")
-        +`<table class="${k}-tabel">${kop}<tbody>${rijen}</tbody></table>`;
+      return (b.titel?`<p class="${k}-tabeltitel${z}">${escapeHtml(b.titel)}</p>`:"")
+        +`<table class="${k}-tabel${z}">${kop}<tbody>${rijen}</tbody></table>`;
     }
-    return `<p class="${k}-p">${escapeHtml(b.tekst)}</p>`;
+    if(b.soort==="kop")return `<p class="${k}-kop${z}">${escapeHtml(b.tekst)}</p>`;
+    return `<p class="${k}-p${z}">${escapeHtml(b.tekst)}</p>`;
   }).join("");
 }
 function citeBodyHTML(c){
+  if(c&&c.heleSectie)return blokkenHTML(sectieBlokken(c),"cite");
   const blokken=blokkenVan(c);
   return blokkenHTML(blokken,"cite")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
 }
@@ -3988,7 +4277,7 @@ function renderResult(turn,r,voorlopig){
     const bronTegels=[];
     // Demo-modus levert geen AI-tekst; toon dan de vraag als context, anders begint het
     // antwoord zonder aanloop.
-    if(!r.intro&&!r.citations.some(c=>c.bridge))h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
+    if(!r.intro&&!r.uitSectie&&!r.citations.some(c=>c.bridge))h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
     for(const blok of answerBlocks(r)){
       if(blok.type==="generated"){
         const lab=eersteAI?"AI":"";eersteAI=false;
@@ -4048,6 +4337,9 @@ function renderResult(turn,r,voorlopig){
   // écht beter maken, en zijn herkenbaar aan een geel streepje en een potlood.
   const fups=r.followups||[];
   const uitvraag=hasCites?clar:[];
+  // Keuzes uit de kopjes van de bronpagina staan vóór de vervolgvragen: ze maken het antwoord
+  // preciezer, en een klik kost niets.
+  if(hasCites&&r.keuze&&!voorlopig)f+=keuzeHTML(r.keuze);
   if(uitvraag.length||fups.length){
     f+=`<div class="followups"><span class="label">Vervolgvragen</span><ul class="fup-list">`;
     uitvraag.forEach(c=>{f+=`<li><button class="fup-row clar-row" data-prefill="${escapeHtml(c.prefill||c.question)}" title="Zet deze vraag in het invoerveld om aan te vullen"><span class="fup-q">${escapeHtml(c.question)}</span><span class="fup-plus">${ICON_PENCIL}</span></button></li>`;});
@@ -4069,6 +4361,7 @@ function renderResult(turn,r,voorlopig){
   h+=`<div class="answer-footer">${f}</div></div>`;
   const slot=turn.querySelector(".slot");slot.innerHTML=h;
   koppelBronkaarten(slot);
+  slot.querySelectorAll(".keuze-optie").forEach(b=>{b.onclick=()=>kiesSectie(turn,r,+b.dataset.k);});
   slot.querySelectorAll(".followups button").forEach(b=>{
     const pre=b.getAttribute("data-prefill");
     b.onclick=pre?(()=>prefill(pre)):(()=>askText(b.getAttribute("data-q")));
