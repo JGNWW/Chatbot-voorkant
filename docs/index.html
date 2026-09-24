@@ -284,7 +284,6 @@ ol.srclist li{margin:2px 0;}
 .uv-knop:hover{background:var(--rijk-donker);}
 .uv-knop:disabled{background:#9fc6e2;cursor:not-allowed;}
 .uv-knop:focus-visible{outline:2px solid var(--rijk-blauw);outline-offset:2px;}
-.uv-hint{margin:8px 0 0;font-size:.78rem;color:var(--ink-licht);}
 /* Een deel van een samengestelde vraag dat niet beantwoord is: meteen te stellen. */
 .openblok{margin-top:16px;}
 .open-rij{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:.93rem;color:var(--rijk-blauw);font-weight:600;background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:8px 12px;margin-top:6px;cursor:pointer;}
@@ -2609,7 +2608,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 125";
+const APP_VERSION="build 126";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2953,13 +2952,11 @@ function uitvraagHTML(r,c,n){
       +`<div class="uv-combo"><input id="${id}" type="text" role="combobox" aria-expanded="false" aria-controls="${id}-l" aria-autocomplete="list" placeholder="Typ of kies een land…">`
       +`<svg class="uv-pijl" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`
       +`<ul class="uv-lijst" id="${id}-l" role="listbox" hidden></ul></div>`
-      +`<button class="uv-knop" type="submit" disabled>Toon antwoord ${ICON_ARROW}</button></div>`
-      +`<p class="uv-hint">Vraag de burger naar het land. De app toont dan direct de landenpagina, zonder nieuwe zoekronde.</p></form>`;
+      +`<button class="uv-knop" type="submit" disabled>Toon antwoord ${ICON_ARROW}</button></div></form>`;
   }
   return `<form class="uitvraag" data-n="${n}" autocomplete="off">${kop}<div class="uv-regel">`
     +`<input class="uv-tekst" id="${id}" type="text" value="${escapeHtml(c.prefill||"")}">`
-    +`<button class="uv-knop" type="submit">Vraag opnieuw ${ICON_ARROW}</button></div>`
-    +`<p class="uv-hint">Vul het antwoord van de burger aan. Leo zoekt dan opnieuw, met deze vraag erbij.</p></form>`;
+    +`<button class="uv-knop" type="submit">Vraag opnieuw ${ICON_ARROW}</button></div></form>`;
 }
 function koppelUitvraag(fm,bronTurn,r){
   const c=(r.clarifications||[])[+fm.dataset.n];if(!c)return;
