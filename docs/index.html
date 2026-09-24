@@ -588,7 +588,7 @@ Stel een antwoord samen dat bestaat uit:
 5. "intro": EÉN korte zin (max 18 woorden; gebruik dezelfde vakterm als de vraag — herinterpreteer die niet) in de aanspreekvorm "u" die de INFORMATIEBEHOEFTE van de burger herformuleert, grammaticaal naadloos overloopt in het eerste citaat, en de voorlichter helpt de vraag goed te kaderen. VARIEER de opening — gebruik bv. "Als ik het goed begrijp, wilt u weten…", "U vraagt waarschijnlijk naar…", "U zoekt informatie over…", "Begrijp ik goed dat u wilt weten…" of een vergelijkbare natuurlijke variant. Schrijf de zin PAS NADAT je het eerste citaat hebt gekozen, zodat hij precies daarop aansluit. Strikte regels: noem GEEN feiten, bedragen, termijnen of conclusies — herformuleer ALLEEN de VRAAG. Geef GEEN aanname over de situatie (bv. niet "voor uw kind" tenzij de burger dat zelf zei). Eindig NIET op een dubbele punt als het citaat met een vraag begint. Laat "intro" LEEG als er geen citaat is.
 
 Antwoord UITSLUITEND met JSON (geen tekst eromheen, geen codeblok):
-{"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"bridge":"<korte overbruggende zin naar dit citaat>","quote":"<de passage letterlijk>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat de voorlichter uitvraagt>","prefill":"<begin van het antwoord in de ik-vorm, eindigend op een spatie>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<korte toelichting of leeg>"}
+{"restated_question":"<de vraag kort en helder geherformuleerd>","intro":"<korte zin die de vraag herformuleert en op het citaat aansluit, of leeg>","citations":[{"source_index":<paginanummer>,"bridge":"<korte overbruggende zin naar dit citaat>","quote":"<de passage letterlijk>","start":"<eerste woorden van de passage>","end":"<laatste woorden van de passage>"}],"clarifications":[{"question":"<wat de voorlichter uitvraagt>","prefill":"<begin van het antwoord in de ik-vorm, eindigend op een spatie>"}],"followups":["<vervolgvraag>"],"related_indices":[<max 3 andere relevante paginanummers>],"note":"<leeg als er een citaat is; alleen gevuld als er geen antwoord is (zie hieronder)>"}
 
 GEEN ANTWOORD OP DE PAGINA'S? Dat is een geldige uitkomst en geen mislukking. Verzin dan NIETS: laat "citations", "clarifications" en "followups" LEEG en zet in "note" exact deze zin, zonder er iets aan te veranderen:
 "Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner."
@@ -2612,7 +2612,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 123";
+const APP_VERSION="build 124";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3728,7 +3728,12 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   }
   const used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
   let related=(r.related_indices||[]).map(n=>bronnen[n]).filter(i=>Number.isInteger(i)&&!usedSet.has(i)).map(srcOf);
-  let note=r.note||"";
+  // De vrije toelichting van het model tonen we alleen als er GEEN citaat is (dan is het de
+  // "geen informatie"-melding). Naast een echt antwoord was het vooral ruis als "Geen specifieke
+  // informatie over ID-kaarten voor kinderen": een onderwerp waar niemand naar vroeg, en waar
+  // dus ook niets over gezegd hoeft te worden. Meldingen die de app zelf maakt (afgekapt
+  // antwoord, onbeantwoord deel) komen hieronder alsnog.
+  let note=rawCites.length?"":(r.note||"");
   let clarifications=(Array.isArray(r.clarifications)?r.clarifications:[])
     .map(c=>maakVerduidelijking(c.question,c.prefill)).filter(Boolean).slice(0,3);
   // Er is geen lijst met vervolgvragen meer: die verzon het model zonder te weten of de site ze
