@@ -17,7 +17,7 @@ const fn = (naam) => { const i = html.indexOf("function " + naam + "("); return 
 const findFromSrc = fn("escRe") + "\n" + fn("findFrom");
 const Q = new Function(
   findFromSrc + "\n" + html.slice(A, B) +
-  "\nreturn {maakVerduidelijking,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch,citaatBlokken,blokkenAlsTekst,maakTabel,lijstItems,structuurInAlinea};"
+  "\nreturn {maakVerduidelijking,uitvraagPastBijBron,buildUnits,buildCitation,locateSpan,spanFromAnchors,isWeakQuote,quotesOverlap,bridgeIsSafe,quoteParagraphs,normForMatch,citaatBlokken,blokkenAlsTekst,maakTabel,lijstItems,structuurInAlinea};"
 )();
 
 let gefaald = 0, gedaan = 0;
@@ -191,6 +191,21 @@ test("vraag die voor elke beller geldt valt af", () => {
 test("verduidelijking zonder prefill valt af", () => {
   eq(Q.maakVerduidelijking("Is dit een eerste aanvraag of een verlenging?", ""), null);
   waar(Q.maakVerduidelijking("Is dit een eerste aanvraag of een verlenging?", "Het is een"), "geldige keuzevraag geweigerd");
+});
+test("uitvraag moet over de bronpagina gaan, niet over het voorbeeld uit de prompt", () => {
+  // Rijbewijs kwijt: geen kind, en "eerst" staat er alleen als "meld het eerst bij de RDW".
+  const rijbewijs = ["Mijn Nederlandse rijbewijs is kwijt of gestolen in het buitenland. Wat nu?\n"
+    + "Meld het verlies of de diefstal van uw Nederlandse rijbewijs eerst bij de RDW.\n"
+    + "Stap 2: Nieuw rijbewijs uit uw woonland aanvragen\n"
+    + "Lees meer over hoe u uw Nederlandse rijbewijs kunt verlengen.\nIk woon in een ander EU-land"];
+  eq(Q.uitvraagPastBijBron("Voor wie is de aanvraag: voor uzelf of voor een kind?", rijbewijs), false, "kind-vraag bij rijbewijs");
+  eq(Q.uitvraagPastBijBron("Is dit een eerste aanvraag of een verlenging?", rijbewijs), false, "losse woorden verspreid over de pagina tellen niet");
+  waar(Q.uitvraagPastBijBron("In welk land woont u?", rijbewijs), "landvraag bij rijbewijs werd geweigerd");
+  // Staat het wel op de pagina, dan blijft de vraag staan.
+  const paspoort = ["Wilt u een paspoort aanvragen voor uw kind? Dan moeten beide ouders toestemming geven."];
+  waar(Q.uitvraagPastBijBron("Voor wie is de aanvraag: voor uzelf of voor een kind?", paspoort), "kind-vraag bij paspoortpagina werd geweigerd");
+  // Noemt de burger het zelf, dan telt dat ook.
+  waar(Q.uitvraagPastBijBron("Voor wie is de aanvraag: voor uzelf of voor een kind?", [...rijbewijs, "Rijbewijs kwijt, gaat om mijn kind"]), "woord uit de vraag van de burger telt niet mee");
 });
 
 // --- gesproken vraag mag geen invalshoek verzinnen ---
