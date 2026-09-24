@@ -569,6 +569,7 @@ Stel een antwoord samen dat bestaat uit:
    - VOLGORDE: zet de citaten in de volgorde waarin je ze zou uitleggen — eerst het kernantwoord, dan waar of hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. De samenhang breng je aan met de "bridge"-zin vóór elk citaat, niet met tussenkopjes.
 2. "clarifications": hangt het juiste antwoord af van de situatie van de burger, neem dan geen aanname maar zet hier wat de voorlichter moet uitvragen. Geef per verduidelijking een "question" en een "prefill".
    - ONDERSCHEIDEND: stel alleen vragen waarvan het antwoord het antwoord ECHT verandert. Vraag NOOIT iets dat voor vrijwel elke beller geldt: NederlandWereldwijd gaat over Nederlanders in of naar het buitenland, dus "Woont u in het buitenland?" is geen zinnige vraag. Vraag in plaats daarvan naar WELK land, WELKE situatie of VOOR WIE.
+   - UIT DE BRON: vraag alleen naar een onderscheid dat op de gegeven pagina's zelf gemaakt wordt. De voorbeeldvragen hieronder zijn alleen voorbeelden van de VORM; neem ze niet over. Een vraag waarvan de woorden niet op de pagina's staan, gooit de app weg.
    - OPEN, NIET JA/NEE: schrijf "In welk land woont u?" in plaats van "Woont u in het buitenland?". Gaat het echt om twee mogelijkheden, formuleer het dan als keuze: "Is dit een eerste aanvraag of een verlenging?".
    - "prefill" is het begin van het ANTWOORD, in de ik-vorm, zodat de voorlichter het ter plekke aanvult. Het is dus NIET de vraag zelf. Eindig met een spatie. Voorbeelden: vraag "In welk land woont u?" -> prefill "Ik woon in "; vraag "Is dit een eerste aanvraag of een verlenging?" -> prefill "Het is een "; vraag "Voor wie is de aanvraag: voor uzelf of voor een kind?" -> prefill "De aanvraag is voor ". Een prefill die de vraag herhaalt is fout en wordt weggegooid.
    - Meestal is één verduidelijking genoeg, hoogstens drie. Valt er niets zinnigs uit te vragen, laat de lijst dan leeg.
@@ -2003,6 +2004,32 @@ function maakVerduidelijking(vraag,prefill){
   if(kq.startsWith(kp)||kp.startsWith(kq))return null;    // prefill herhaalt de vraag
   return {question:q,prefill:p+" "};                      // spatie: de voorlichter typt verder
 }
+// Een uitvraag moet over de BRONPAGINA gaan: hij splitst situaties die daar ook echt staan.
+// Kleine modellen praten de voorbeelden uit de prompt na ("Voor wie is de aanvraag: voor uzelf
+// of voor een kind?") — ook bij een rijbewijs dat kwijt is, op een pagina waar geen kind in
+// voorkomt. Daarom: elk kernwoord uit de vraag moet op een geciteerde pagina staan (of in de
+// vraag van de burger zelf). De woorden die alleen de vraag vormen tellen niet mee.
+// Losse woorden ergens op de pagina is te ruim: "eerste aanvraag" vond zo "meld het verlies
+// EERST bij de RDW" en "rijbewijs AANVRAGEN" twee alinea's verder. Een keuzevraag ("eerste
+// aanvraag of verlenging") splitsen we daarom in zijn opties, en de kernwoorden van één optie
+// moeten samen in één zin staan.
+const UITVRAAG_KADER=new Set(("welk welke waar waarom wanneer hoeveel hoelang hoever voor naar over "
+  +"zijn wordt worden werd heeft hebt hebben bent wilt willen kunt kunnen moet moeten gaat gaan "
+  +"deze degene iemand uzelf zelf anders andere ander iets niets precies ongeveer alleen "
+  +"situatie sprake betreft betrekking vraag vraagt eigen").split(" "));
+function uitvraagKern(vraag){
+  const woorden=(vraag||"").toLowerCase().match(/[a-zà-ÿ]{4,}/g)||[];
+  // Een stam, geen heel woord: "aanvraag" moet ook "aanvragen" vinden, "kind" ook "kinderen".
+  return [...new Set(woorden.filter(w=>!UITVRAAG_KADER.has(w)).map(w=>w.slice(0,w.length>=6?5:4)))];
+}
+function uitvraagPastBijBron(vraag,teksten){
+  const zinnen=(teksten||[]).join("\n").toLowerCase().split(/[.!?\n]+/);
+  const delen=(vraag||"").split(/:|,|\bof\b/i);
+  return delen.every(d=>{
+    const kern=uitvraagKern(d);
+    return !kern.length||zinnen.some(z=>kern.every(s=>z.includes(s)));
+  });
+}
 // Zin-eenheden per corpuspagina, gecachet. De luistermodus bouwt bij elk gesproken woord een
 // passage op; zonder cache zou dezelfde pagina telkens opnieuw worden opgedeeld.
 const _UNITS=[];
@@ -2608,7 +2635,7 @@ keyInput.addEventListener("input",()=>{
 });
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 126";
+const APP_VERSION="build 127";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3736,6 +3763,11 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
     if(u&&u!=="weg"&&clarifications.length<3&&!clarifications.some(c=>c.question===u.question))
       clarifications.push(u);
   }
+  // Alleen uitvragen wat op de geciteerde pagina's speelt (zie uitvraagPastBijBron). Zonder
+  // citaat tellen de pagina's die het model te zien kreeg.
+  const bronIdx=citations.length?[...usedSet]:bronnen.filter(Number.isInteger);
+  const bronTekst=[q,...bronIdx.map(i=>((CORPUS[i]||{}).title||"")+"\n"+((CORPUS[i]||{}).text||""))];
+  clarifications=clarifications.filter(c=>uitvraagPastBijBron(c.question,bronTekst));
   // Splitst de bronpagina het antwoord op in keuzes (situaties, plekken), dan toont de app die
   // keuzes als knoppen, letterlijk uit de kopjes (zie keuzeVoor). Een uitvraag van het model
   // over hetzelfde ("Waar woont u?") is dan dubbelop en valt weg.
