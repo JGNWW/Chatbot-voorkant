@@ -706,7 +706,7 @@ Regels:
 - Staat het antwoord NIET in de passages, schrijf dan geen antwoord bij elkaar. Geef in dat geval precies één alinea met exact deze tekst, zonder bronnen:
 "Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner."
   Dat geldt ook als de passages er in de buurt komen: liever geen antwoord dan een antwoord dat net naast de vraag zit.
-  UITZONDERING: staat onder de passages een blok "KEUZES OP DE PAGINA", dan staat het vervolg van het antwoord op de pagina achter die keuzes, en de app toont ze als knoppen onder je antwoord. Zeg dan NIET dat er geen informatie is. Schrijf op wat de passage zegt dat voor iedereen geldt (bijvoorbeeld wat u wel of niet mag, of dat het afhangt van uw situatie) en sluit af met één zin dat wat de burger verder moet doen afhangt van zijn situatie, zoals hieronder te kiezen. Noem bij die keuzes geen stappen, bedragen of termijnen: die staan niet in de passage.
+  UITZONDERING: staat onder de passages een blok "KEUZES OP DE PAGINA", dan staat het vervolg van het antwoord op de pagina achter die keuzes, en de app toont ze als knoppen onder je antwoord. Zeg dan NIET dat er geen informatie is. Schrijf op wat de passage zegt dat voor iedereen geldt (bijvoorbeeld wat u wel of niet mag, of dat het afhangt van uw situatie) en sluit af met één zin dat wat de burger verder moet doen afhangt van zijn situatie, zoals hieronder te kiezen. Herhaal die vraag en de keuzes NIET in je antwoord en zet ze niet in een lijstje: ze staan al als knoppen onder je antwoord. Noem ook geen stappen, bedragen of termijnen die bij de keuzes horen: die staan niet in de passage.
   Die zin is een HEEL antwoord op zichzelf: hij is dan de ENIGE alinea, zonder bronnen. Plak hem nooit achter, voor of tussen een alinea die wel antwoord geeft, en gebruik hem nooit voor een ONDERDEEL van de vraag terwijl een passage dat onderdeel wel beantwoordt. Beantwoordt een passage een deel van de vraag, schrijf dat deel dan gewoon op.
 
 Antwoord UITSLUITEND met JSON: {"alineas":[{"tekst":"<alinea>","bronnen":[<passagenummers>]}]}`;
@@ -2819,7 +2819,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 134";
+const APP_VERSION="build 135";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3063,6 +3063,26 @@ function optieUitVraag(q,kz){
     if(eigen.some(w=>vq.has(w)))raak.push(k);
   });
   return raak.length===1?raak[0]:-1;
+}
+// Een citaat vlak vóór de keuze is vaak alleen de laatste zin van de inleiding: "Wat u kunt doen,
+// hangt af van uw situatie." De zinnen ervoor in dezelfde alinea gelden juist voor IEDEREEN, en
+// zijn dan het enige echte antwoord dat er te geven valt ("Dan mag u niet autorijden."). Neem
+// daarom de hele alinea, zolang die kort genoeg blijft om voor te lezen.
+const MAX_INLEIDING_WOORDEN=80;
+function heleInleiding(citations,kz){
+  if(kz.huidig!==-1)return;
+  const p=CORPUS[kz.idx],T=(p&&p.text)||"",boom=kopjesBoom(p);
+  const eerste=boom[kz.opties[0]];if(!eerste)return;
+  for(const c of citations){
+    if(c.srcIdx!==kz.idx||!Number.isInteger(c.start)||c.start>=eerste.pos)continue;
+    const s=T.lastIndexOf("\n",c.start-1)+1;
+    let e=T.indexOf("\n",c.start+c.text.length);if(e<0)e=T.length;
+    if(s>=c.start&&e<=c.start+c.text.length)continue;
+    const cit=citationFor(kz.idx,{start:s,end:e},MAX_INLEIDING_WOORDEN);
+    if(!cit||!cit.text.includes(c.text.trim())||cit.text.length<=c.text.length)continue;
+    if(telWoorden(cit.text)>MAX_INLEIDING_WOORDEN)continue;
+    Object.assign(c,{text:cit.text,start:cit.start,sectie:sectieVan(kz.idx,cit.start)});
+  }
 }
 // De citaten die BINNEN een van de opties staan. Weet de burger nog niet welke manier of situatie
 // geldt, dan hoort de uitwerking van één optie (laat staan van allemaal) nog niet in het
@@ -4231,6 +4251,7 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
     if(keuze.afgeleid&&zelfde&&/\?$/.test(zelfde.question))keuze.vraag=zelfde.question;
     clarifications=clarifications.filter(c=>!overlaptKeuze(c.question,keuze));
     knipTotKeuze(citations,keuze,q);
+    heleInleiding(citations,keuze);
     used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
   }
   else for(const c of citations){
@@ -4269,6 +4290,24 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   if(voorlopig&&!citations.length)return null;
   return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,open,keuze,__sp:citations.length?plan:undefined};
 }
+// Zet het model de keuzevraag en de opties tóch in zijn antwoord ("Wat is uw situatie? - Ik woon
+// in Nederland … - Ik woon buiten de EU"), dan staan ze er dubbel: eronder staan ze al als
+// knoppen. Haal ze eruit. Blijft er niets over, dan geen AI-tekst en toont de app het citaat.
+function zonderKeuzeLijst(alineas,kz){
+  const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+  const labels=kz.opties.map(k=>keuzeLabel(kz,k)).filter(Boolean);
+  const uit=[];
+  for(const a of alineas){
+    let t=a.tekst;
+    for(const l of labels)t=t.replace(new RegExp("\\s*(?:^|[-\u2022\u2013*]|\\d[.)])\\s*"+esc(l)+"\\s*[.;,]?","gi")," ");
+    if(t!==a.tekst&&kz.vraag)t=t.replace(new RegExp("\\s*"+esc(kz.vraag)+"\\s*$","i"),"");
+    t=t.replace(/\s+/g," ").trim();
+    if(t===a.tekst){uit.push(a);continue;}
+    if(t)uit.push({tekst:t,bronnen:a.bronnen});
+  }
+  if(!uit.length)return null;
+  return Object.assign(uit,{afgevallen:alineas.afgevallen,hersteld:alineas.hersteld});
+}
 async function askAI(q,cands,key,subs,opGeneratief){
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
@@ -4303,8 +4342,13 @@ async function askAI(q,cands,key,subs,opGeneratief){
     // de inleiding letterlijk, met de keuzes eronder.
     const geenInfoBijKeuze=t=>!!uit.keuze&&GEEN_INFO_KERN.some(k=>plat(t).includes(k));
     const live=(STREAM&&kanStreamen()&&opGeneratief)
-      ?(alineas)=>{if(!alineas.some(geenInfoBijKeuze))opGeneratief(uit,alineas);}:null;
+      ?(alineas)=>{
+        if(alineas.some(geenInfoBijKeuze))return;
+        if(uit.keuze)alineas=(zonderKeuzeLijst(alineas.map(t=>({tekst:t,bronnen:[]})),uit.keuze)||[]).map(a=>a.tekst);
+        if(alineas.length)opGeneratief(uit,alineas);
+      }:null;
     uit.generatief=await schrijfAntwoord(q,uit.citations,key,live,uit.keuze);
+    if(uit.generatief&&uit.keuze)uit.generatief=zonderKeuzeLijst(uit.generatief,uit.keuze);
     if(uit.generatief&&uit.generatief.length===1&&!uit.generatief[0].bronnen.length&&geenInfoBijKeuze(uit.generatief[0].tekst))
       uit.generatief=null;
     else if(!uit.generatief)uit.genReden=GEN_REDEN||"onbekende reden";
@@ -4481,9 +4525,11 @@ async function schrijfAntwoord(q,citations,key,onAlineas,keuze){
   // Volgt er op de pagina een keuze (zie keuzeVoor), dan ziet de schrijver alleen de inleiding
   // erboven. Zonder dit blok vindt hij dat te weinig en zegt hij "geen informatie", terwijl de
   // inleiding vaak iets zegt wat voor iedereen geldt ("Dan mag u niet autorijden.").
+  // Alleen DAT er een keuze volgt, niet de opties zelf: met de opties erbij schreef het model ze
+  // over als lijstje, dubbel met de knoppen eronder.
   const keuzeBlok=keuze&&keuze.huidig===-1
-    ?"\n\nKEUZES OP DE PAGINA (de app toont ze als knoppen onder je antwoord):\n"+(keuze.vraag||"Wat is uw situatie?")+"\n"
-      +keuze.opties.map(k=>"- "+keuzeLabel(keuze,k)).join("\n")
+    ?"\n\nKEUZES OP DE PAGINA: na deze passage vraagt de pagina \""+(keuze.vraag||"Wat is uw situatie?")
+      +"\" met "+keuze.opties.length+" keuzes. De app toont die als knoppen onder je antwoord."
     :"";
   let j;
   try{
