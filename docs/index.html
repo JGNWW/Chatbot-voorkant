@@ -328,6 +328,16 @@ ol.srclist li{margin:2px 0;}
 .alt-knop{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:.9rem;color:var(--rijk-blauw);font-weight:600;background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:7px 12px;cursor:pointer;}
 .alt-knop:hover{border-color:var(--rijk-licht);background:var(--blauw-bg);}
 .alt-knop svg{flex:0 0 auto;color:var(--rijk-licht);}
+/* Stoppen en aanpassen */
+.stop-vraag{margin-left:12px;font-style:normal!important;white-space:nowrap;background:#fff;border:1px solid var(--rand-sterk);color:var(--ink-licht);border-radius:999px;padding:2px 10px;font:inherit;font-size:.78rem;cursor:pointer;vertical-align:middle;}
+.stop-vraag:hover{border-color:var(--rood);color:var(--rood);}
+.row.user{align-items:center;}
+.vraag-aanpassen{align-self:center;margin-right:6px;background:none;border:0;color:var(--ink-licht);padding:5px;border-radius:7px;cursor:pointer;opacity:0;transition:opacity .12s;}
+.row.user:hover .vraag-aanpassen,.vraag-aanpassen:focus-visible{opacity:1;}
+.vraag-aanpassen:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
+@media (hover:none){.vraag-aanpassen{opacity:.7;}}
+.bubble.gestopt{display:flex;align-items:center;gap:12px;color:var(--ink-licht);font-size:.9rem;}
+.vraag-aanpassen-tekst{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--rijk-licht);color:var(--rijk-blauw);border-radius:999px;padding:3px 11px;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
 .via-pagina{display:block;text-align:right;font-size:.74rem;color:var(--ink-licht);margin:3px 4px 0;}
 a{color:var(--rijk-licht);}
 /* De wachtregel breekt over twee regels omdat de bel tijdens het laden weinig inhoud heeft en
@@ -845,7 +855,7 @@ async function oaiChat(endpoint,key,model,system,user,name,onDelta){
     const doe=async(json)=>{
       const body={model,temperature:0,max_tokens:3000,stream:true,messages:[{role:"system",content:system},{role:"user",content:user}]};
       if(json)body.response_format={type:"json_object"};
-      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
+      const r=await fetch(endpoint,{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
       return r;
     };
     let r=await doe(true);
@@ -862,7 +872,7 @@ async function oaiChat(endpoint,key,model,system,user,name,onDelta){
   return oaiChatHeel(endpoint,key,model,system,user,name);
 }
 async function oaiChatHeel(endpoint,key,model,system,user,name,tweedeKans){
-  const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
+  const r=await fetch(endpoint,{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
   if(!r.ok){
     const tekst=(await r.text()).slice(0,400);
     // "model_not_found" is geen storing maar een verlopen keuze. Zeg dan wat er aan de hand is
@@ -1019,7 +1029,13 @@ const LOKAALAI=(function(){
     // Zonder dit schrijft een denkend model eerst honderden tokens hardop nadenken vóór de JSON:
     // pure vertraging, en de app leest die tekst als een kapot antwoord.
     if(LOKAAL_MODELLEN[sleutel].denkt)verzoek.extra_body={enable_thinking:false};
-    const r=await e.chat.completions.create(verzoek);
+    // Stoppen: WebLLM heeft geen signaal, maar wel interruptGenerate().
+    const sig=vraagSignaal(),onderbreek=()=>{try{e.interruptGenerate&&e.interruptGenerate();}catch(_){}};
+    if(sig)sig.addEventListener("abort",onderbreek,{once:true});
+    let r;
+    try{r=await e.chat.completions.create(verzoek);}
+    finally{if(sig)sig.removeEventListener("abort",onderbreek);}
+    if(sig&&sig.aborted)throw new DOMException("gestopt","AbortError");
     // WebLLM meet zelf hoe snel het ging. We tellen het per vraag op, zodat je kunt ZIEN waar de
     // tijd blijft in plaats van te gissen: doorrekenen van de prompt, of het schrijven zelf.
     try{
@@ -1176,6 +1192,7 @@ const WASMAI=(function(){
       // het verschil tussen een bruikbaar antwoord en een half codeblok.
       response_format:{type:"json_object"},
       cache_prompt:true,
+      abortSignal:vraagSignaal(),      // wllama breekt de generatie af op dit signaal
     });
     try{
       const u=r&&r.usage,sec=(performance.now()-t0)/1000;
@@ -1282,7 +1299,7 @@ const PROVIDERS={
       const doe=async extra=>{
         const cfg=Object.assign({temperature:0,maxOutputTokens:8000,responseMimeType:"application/json"},extra);
         const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:cfg};
-        const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+        const r=await fetch(url,{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json"},body:JSON.stringify(body)});
         if(!r.ok)return {ok:false,status:r.status,tekst:await r.text()};
         if(onDelta){
           // Bij streamen komt de tekst los binnen; de JSON-omhulling van één antwoord bouwen we
@@ -1361,7 +1378,7 @@ const PROVIDERS={
         const body={model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]};
         if(onDelta)body.stream=true;
         if(json)body.response_format={type:"json_object"};
-        const r=await fetch("https://router.huggingface.co/v1/chat/completions",{method:"POST",
+        const r=await fetch("https://router.huggingface.co/v1/chat/completions",{method:"POST",signal:vraagSignaal(),
           headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
         if(!r.ok)return {ok:false,status:r.status,tekst:await r.text()};
         if(onDelta){
@@ -1432,7 +1449,7 @@ const PROVIDERS={
       // systeemprompt vraagt zelf al om uitsluitend JSON, en parseModelJSON is er tegen bestand.
       const body={model,max_tokens:3000,system:sys,messages:[{role:"user",content:user}]};
       if(onDelta)body.stream=true;
-      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(body)});
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("Claude "+r.status+": "+(await r.text()).slice(0,200));
       if(onDelta)return leesSSE(r,j=>(j.type==="content_block_delta"&&j.delta&&j.delta.text)||"",onDelta);
       const d=await r.json();return (d.content||[]).map(c=>c.text||"").join("");}},
@@ -1478,7 +1495,7 @@ const PROVIDERS={
     async call(key,model,system,user,onDelta){
       const body={model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]};
       if(onDelta)body.stream=true;
-      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
+      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("OpenRouter "+r.status+": "+(await r.text()).slice(0,200));
       if(onDelta)return leesSSE(r,j=>j.choices?.[0]?.delta?.content||"",onDelta);
       const d=await r.json();
@@ -2876,7 +2893,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 148";
+const APP_VERSION="build 149";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2919,6 +2936,7 @@ function refreshComposer(){
   sendBtn.disabled=!corpusKlaar||!inputEl||!inputEl.value.trim();
 }
 function newConversation(){
+  stopVraag();
   history=[];gesprekLoopt=false;
   // Ook het spraakvenster leeg: wat er tot nu toe gezegd is hoort bij het oude gesprek.
   if(typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.nieuweContext)LISTEN.nieuweContext();
@@ -3730,10 +3748,14 @@ async function rerankCandidates(q,cands){
 async function runQuestion(rawQ,gesproken){
   if(!corpusKlaar||!rawQ)return;
   const turn=addTurn(rawQ,gesproken);     // toon de vraag zoals gesteld
+  // Eén vraag tegelijk: een nieuwe vraag stopt de vorige (zie nieuweVraag). Na elke wachtstap
+  // kijkt deze run of hij nog de huidige is; zo niet, dan stopt hij zonder iets te tonen.
+  const nr=nieuweVraag(turn),weg=()=>!isHuidig(nr);
   gesprekLoopt=true;refreshComposer();    // vanaf nu: vervolgvragen bouwen voort op dit gesprek
   // In turbomodus komt de paginatekst op de achtergrond binnen. Vanaf de herrangschikking is hij
   // nodig; meestal is hij er dan allang, want de voorlichter heeft eerst zitten typen.
   await tekstKlaar();
+  if(weg())return;
   const key=keyInput.value.trim();const ai=aiKlaar();
   const lokaal=geenSleutelNodig();
   if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
@@ -3759,6 +3781,7 @@ async function runQuestion(rawQ,gesproken){
     // Alleen bij een vervolgvraag nog een tweede aanroep: zonder de context is "en wat kost dat?"
     // niet te beantwoorden. Bij een eerste vraag blijft het dus echt bij één.
     q=history.length?await condenseQuestion(rawQ):rawQ;
+    if(weg())return;
     const broad=hubCandidates(await fuseRetrieval(uniek([q,rawQ]),[rawQ,q].join(" "),"",25),[rawQ,q].join(" "));
     cands=forceProduct(rawQ+" "+q,broad.slice(0,TOPK));
   }else if(lokaal){
@@ -3769,12 +3792,14 @@ async function runQuestion(rawQ,gesproken){
     // het model alleen doen wat het wél moet: kiezen en citeren.
     stap(turn,"Pagina's zoeken");stapModel(turn);
     q=await condenseQuestion(rawQ);
+    if(weg())return;
     const broad=hubCandidates(await fuseRetrieval(uniek([q,rawQ]),[rawQ,q].join(" "),"",lokLimiet().kandidaten),[rawQ,q].join(" "));
     const winnaar=await winnaarVoorKeuze(q,rawQ,broad);
     if(winnaar)cands=forceProduct(rawQ+" "+q,winnaar.cands);
     else{
       stap(turn,"Beste pagina's kiezen");
       const picked=await rerankCandidates(q,broad);
+      if(weg())return;
       cands=forceProduct(rawQ+" "+q,(picked&&picked.length?picked:broad.slice(0,TOPK)));
     }
     if(winnaar)stap(turn,STAP_OVERGESLAGEN);
@@ -3782,11 +3807,12 @@ async function runQuestion(rawQ,gesproken){
     // Expansie+HyDE+multi-query -> breed ophalen (+hubs) -> AI kiest op intentie -> confidence-check.
     stap(turn,"Vraag begrijpen");
     const pre=await prepareQuery(rawQ);q=pre.q;
+    if(weg())return;
     stap(turn,"Pagina's zoeken");stapModel(turn);
     if(!pre.inScope){                                           // buiten het domein -> niet zoeken
       logMiss(rawQ,"buiten-domein");
       const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[],clarifications:[]};
-      renderResult(turn,nores);recordTurn(rawQ,nores);return;
+      vraagKlaar(nr);renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }
     let broad;
     deelvragen=pre.subs||[];
@@ -3814,12 +3840,13 @@ async function runQuestion(rawQ,gesproken){
     else{
       stap(turn,"Beste pagina's kiezen");
       const picked=await rerankCandidates(q,broad);
+      if(weg())return;
       if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
       else if(picked.length===0){                                 // niets past echt -> lage confidence
         logMiss(rawQ,"geen-passende-pagina");
         const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],
                      __vraag:{rawQ,q},__cands:broad};
-        renderResult(turn,nores);recordTurn(rawQ,nores);return;
+        vraagKlaar(nr);renderResult(turn,nores);recordTurn(rawQ,nores);return;
       }else cands=picked;
     }
     cands=forceProduct(rawQ+" "+q,cands);   // genoemde vakterm hoort bovenaan
@@ -3827,14 +3854,16 @@ async function runQuestion(rawQ,gesproken){
     q=await condenseQuestion(rawQ);
     cands=await rankFor(q);
   }
-  if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
-  await beantwoord(turn,{rawQ,q,cands,deelvragen,ai,lokaal,key});
+  if(weg())return;
+  if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[]};vraagKlaar(nr);renderResult(turn,nores);recordTurn(rawQ,nores);return;}
+  await beantwoord(turn,{rawQ,q,cands,deelvragen,ai,lokaal,key,nr});
 }
 // De laatste stap van een vraag: het antwoord opstellen en tonen. Los van runQuestion, zodat
 // "Opnieuw proberen" na een fout precies deze stap kan herhalen met dezelfde vraag en dezelfde
 // gevonden pagina's, zonder opnieuw te zoeken.
 async function beantwoord(turn,v){
   const {rawQ,q,cands,deelvragen,ai,lokaal,key}=v;
+  const nr=v.nr||nieuweVraag(turn),weg=()=>!isHuidig(nr);
   let result;
   try{
     stap(turn,"Antwoord opstellen");
@@ -3842,6 +3871,7 @@ async function beantwoord(turn,v){
       ?await askAI(q,cands,key,deelvragen,(uit,alineas)=>schrijfLive(turn,uit,alineas))
       :demoAnswer(q,cands);
   }catch(err){
+    if(weg())return;     // gestopt of vervangen door een nieuwe vraag: geen terugval tonen
     // De AI viel weg (netwerk, limiet van een gratis sleutel, time-out). De pagina's zijn dan
     // al gevonden en gerangschikt; alleen een foutmelding tonen gooit dat weg, terwijl de
     // voorlichter de burger aan de lijn heeft. Dus: de best gevonden passage, letterlijk, zoals
@@ -3849,20 +3879,23 @@ async function beantwoord(turn,v){
     console.warn("antwoordstap mislukt:",err);
     stopTypen();
     result=terugvalAntwoord(q,cands,err);
-    if(!result){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';return;}
+    if(!result){vraagKlaar(nr);turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';return;}
   }
   // Voor "Bedoelde je misschien…": de vraag en de pagina's die er nog meer gevonden waren.
   result.__vraag={rawQ,q};result.__cands=v.alt||cands;
+  if(weg())return;
   const meting=stapKlaar(turn);
   // Laat de typemachine eerst uitschrijven; anders overschrijft de eindrender de laatste zin
   // terwijl die nog aan het verschijnen is, en dan springt het toch.
-  await typKlaar();stopTypen();
+  await typKlaar();
+  if(weg())return;
+  stopTypen();vraagKlaar(nr);
   renderResult(turn,result);
   if(result.terugval){
     const knop=turn.querySelector(".terugval .opnieuw");
     if(knop)knop.onclick=()=>{
-      turn.querySelector(".slot").innerHTML=`<div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Opnieuw proberen…</span></div></div>`;
-      stapStart();beantwoord(turn,v);
+      turn.querySelector(".slot").innerHTML=`<div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Opnieuw proberen…</span>${STOPKNOP}</div></div>`;
+      koppelStop(turn);stapStart();beantwoord(turn,{...v,nr:nieuweVraag(turn)});
     };
     return;     // een terugval is geen antwoord van de AI: niet in de gesprekscontext
   }
@@ -4629,6 +4662,7 @@ function inleidingAlsAlineas(citations){
   return uit.length?uit:null;
 }
 async function askAI(q,cands,key,subs,opGeneratief){
+  const sig=vraagSignaal();
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
   // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
@@ -4678,6 +4712,7 @@ async function askAI(q,cands,key,subs,opGeneratief){
         if(uit.keuze)alineas=(zonderKeuzeLijst(alineas.map(t=>({tekst:t,bronnen:[]})),uit.keuze)||[]).map(a=>a.tekst);
         if(alineas.length)opGeneratief(uit,alineas);
       }:null;
+    if(sig&&sig.aborted)throw new DOMException("gestopt","AbortError");
     uit.generatief=await schrijfAntwoord(q,uit.citations,key,live,uit.keuze);
     if(uit.generatief&&uit.keuze)uit.generatief=zonderKeuzeLijst(uit.generatief,uit.keuze);
     if(uit.generatief&&uit.generatief.length===1&&!uit.generatief[0].bronnen.length&&geenInfoBijKeuze(uit.generatief[0].tekst))
@@ -4944,6 +4979,45 @@ async function schrijfAntwoord(q,citations,key,onAlineas,keuze){
   return alineas;
 }
 
+// ---- Eén vraag tegelijk: stoppen en aanpassen --------------------------------------------------
+// Een verzonden vraag kon niet gestopt worden. Een typefout of een verkeerd verstane gesproken
+// vraag betekende: wachten tot alle modelaanroepen klaar waren, en dan opnieuw typen. Stelde je
+// intussen een nieuwe vraag, dan liepen twee runs door elkaar: ze deelden de gespreksgeschiedenis,
+// de stappenmeting (STAPPEN) en de typemachine (TYPER), en een oud antwoord kon na het nieuwe in
+// de context belanden.
+// Nu heeft elke vraag een volgnummer en een eigen AbortController. Een nieuwe vraag, "Stop" en
+// "Nieuw gesprek" breken de lopende aanroepen af (fetch via het signaal, WebLLM via
+// interruptGenerate, wllama via abortSignal); een verouderde run toont niets meer en komt niet
+// in de geschiedenis.
+let VRAAG=null,VRAAGNR=0;
+const STOPKNOP=`<button type="button" class="stop-vraag" title="Stop deze vraag">■ Stop</button>`;
+const ICON_POTLOOD='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+function vraagSignaal(){return VRAAG?VRAAG.ctrl.signal:undefined;}
+function isHuidig(nr){return !!VRAAG&&VRAAG.nr===nr;}
+function nieuweVraag(turn){
+  stopVraag();
+  VRAAG={nr:++VRAAGNR,ctrl:new AbortController(),turn};
+  return VRAAG.nr;
+}
+function vraagKlaar(nr){if(isHuidig(nr))VRAAG=null;}
+function stopVraag(){
+  if(!VRAAG)return;
+  const v=VRAAG;VRAAG=null;
+  try{v.ctrl.abort();}catch(e){}
+  stopTypen();
+  const slot=v.turn&&v.turn.isConnected&&v.turn.querySelector(".slot");
+  if(slot)slot.innerHTML=`<div class="bubble antwoord gestopt"><span>Gestopt.</span>`
+    +`<button type="button" class="vraag-aanpassen-tekst">${ICON_POTLOOD}<span>Vraag aanpassen</span></button></div>`;
+  const k=slot&&slot.querySelector(".vraag-aanpassen-tekst");
+  if(k){const q=(v.turn.querySelector(".bubble.vraag")||{}).textContent||"";k.onclick=()=>vraagAanpassen(q,v.turn);}
+}
+function koppelStop(turn){const b=turn.querySelector(".stop-vraag");if(b)b.onclick=()=>{if(VRAAG&&VRAAG.turn===turn)stopVraag();};}
+// De vraag terug in het invoerveld. Loopt hij nog, dan eerst stoppen.
+function vraagAanpassen(q,turn){
+  if(VRAAG&&VRAAG.turn===turn)stopVraag();
+  inputEl.value=q;refreshComposer();inputEl.focus();
+  const n=inputEl.value.length;inputEl.setSelectionRange(n,n);
+}
 function addTurn(q,gesproken,via){
   document.body.classList.remove("is-welcome");
   document.querySelector(".empty")?.remove();document.getElementById("samples")?.remove();
@@ -4955,9 +5029,12 @@ function addTurn(q,gesproken,via){
     : via
     ? `<div class="vraagblok"><div class="bubble vraag">${escapeHtml(q)}</div><span class="via-pagina">alleen uit: ${escapeHtml(via)}</span></div>`
     : `<div class="bubble vraag">${escapeHtml(q)}</div>`;
-  art.innerHTML=`<div class="row user">${vraagblok}</div>`
-    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span></div></div></div></div>`;
-  conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
+  art.innerHTML=`<div class="row user"><button type="button" class="vraag-aanpassen" title="Vraag aanpassen: zet de tekst terug in het invoerveld" aria-label="Vraag aanpassen">${ICON_POTLOOD}</button>${vraagblok}</div>`
+    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span>${STOPKNOP}</div></div></div></div>`;
+  conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});
+  art.querySelector(".vraag-aanpassen").onclick=()=>vraagAanpassen(q,art);
+  koppelStop(art);
+  return art;
 }
 function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
 // De kaart tonen bij zweven en bij Tab. Klikken op de tegel opent de bronweergave (dat regelt de
@@ -5362,7 +5439,7 @@ function toonMeting(turn){
 let STAPPEN=null;
 function stapStart(){STAPPEN={t0:performance.now(),vorig:performance.now(),lijst:[]};}
 function stap(turn,tekst){
-  if(STAPPEN){
+  if(STAPPEN&&(!VRAAG||VRAAG.turn===turn)){
     const nu=performance.now();
     if(STAPPEN.lijst.length)STAPPEN.lijst[STAPPEN.lijst.length-1].ms=Math.round(nu-STAPPEN.vorig);
     STAPPEN.vorig=nu;STAPPEN.lijst.push({naam:tekst,ms:0});
