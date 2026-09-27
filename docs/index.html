@@ -521,6 +521,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <select id="model" title="Kies model"></select>
       <input id="apikey" type="password" placeholder="Plak je API-sleutel (optioneel)" />
       <a id="keylink" href="#" target="_blank" rel="noreferrer">sleutel ophalen</a>
+      <input id="proxyurl" type="url" hidden placeholder="Adres van je NVIDIA-doorgeefluik, bv. https://nim.jouwnaam.workers.dev" title="NVIDIA staat aanroepen vanuit de browser niet toe; het doorgeefluik (proxy/nvidia-nim-worker.js in de repo) geeft ze door" />
       <span class="status" id="keystatus"></span>
       <span class="status" id="semstatus">zoeken laden…</span>
       <span class="status build" id="buildstatus" title="Versie van de app — gebruik dit om te zien of je de nieuwste versie geladen hebt"></span>
@@ -1169,6 +1170,22 @@ const WASMAI=(function(){
       uitTps:Math.round(m.uitTok/Math.max(m.totSec,0.001))};};
   return ret;
 })();
+// NVIDIA zet alles in één lijst: ook codemodellen, beloningsmodellen, vertalers, beeld- en
+// veiligheidsmodellen en kale basismodellen zonder chat-afstelling. Die kunnen onze Nederlandse
+// JSON-opdracht niet aan. NIET_CHAT vangt al een deel; dit is de rest.
+const NIM_NIET=/code|reward|parse|translate|detector|calibration|safety|topic-control|deplot|kosmos|fuyu|neva|vila|cosmos|diffusion|omni|retriever|chatqa|palmyra|^meta\/llama2|gemma-2b|recurrentgemma|mixtral-8x22b-v0\.1|laguna/i;
+// Bovenaan de modellen die het best passen bij een voorlichter aan de telefoon: sterk in het
+// Nederlands, betrouwbaar met JSON, en géén denkmodel — die zetten eerst honderden
+// redeneer-tokens neer, en dat voel je bij drie aanroepen per vraag. De denkmodellen staan er
+// wel, maar lager. Niet gemeten met onze eigen evaluatie; zie scripts/letterlijk_eval.mjs.
+const NIM_VOORKEUR=["google/gemma-4-31b-it","mistralai/mistral-large-2-instruct","deepseek-ai/deepseek-v4.1-flash","z-ai/glm-5.3-flash","moonshotai/kimi-k2.6","nvidia/nemotron-3-super-120b-a12b","moonshotai/kimi-k3","z-ai/glm-5.3","openai/gpt-oss-20b"];
+// Het adres van het doorgeefluik, zonder slash of /v1 aan het eind. Alleen https (of een lokaal
+// adres om te testen): je sleutel gaat er onversleuteld doorheen.
+function nimBasis(){
+  let u="";try{u=(localStorage.getItem("vk_nim_proxy")||"").trim();}catch(e){}
+  u=u.replace(/\/+$/,"").replace(/\/v1$/,"");
+  return /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$))/i.test(u)?u:"";
+}
 const PROVIDERS={
   lokaal:{label:"Lokaal — videokaart (WebGPU)",models:Object.keys(LOKAAL_MODELLEN),geenSleutel:true,motor:LOKAALAI,
     keyUrl:"https://developer.mozilla.org/docs/Web/API/WebGPU_API",
@@ -1371,6 +1388,24 @@ const PROVIDERS={
       if(!r.ok)throw new Error("Claude "+r.status+": "+(await r.text()).slice(0,200));
       if(onDelta)return leesSSE(r,j=>(j.type==="content_block_delta"&&j.delta&&j.delta.text)||"",onDelta);
       const d=await r.json();return (d.content||[]).map(c=>c.text||"").join("");}},
+  // NVIDIA NIM (build.nvidia.com): gratis sleutel, tientallen open modellen, OpenAI-compatibel.
+  // Rechtstreeks vanuit de browser bellen kan alleen niet: NVIDIA geeft een CORS-preflight alleen
+  // een Access-Control-Allow-Origin terug als die van build.nvidia.com komt (gemeten; vanaf
+  // jgnww.github.io of localhost komt er niets terug, en dan blokkeert de browser). Daarom gaat
+  // dit via een doorgeefluik dat je zelf gratis draait: proxy/nvidia-nim-worker.js. Dat luik
+  // bewaart niets — je sleutel reist per aanroep mee, net als bij de andere providers.
+  nvidia:{stream:true,proxy:true,label:"NVIDIA NIM (gratis, via doorgeefluik)",keyUrl:"https://build.nvidia.com/settings/api-keys",
+    keyHint:"Gratis sleutel (nvapi-…) via build.nvidia.com",
+    fallbackModels:NIM_VOORKEUR.slice(),
+    loadModels(key){
+      const b=nimBasis();
+      if(!b)return Promise.reject(new Error("geen doorgeefluik"));
+      return oaiModels(b+"/v1/models",key,{voorkeur:NIM_VOORKEUR})
+        .then(ids=>{const uit=ids.filter(id=>!NIM_NIET.test(id));if(!uit.length)throw new Error("geen bruikbare modellen");return uit;});},
+    call(key,model,system,user,onDelta){
+      const b=nimBasis();
+      if(!b)throw new Error("NVIDIA NIM: vul bij Instellingen het adres van je doorgeefluik in. NVIDIA staat aanroepen rechtstreeks vanuit de browser niet toe — zie proxy/README.md.");
+      return oaiChat(b+"/v1/chat/completions",key,model,system,user,"NVIDIA",onDelta);}},
   openrouter:{stream:true,label:"OpenRouter (veel modellen)",keyUrl:"https://openrouter.ai/keys",keyHint:"Sleutel via openrouter.ai (gratis modellen beschikbaar)",
     fallbackModels:["deepseek/deepseek-chat-v3-0324:free","meta-llama/llama-3.3-70b-instruct:free","openai/gpt-4o-mini"],
     async loadModels(){
@@ -2496,7 +2531,7 @@ function sectiePad(p,k){
 }
 // ===== <</CITAAT-LOGICA>> ====================================================================
 
-const conv=document.getElementById("conv"),provSel=document.getElementById("provider"),modelSel=document.getElementById("model"),keyInput=document.getElementById("apikey"),keyLink=document.getElementById("keylink"),keyStatus=document.getElementById("keystatus"),modeBadge=document.getElementById("mode-badge"),sendBtn=document.getElementById("send");
+const conv=document.getElementById("conv"),provSel=document.getElementById("provider"),modelSel=document.getElementById("model"),keyInput=document.getElementById("apikey"),keyLink=document.getElementById("keylink"),keyStatus=document.getElementById("keystatus"),modeBadge=document.getElementById("mode-badge"),sendBtn=document.getElementById("send"),proxyInput=document.getElementById("proxyurl");
 
 Object.entries(PROVIDERS).forEach(([id,p])=>{const o=document.createElement("option");o.value=id;o.textContent=p.label;provSel.appendChild(o);});
 provSel.value=localStorage.getItem("provider")||"gemini";
@@ -2631,17 +2666,21 @@ if(dlBtn)dlBtn.addEventListener("click",async()=>{
 
 // Met een lokaal model is er geen sleutel nodig; de AI-stappen zijn dan gewoon beschikbaar.
 function geenSleutelNodig(){const p=PROVIDERS[provSel.value];return !!(p&&p.geenSleutel);}
-function aiKlaar(){return geenSleutelNodig()||keyInput.value.trim().length>10;}
+function aiKlaar(){
+  const p=PROVIDERS[provSel.value];
+  if(p&&p.proxy&&!nimBasis())return false;   // zonder doorgeefluik komt er geen antwoord
+  return geenSleutelNodig()||keyInput.value.trim().length>10;}
 function refreshMode(){
   const p=PROVIDERS[provSel.value];
   keyLink.href=p.keyUrl;keyInput.placeholder=p.keyHint;
   // Een lokaal model heeft geen sleutel nodig; het sleutelveld verdwijnt dan.
   const lokaal=!!p.geenSleutel;
   keyInput.hidden=lokaal;keyLink.hidden=lokaal;
+  if(proxyInput)proxyInput.hidden=!p.proxy;
   const naam=p.modelLabel?p.modelLabel(modelSel.value):modelSel.value;
   const aan=aiKlaar();
   keyStatus.textContent=aan?("AI-modus actief — "+p.label+" / "+naam+(lokaal?" · draait op dit apparaat":""))
-                           :("Demo-modus (geen AI). Tip: "+p.keyHint);
+                           :("Demo-modus (geen AI). Tip: "+(p.proxy&&!nimBasis()?"vul ook het adres van je NVIDIA-doorgeefluik in (https://…) — zie proxy/README.md":p.keyHint));
   modeBadge.innerHTML=aan?'<span class="badge ai">AI</span>':'<span class="badge demo">DEMO</span>';
   toonLokaalKnop();
 }
@@ -2659,9 +2698,18 @@ keyInput.addEventListener("input",()=>{
   if(!p||!p.loadModels||keyInput.value.trim().length<10)return;
   clearTimeout(lijstTimer);lijstTimer=setTimeout(fillModels,600);
 });
+// Het doorgeefluik voor NVIDIA. Ook hier pas de lijst verversen als het adres klaar lijkt.
+if(proxyInput){
+  try{proxyInput.value=localStorage.getItem("vk_nim_proxy")||"";}catch(e){}
+  proxyInput.addEventListener("input",()=>{
+    try{localStorage.setItem("vk_nim_proxy",proxyInput.value.trim());}catch(e){}
+    refreshMode();
+    clearTimeout(lijstTimer);if(nimBasis())lijstTimer=setTimeout(fillModels,600);
+  });
+}
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 128";
+const APP_VERSION="build 129";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 

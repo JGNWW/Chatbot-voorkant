@@ -9,6 +9,7 @@
 //   GEMINI_KEY=...  node scripts/letterlijk_eval.mjs --n=25
 //   GEMINI_KEY=...  node scripts/letterlijk_eval.mjs --n=25 --zonder   (zonder de nieuwe regel)
 //   MISTRAL_KEY=... node scripts/letterlijk_eval.mjs --provider=mistral --model=mistral-small-latest
+//   NVIDIA_KEY=...  node scripts/letterlijk_eval.mjs --provider=nvidia --model=google/gemma-4-31b-it
 //   node scripts/letterlijk_eval.mjs --zelftest    (alleen de meetlat controleren, geen sleutel)
 //
 // De systeemprompt wordt uit docs/index.html geknipt, niet overgetypt: test en app kunnen dus
@@ -24,7 +25,14 @@ const ZONDER = process.argv.includes("--zonder");
 const ZELFTEST = process.argv.includes("--zelftest");
 const N = Number(arg("n", 25));
 const PROVIDER = arg("provider", "gemini");
-const MODEL = arg("model", PROVIDER === "gemini" ? "gemini-2.5-flash" : "mistral-small-latest");
+// De OpenAI-compatibele aanbieders: adres, sleutelnaam en standaardmodel. Node kent geen CORS,
+// dus NVIDIA gaat hier rechtstreeks, zonder het doorgeefluik dat de browser nodig heeft.
+const OAI = {
+  mistral: { url: "https://api.mistral.ai/v1/chat/completions", env: "MISTRAL_KEY", model: "mistral-small-latest" },
+  nvidia: { url: "https://integrate.api.nvidia.com/v1/chat/completions", env: "NVIDIA_KEY", model: "google/gemma-4-31b-it" },
+};
+if (PROVIDER !== "gemini" && !OAI[PROVIDER]) { console.error("onbekende provider: " + PROVIDER); process.exit(1); }
+const MODEL = arg("model", PROVIDER === "gemini" ? "gemini-2.5-flash" : OAI[PROVIDER].model);
 const PAUZE = Number(arg("pauze", 1200));   // ms tussen twee aanroepen; gratis sleutels zijn krap
 
 // ---- de meetlat -----------------------------------------------------------------------------
@@ -121,9 +129,10 @@ for (const a of ankers) {
 if (!gevallen.length) { console.error("geen bruikbare ankers"); process.exit(1); }
 
 // ---- het model aanroepen --------------------------------------------------------------------
-const KEY = PROVIDER === "gemini" ? process.env.GEMINI_KEY : process.env.MISTRAL_KEY;
+const KEY_NAAM = PROVIDER === "gemini" ? "GEMINI_KEY" : OAI[PROVIDER].env;
+const KEY = process.env[KEY_NAAM];
 if (!KEY) {
-  console.error(`Geen sleutel. Zet ${PROVIDER === "gemini" ? "GEMINI_KEY" : "MISTRAL_KEY"} in de omgeving,`);
+  console.error(`Geen sleutel. Zet ${KEY_NAAM} in de omgeving,`);
   console.error("of draai eerst 'node scripts/letterlijk_eval.mjs --zelftest' om de meetlat te controleren.");
   process.exit(1);
 }
@@ -138,7 +147,7 @@ async function vraagModel(system, user) {
     const j = await r.json();
     return (j.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
   }
-  const r = await fetch("https://api.mistral.ai/v1/chat/completions", {
+  const r = await fetch(OAI[PROVIDER].url, {
     method: "POST", headers: { "content-type": "application/json", authorization: "Bearer " + KEY },
     body: JSON.stringify({ model: MODEL, temperature: 0, response_format: { type: "json_object" },
       messages: [{ role: "system", content: system }, { role: "user", content: user }] }) });

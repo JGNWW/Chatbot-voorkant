@@ -56,6 +56,10 @@ cp <repo>/scripts/embed.mjs . && node embed.mjs   # schrijft docs/data/embedding
 - De site laadt eerst de corpus (eenmalig, daarna gecachet).
 - **Provider/model** kies je bovenin. **Google Gemini** is gratis (sleutel via
   Google AI Studio). OpenAI en Anthropic kunnen ook.
+- **NVIDIA NIM** (gratis sleutel via build.nvidia.com, veel open modellen) werkt
+  alleen via een klein doorgeefluik, omdat NVIDIA geen aanroepen vanuit de browser
+  toestaat. Zie `proxy/README.md` voor de installatie (gratis Cloudflare Worker, ± 5
+  minuten) en de aanbevolen modellen.
 - **Demo-modus** (zonder sleutel): toont alleen het begin van de best-matchende
   pagina, zonder AI-inleiding of geselecteerde citaten.
 
