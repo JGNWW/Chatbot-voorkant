@@ -322,6 +322,13 @@ ol.srclist li{margin:2px 0;}
 .open-rij{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:.93rem;color:var(--rijk-blauw);font-weight:600;background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:8px 12px;margin-top:6px;cursor:pointer;}
 .open-rij:hover{border-color:var(--rijk-licht);background:var(--blauw-bg);}
 .open-rij svg{flex:0 0 auto;color:var(--rijk-licht);}
+/* "Bedoelde je misschien…": dezelfde rijen als "Nog niet beantwoord". */
+.alternatieven{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+.alt-titel{margin:0 0 2px;font-size:.85rem;font-weight:700;color:var(--rijk-blauw);}
+.alt-knop{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:.9rem;color:var(--rijk-blauw);font-weight:600;background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:7px 12px;cursor:pointer;}
+.alt-knop:hover{border-color:var(--rijk-licht);background:var(--blauw-bg);}
+.alt-knop svg{flex:0 0 auto;color:var(--rijk-licht);}
+.via-pagina{display:block;text-align:right;font-size:.74rem;color:var(--ink-licht);margin:3px 4px 0;}
 a{color:var(--rijk-licht);}
 /* De wachtregel breekt over twee regels omdat de bel tijdens het laden weinig inhoud heeft en
    dus smal is. white-space:nowrap is geprobeerd en weer weggehaald: de bel groeit dan niet mee,
@@ -2859,7 +2866,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 144";
+const APP_VERSION="build 145";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3784,7 +3791,8 @@ async function runQuestion(rawQ,gesproken){
       if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
       else if(picked.length===0){                                 // niets past echt -> lage confidence
         logMiss(rawQ,"geen-passende-pagina");
-        const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[]};
+        const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],
+                     __vraag:{rawQ,q},__cands:broad};
         renderResult(turn,nores);recordTurn(rawQ,nores);return;
       }else cands=picked;
     }
@@ -3817,6 +3825,8 @@ async function beantwoord(turn,v){
     result=terugvalAntwoord(q,cands,err);
     if(!result){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';return;}
   }
+  // Voor "Bedoelde je misschien…": de vraag en de pagina's die er nog meer gevonden waren.
+  result.__vraag={rawQ,q};result.__cands=v.alt||cands;
   const meting=stapKlaar(turn);
   // Laat de typemachine eerst uitschrijven; anders overschrijft de eindrender de laatste zin
   // terwijl die nog aan het verschijnen is, en dan springt het toch.
@@ -4908,7 +4918,7 @@ async function schrijfAntwoord(q,citations,key,onAlineas,keuze){
   return alineas;
 }
 
-function addTurn(q,gesproken){
+function addTurn(q,gesproken,via){
   document.body.classList.remove("is-welcome");
   document.querySelector(".empty")?.remove();document.getElementById("samples")?.remove();
   const art=document.createElement("article");art.className="turn";
@@ -4916,6 +4926,8 @@ function addTurn(q,gesproken){
   // als eerste kunnen zien wat de AI van je woorden heeft gemaakt.
   const vraagblok=gesproken
     ? `<div class="vraagblok"><div class="bubble vraag">${escapeHtml(q)}</div><span class="gesproken">🎙 gesproken: “${escapeHtml(gesproken)}”</span></div>`
+    : via
+    ? `<div class="vraagblok"><div class="bubble vraag">${escapeHtml(q)}</div><span class="via-pagina">alleen uit: ${escapeHtml(via)}</span></div>`
     : `<div class="bubble vraag">${escapeHtml(q)}</div>`;
   art.innerHTML=`<div class="row user">${vraagblok}</div>`
     +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span></div></div></div></div>`;
@@ -5096,7 +5108,7 @@ function bewaarFeedback(r,verdict,toelichting){
   try{
     const k="vk_feedback",arr=JSON.parse(localStorage.getItem(k)||"[]");
     const rec={q:r.restated_question||"",verdict,hadAnswer:!!(r.citations&&r.citations.length),
-               toelichting:(toelichting||"").slice(0,500),ts:Date.now()};
+               toelichting:(toelichting||"").slice(0,500),gekozen:r.__gekozen||"",ts:Date.now()};
     // Klikt iemand nogmaals of vult hij achteraf een toelichting in, dan werken we hetzelfde
     // record bij in plaats van er een tweede naast te zetten.
     if(r.__fbIdx!=null&&arr[r.__fbIdx])arr[r.__fbIdx]=rec;
@@ -5107,7 +5119,39 @@ function bewaarFeedback(r,verdict,toelichting){
     localStorage.setItem(k,JSON.stringify(kort));
   }catch(e){}
 }
+// ---- "Bedoelde je misschien…" -----------------------------------------------------------------
+// De andere pagina's die bij deze vraag gevonden waren (de kandidaten die naar het antwoordmodel
+// gingen), zonder de pagina's die al in het antwoord staan. Eén klik beantwoordt de vraag
+// opnieuw met ALLEEN die pagina als bron: met sleutel via het model, zonder sleutel via dezelfde
+// passagekeuze als de demo. Het blijven bestaande NWW-pagina's; er komt geen eigen tekst bij.
+// De gekozen pagina gaat mee in de feedback: een gelabeld paar vraag → juiste pagina.
+function alternatievenVan(r){
+  const gebruikt=new Set((r.citations||[]).map(c=>c.srcIdx));
+  return (r.__cands||[]).filter(i=>Number.isInteger(i)&&CORPUS[i]&&!gebruikt.has(i)).slice(0,3);
+}
+function alternatievenHTML(r,titel){
+  const alt=alternatievenVan(r);
+  if(!alt.length)return "";
+  return `<div class="alternatieven"><p class="alt-titel">${titel}</p>`
+    +alt.map(i=>`<button type="button" class="alt-knop" data-idx="${i}" title="Beantwoord de vraag opnieuw met alleen deze pagina"><span>${escapeHtml(cleanTitle(CORPUS[i].title))}</span>${ICON_ARROW}</button>`).join("")
+    +`</div>`;
+}
+function koppelAlternatieven(root,r){
+  root.querySelectorAll(".alt-knop").forEach(b=>{b.onclick=()=>antwoordUitPagina(r,+b.dataset.idx);});
+}
+async function antwoordUitPagina(r,idx){
+  const v=r.__vraag||{},q=v.q||r.restated_question||"",rawQ=v.rawQ||q;
+  if(!q||!CORPUS[idx])return;
+  r.__gekozen=CORPUS[idx].url;
+  bewaarFeedback(r,r.__fbVerdict||0,r.__fbTekst||"");
+  const turn=addTurn(rawQ,null,cleanTitle(CORPUS[idx].title));
+  gesprekLoopt=true;refreshComposer();
+  stapStart();
+  await beantwoord(turn,{rawQ,q,cands:[idx],deelvragen:[],ai:aiKlaar(),lokaal:geenSleutelNodig(),key:keyInput.value.trim(),
+                         alt:(r.__cands||[]).filter(i=>i!==idx)});
+}
 function logFeedback(r,verdict,btn){
+  r.__fbVerdict=verdict;
   const wrap=btn.parentNode;wrap.querySelectorAll(".fb-btn").forEach(b=>b.classList.remove("sel-up","sel-down"));
   btn.classList.add(verdict>0?"sel-up":"sel-down");
   bewaarFeedback(r,verdict,verdict>0?"":(r.__fbTekst||""));
@@ -5121,6 +5165,10 @@ function logFeedback(r,verdict,btn){
     +'<textarea class="fbp-tekst" placeholder="Bijvoorbeeld: dit geldt alleen voor een eerste aanvraag, niet voor een verlenging."></textarea>'
     +'<div class="fbp-knoppen"><button type="button" class="fbp-ok">Versturen</button>'
     +'<button type="button" class="fbp-annuleer">Annuleren</button></div>';
+  // Klopt het antwoord niet, dan heeft de voorlichter nog steeds de burger aan de lijn: de
+  // andere gevonden pagina's staan er meteen bij, en één klik beantwoordt de vraag daaruit.
+  if(r.citations&&r.citations.length)paneel.insertAdjacentHTML("beforeend",alternatievenHTML(r,"Bedoelde je misschien…"));
+  koppelAlternatieven(paneel,r);
   acties.parentNode.insertBefore(paneel,acties.nextSibling);
   const veld=paneel.querySelector(".fbp-tekst");
   veld.value=r.__fbTekst||"";                         // eerder ingevuld? laat het staan
@@ -5140,9 +5188,10 @@ function logMiss(q,reason){
 // Exporteer feedback + gemiste vragen als CSV (voor analyse en het verbeteren van de eval-set).
 function exportFeedback(){
   const esc=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
-  let rows=[["type","vraag","oordeel","reden","toelichting","tijd"].join(";")];
-  try{for(const f of JSON.parse(localStorage.getItem("vk_feedback")||"[]"))rows.push(["feedback",esc(f.q),f.verdict>0?"goed":"niet goed",f.hadAnswer?"antwoord getoond":"geen antwoord",esc(f.toelichting||""),new Date(f.ts).toISOString()].join(";"));}catch(e){}
-  try{for(const m of JSON.parse(localStorage.getItem("vk_misses")||"[]"))rows.push(["gemist",esc(m.q),"",esc(m.reason),"",new Date(m.ts).toISOString()].join(";"));}catch(e){}
+  let rows=[["type","vraag","oordeel","reden","toelichting","gekozen pagina","tijd"].join(";")];
+  const oordeel=v=>v>0?"goed":v<0?"niet goed":"andere pagina gekozen";
+  try{for(const f of JSON.parse(localStorage.getItem("vk_feedback")||"[]"))rows.push(["feedback",esc(f.q),oordeel(f.verdict),f.hadAnswer?"antwoord getoond":"geen antwoord",esc(f.toelichting||""),esc(f.gekozen||""),new Date(f.ts).toISOString()].join(";"));}catch(e){}
+  try{for(const m of JSON.parse(localStorage.getItem("vk_misses")||"[]"))rows.push(["gemist",esc(m.q),"",esc(m.reason),"","",new Date(m.ts).toISOString()].join(";"));}catch(e){}
   const blob=new Blob(["﻿"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="leo-feedback.csv";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 }
@@ -5397,7 +5446,11 @@ function renderResult(turn,r,voorlopig){
         +r.open.map(q=>`<button type="button" class="open-rij" data-q="${escapeHtml(q)}" title="Stel dit deel van de vraag"><span>${escapeHtml(q)}</span>${ICON_ARROW}</button>`).join("")+`</div>`;
     }
   }
-  if(!hasCites&&r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
+  // Geen antwoord: de andere gevonden pagina's als knop die de vraag daaruit beantwoordt. Zijn die
+  // er niet (bv. buiten het domein), dan zoals voorheen de losse links.
+  const altGeen=!hasCites&&!voorlopig?alternatievenHTML(r,"Bedoelde je misschien…"):"";
+  if(altGeen)f+=altGeen;
+  else if(!hasCites&&r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   // Bij een tussenstand nog geen kopieerknop en geen duimpjes: het antwoord is niet af, dus
   // kopiëren levert een half citaat op en een oordeel slaat nergens op. In plaats daarvan een
   // regel die zegt dat er nog iets komt.
@@ -5418,6 +5471,7 @@ function renderResult(turn,r,voorlopig){
   if(spBij)slot.querySelectorAll(".sp-knop[data-sp]").forEach(b=>{b.onclick=()=>kiesStap(b,spBij,b.dataset.sp,+b.dataset.nr);});
   slot.querySelectorAll(".uitvraag").forEach(fm=>koppelUitvraag(fm,turn,r));
   slot.querySelectorAll(".open-rij").forEach(b=>{b.onclick=()=>askText(b.getAttribute("data-q"));});
+  koppelAlternatieven(slot,r);
   slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(citaatAlsTekst(r.citations[+b.getAttribute("data-ci")]),b);});
   const openCite=el=>{const c=r.citations[+el.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);};
   slot.querySelectorAll(".cite-chip").forEach(el=>el.onclick=e=>{e.stopPropagation();openCite(el);});
