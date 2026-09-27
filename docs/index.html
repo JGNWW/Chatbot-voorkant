@@ -349,6 +349,18 @@ a{color:var(--rijk-licht);}
 .error{margin-top:12px;color:var(--rood);}
 .composer{padding:12px 24px 20px;background:linear-gradient(to top,#fff 70%,rgba(255,255,255,0));position:sticky;bottom:0;}
 .composer-pill{display:flex;align-items:center;gap:8px;max-width:860px;margin:0 auto;background:#fff;border:1.5px solid var(--rand);border-radius:26px;padding:5px 6px 5px 18px;box-shadow:0 2px 12px rgba(20,40,70,.07);transition:border-color .15s,box-shadow .15s;}
+/* Zichtbare gesprekscontext: wat een vervolgvraag uit het gesprek meeneemt, boven het typvak. */
+.ctxbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:fit-content;max-width:860px;margin:0 auto 8px;padding:4px 8px;background:#fff;border-radius:14px;font-size:.8rem;}
+.ctxbar[hidden]{display:none;}
+.ctx-label{color:var(--ink-licht);font-weight:600;cursor:help;}
+.ctx-chip{display:inline-flex;align-items:center;background:var(--blauw-bg);border:1px solid var(--blauw-licht);border-radius:999px;color:var(--rijk-blauw);overflow:hidden;}
+.ctx-chip button{background:none;border:none;font-family:inherit;font-size:inherit;color:inherit;cursor:pointer;padding:3px 4px 3px 10px;font-weight:600;}
+.ctx-chip button:hover{background:#d3e6f4;}
+.ctx-chip .ctx-weg{padding:3px 9px 3px 5px;color:var(--ink-licht);font-weight:400;}
+.ctx-chip .ctx-weg:hover{color:var(--rood);}
+.ctx-veld{font-weight:400;color:var(--ink-licht);margin-right:2px;}
+.ctx-chip.bewerk{padding:1px 4px 1px 10px;gap:6px;border-color:var(--rijk-licht);}
+.ctx-chip select{border:none;background:#fff;border-radius:999px;padding:2px 6px;font-family:inherit;font-size:inherit;color:var(--rijk-blauw);font-weight:600;max-width:190px;}
 .composer-pill:focus-within{border-color:var(--rijk-licht);box-shadow:0 3px 16px rgba(0,123,199,.15);}
 .composer input{flex:1;padding:10px 0;border:none;outline:none;font-size:1rem;background:transparent;font-family:inherit;color:var(--ink);}
 .send-btn{flex:0 0 auto;height:40px;padding:0 16px;border-radius:20px;gap:7px;background:var(--rijk-licht);color:#fff;border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:.9rem;font-weight:600;transition:background .12s,transform .08s;}
@@ -583,6 +595,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <div class="samples" id="samples"></div>
     </main>
     <form class="composer" id="form">
+      <div class="ctxbar" id="ctxbar" hidden></div>
       <div class="composer-pill">
         <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus />
         <button type="button" id="mic" class="mic-btn" title="Start luistermodus (spraak → automatisch passende antwoorden)" aria-label="Luistermodus starten" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
@@ -2896,7 +2909,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 151";
+const APP_VERSION="build 152";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2945,13 +2958,14 @@ function refreshComposer(){
   const label=stoppen?"Stop deze vraag":"Vraag stellen";
   sendBtn.title=label;sendBtn.setAttribute("aria-label",label);
   sendBtn.disabled=!stoppen&&(!corpusKlaar||leeg);
+  renderCtx();
 }
 // In stopstand stopt de knop de vraag in plaats van het formulier te versturen. Enter in een leeg
 // veld klikt hem ook (impliciet versturen), maar dat verstuurde toch al niets.
 sendBtn.addEventListener("click",e=>{if(sendBtn.classList.contains("stoppen")){e.preventDefault();stopVraag();inputEl.focus();}});
 function newConversation(){
   stopVraag();
-  history=[];gesprekLoopt=false;
+  history=[];gesprekLoopt=false;CTX_HAND={};
   // Ook het spraakvenster leeg: wat er tot nu toe gezegd is hoort bij het oude gesprek.
   if(typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.nieuweContext)LISTEN.nieuweContext();
   showWelcome();refreshComposer();inputEl&&inputEl.focus();
@@ -2994,13 +3008,125 @@ document.getElementById("reset").addEventListener("click",newConversation);
   }catch(e){document.getElementById("loadmsg").innerHTML='<span class="error">Corpus laden mislukt: '+escapeHtml(e.message)+'</span>';}
 })();
 
+/* ---- Zichtbare gesprekscontext ----
+   Een vervolgvraag bouwt voort op wat er eerder gevraagd is. Wat de app daaruit vasthoudt (land,
+   document, voor wie) staat als chips boven het typvak, zodat de voorlichter ziet waarom een
+   antwoord ineens over Marokko gaat. De chips zijn geen losse weergave: ze worden afgeleid uit
+   precies de vragen die als gesprek naar de herschrijving gaan, en wat de voorlichter eraan
+   verandert gaat als vaste regel mee. Een weggeklikte chip staat er uitdrukkelijk bij als
+   vervallen; anders haalt het model hem gewoon weer uit de eerdere vragen.
+   Alleen met AI: zonder AI wordt een vervolgvraag niet herschreven, en dan zou een chip iets
+   beloven wat niet gebeurt. */
+const CTX_VELDEN=[["land","Land"],["document","Document"],["wie","Voor wie"]];
+// Volgorde telt niet; noemt een vraag er twee, dan is niet duidelijk welk bedoeld is en blijft
+// het veld zoals het was.
+const CTX_DOCUMENTEN=[
+  ["paspoort",/\bpaspoort/],["ID-kaart",/\bid[- ]?kaart|\bidentiteitskaart/],
+  ["nooddocument",/\bnooddocument|\bnoodpaspoort|\blaissez[- ]passer/],["rijbewijs",/\brijbewijs/],
+  ["DigiD",/\bdigid\b/],["MVV",/\bmvv\b|machtiging tot voorlopig verblijf/],
+  ["visum",/\b(schengen)?visum\b|\bvisa\b/],["VOG",/\bvog\b|verklaring omtrent (het )?gedrag/],
+  ["apostille",/\bapostille/],["geboorteakte",/\bgeboorteakte/],["BSN",/\bbsn\b|burgerservicenummer/],
+];
+const CTX_KIND=/\b(kind|kinderen|kindje|zoon|zoontje|dochter|dochtertje|baby|pasgeborene|minderjarige?n?|jonger dan 18|onder de 18)\b/;
+const CTX_VOLW=/\b(volwassene?n?|meerderjarige?n?|18 jaar en ouder|ouder dan 18|boven de 18)\b/;
+// Een leeftijd telt alleen bij een persoon: "mijn zoon van 20" is een volwassene, maar "10 jaar
+// geldig" zegt niets over wie.
+const CTX_LEEFTIJD=[
+  /\b(?:kind|kindje|zoon|zoontje|dochter|dochtertje|baby|kleinkind|jongen|meisje|broer|zus|neef|nicht)\s+(?:is\s+|van\s+)(\d{1,2})\b/,
+  /\b(\d{1,2})[- ]?jarige?\b/,
+  /\b(?:ik ben|hij is|zij is|ze is)\s+(\d{1,2})\s*(?:jaar|jr)\b/,
+];
+function ctxUit(tekst){
+  const t=fold(tekst||""),uit={};
+  const landen=detectCountries(tekst||"");
+  if(landen.size===1){const w=[...landen][0];uit.land={w,toon:landNaam(w).naam};}
+  const docs=CTX_DOCUMENTEN.filter(([,rx])=>rx.test(t));
+  if(docs.length===1)uit.document={w:docs[0][0],toon:docs[0][0]};
+  let jaar=null;for(const rx of CTX_LEEFTIJD){const m=t.match(rx);if(m){jaar=+m[1];break;}}
+  if(jaar!==null)uit.wie=jaar<18?{w:"kind",toon:`kind (${jaar} jaar)`}:{w:"volwassene",toon:`volwassene (${jaar} jaar)`};
+  else{
+    const k=CTX_KIND.test(t),v=CTX_VOLW.test(t);
+    if(k!==v)uit.wie=k?{w:"kind",toon:"kind"}:{w:"volwassene",toon:"volwassene"};
+  }
+  return uit;
+}
+// Wat de voorlichter met de hand heeft aangepast, per veld: {waarde|null, oud, na}. "na" is het
+// volgnummer van de laatste gespreksbeurt op dat moment; een latere beurt die het veld opnieuw
+// noemt gaat voor. Volgnummers en geen posities, want history schuift na twaalf beurten door en
+// een gekozen keuze vervangt soms de laatste beurt.
+let CTX_HAND={},CTX_SEQ=0;
+const _ctxSeq=new WeakMap();
+function ctxSeq(h){if(!_ctxSeq.has(h))_ctxSeq.set(h,++CTX_SEQ);return _ctxSeq.get(h);}
+function ctxWaarden(){
+  const uit={},bron={},weg=[];
+  for(const h of history){
+    const s=ctxSeq(h),e=ctxUit(h.q);
+    for(const [k] of CTX_VELDEN)if(e[k]){uit[k]=e[k];bron[k]=s;}
+  }
+  for(const [k,label] of CTX_VELDEN){
+    const hd=CTX_HAND[k];
+    if(!hd||bron[k]>hd.na)continue;
+    if(hd.oud&&(!hd.waarde||hd.waarde.toon!==hd.oud))weg.push(`${label}: ${hd.oud}`);
+    if(hd.waarde)uit[k]=hd.waarde;else delete uit[k];
+  }
+  return {uit,weg};
+}
+// Het gesprek zoals de herschrijving het krijgt: de laatste beurten plus de chips.
+function gesprekContext(){
+  if(!history.length)return "";
+  let s="Gesprek tot nu toe:\n"+history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n")+"\n\n";
+  const {uit,weg}=ctxWaarden();
+  const aan=CTX_VELDEN.filter(([k])=>uit[k]).map(([k,label])=>`- ${label}: ${uit[k].toon}`);
+  if(aan.length)s+="Vastgelegd in dit gesprek (de voorlichter ziet en beheert deze gegevens; ze gaan vóór het gesprek hierboven, tenzij de nieuwe vraag zelf iets anders noemt):\n"+aan.join("\n")+"\n\n";
+  if(weg.length)s+="Door de voorlichter weggehaald: gebruik dit NIET meer, ook al staat het in het gesprek hierboven (tenzij de nieuwe vraag het zelf weer noemt):\n"+weg.map(w=>"- "+w).join("\n")+"\n\n";
+  return s;
+}
+let ctxBewerkt=null;   // het veld dat nu als keuzelijst open staat
+function ctxOpties(k){
+  if(k==="land"){if(!COUNTRY)buildCountries();return [...COUNTRY].map(w=>({w,toon:landNaam(w).naam})).sort((a,b)=>a.toon.localeCompare(b.toon,"nl"));}
+  if(k==="document")return CTX_DOCUMENTEN.map(([d])=>({w:d,toon:d}));
+  return [{w:"kind",toon:"kind"},{w:"volwassene",toon:"volwassene"}];
+}
+function ctxZet(k,waarde,oud){
+  CTX_HAND[k]={waarde,oud,na:CTX_SEQ};
+  ctxBewerkt=null;renderCtx();
+  inputEl&&inputEl.focus();
+}
+function renderCtx(){
+  const ctxBar=document.getElementById("ctxbar");
+  if(!ctxBar)return;
+  history.forEach(ctxSeq);          // volgnummers in de volgorde waarin de beurten erbij kwamen
+  const {uit}=ctxWaarden();
+  const velden=CTX_VELDEN.filter(([k])=>uit[k]);
+  if(!history.length||!aiKlaar()||!velden.length){ctxBar.hidden=true;ctxBar.innerHTML="";ctxBewerkt=null;return;}
+  ctxBar.hidden=false;
+  ctxBar.innerHTML=`<span class="ctx-label" title="Je volgende vraag bouwt hierop voort. Klik om te wijzigen, ✕ om te laten vallen.">Leo onthoudt:</span>`
+    +velden.map(([k,label])=>{
+      const v=uit[k];
+      if(ctxBewerkt===k){
+        const opts=ctxOpties(k).map(o=>`<option value="${escapeHtml(o.w)}"${o.w===v.w?" selected":""}>${escapeHtml(o.toon)}</option>`).join("");
+        return `<span class="ctx-chip bewerk"><label class="ctx-veld" for="ctx-kies">${label}</label><select id="ctx-kies" data-k="${k}">${opts}</select></span>`;
+      }
+      return `<span class="ctx-chip"><button type="button" class="ctx-wijzig" data-k="${k}" title="${label} wijzigen"><span class="ctx-veld">${label}</span> ${escapeHtml(v.toon)}</button>`
+        +`<button type="button" class="ctx-weg" data-k="${k}" aria-label="${label} ${escapeHtml(v.toon)} laten vallen" title="Laten vallen">✕</button></span>`;
+    }).join("");
+  ctxBar.querySelectorAll(".ctx-wijzig").forEach(b=>b.onclick=()=>{ctxBewerkt=b.dataset.k;renderCtx();const s=document.getElementById("ctx-kies");if(s)s.focus();});
+  ctxBar.querySelectorAll(".ctx-weg").forEach(b=>b.onclick=()=>{const k=b.dataset.k;ctxZet(k,null,uit[k].toon);});
+  const sel=document.getElementById("ctx-kies");
+  if(sel){
+    const k=sel.dataset.k,oud=uit[k];
+    sel.onchange=()=>{const o=ctxOpties(k).find(x=>x.w===sel.value);if(o&&o.w!==oud.w)ctxZet(k,o,oud.toon);else{ctxBewerkt=null;renderCtx();}};
+    sel.onkeydown=e=>{if(e.key==="Escape"){e.preventDefault();e.stopPropagation();ctxBewerkt=null;renderCtx();inputEl&&inputEl.focus();}};
+    sel.onblur=()=>setTimeout(()=>{if(ctxBewerkt===k&&document.activeElement!==sel){ctxBewerkt=null;renderCtx();}},0);
+  }
+}
+
 async function condenseQuestion(rawQ){
   if(!history.length)return rawQ;
   const key=keyInput.value.trim();
   if(!aiKlaar())return rawQ; // demo-modus: geen herschrijving mogelijk
-  const ctx=history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n");
   try{
-    const text=await PROVIDERS[provSel.value].call(key,modelSel.value,CONDENSE_SYSTEM,`Gesprek tot nu toe:\n${ctx}\n\nNieuwe vraag: ${rawQ}`);
+    const text=await PROVIDERS[provSel.value].call(key,modelSel.value,CONDENSE_SYSTEM,`${gesprekContext()}Nieuwe vraag: ${rawQ}`);
     const sq=(parseModelJSON(text).standalone_question||"").trim();
     return sq||rawQ;
   }catch(e){return rawQ;}
@@ -3010,7 +3136,7 @@ async function condenseQuestion(rawQ){
 async function prepareQuery(rawQ){
   const key=keyInput.value.trim();
   if(!aiKlaar())return {q:rawQ,terms:[]};
-  const ctx=history.length?("Gesprek tot nu toe:\n"+history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n")+"\n\n"):"";
+  const ctx=gesprekContext();
   try{
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,PREPARE_SYSTEM,ctx+"Vraag van de burger: "+rawQ);
     const j=parseModelJSON(text);
@@ -3569,11 +3695,14 @@ function landenViaLink(idx){
   const uit=best>=0?landenBij(best):null;
   _LANDENVIA.set(idx,uit);return uit;
 }
-// Welk land is er al genoemd? In de vraag, in de eerdere vragen van dit gesprek, of via het
+// Welk land is er al genoemd? In de vraag, eerder in dit gesprek (het land uit de chips boven het
+// typvak: heeft de voorlichter dat weggeklikt, dan telt het hier ook niet meer), of via het
 // zoekgebied. Precies één land telt; bij twee of meer weet de app niet welk er bedoeld is.
 function genoemdLand(r){
-  const tekst=[r&&r.restated_question,r&&r.__vraag&&r.__vraag.rawQ,...history.map(h=>h.q)].filter(Boolean).join(" \n ");
+  const tekst=[r&&r.restated_question,r&&r.__vraag&&r.__vraag.rawQ].filter(Boolean).join(" \n ");
   const landen=detectCountries(tekst);
+  const eerder=ctxWaarden().uit.land;
+  if(eerder)landen.add(eerder.w);
   if(FILTER.country)landen.add(FILTER.country);
   return landen.size===1?[...landen][0]:null;
 }
@@ -4208,9 +4337,7 @@ const LISTEN=(function initSpraak(){
     if(!aiKlaar())return schoon;
     // Het lopende gesprek gaat mee, net als bij een getypte vervolgvraag. Zonder dat moet het
     // model van "het is voor mijn kind" in zijn eentje een vraag maken, en dat gaat mis.
-    const ctx=history.length
-      ? "Gesprek tot nu toe:\n"+history.slice(-6).map(h=>`Vraag: ${h.q}\nAntwoord (kort): ${h.summary}`).join("\n\n")+"\n\n"
-      : "";
+    const ctx=gesprekContext();
     try{
       const text=await PROVIDERS[provSel.value].call(key,modelSel.value,SPRAAK_SYSTEM,ctx+"Zojuist gezegd:\n"+ruw);
       const q=(parseModelJSON(text).vraag||"").toString().trim();
