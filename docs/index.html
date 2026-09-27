@@ -486,6 +486,8 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 .viewer-body mark.hl{background:#ffec70;padding:1px 1px;border-radius:2px;box-shadow:0 0 0 3px #ffec70;}
 .viewer-body a.vlink{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
 .viewer-body a.vlink:hover{color:var(--rijk-blauw);}
+.cite-body a.cite-link{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
+.cite-body a.cite-link:hover{color:var(--rijk-blauw);}
 .viewer-note{color:var(--oranje);font-size:.85rem;margin-bottom:12px;font-style:italic;}
 .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55;border:0;}
 .viewer-backdrop[hidden]{display:none;}
@@ -2866,7 +2868,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 146";
+const APP_VERSION="build 147";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -5056,7 +5058,9 @@ function answerPlainText(r){
       // dan moet de voorwaarde waaronder het geldt er niet onderweg af vallen.
       const c=r.citations&&r.citations[b.ci];
       const pad=c&&c.sectie&&c.sectie.pad&&c.sectie.pad.length?"["+c.sectie.pad.join(" › ")+"] ":"";
-      parts.push(pad+"“"+(c?citaatAlsTekst(c):b.text)+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${b.sourceUrl})`:""));
+      // De bronlink springt naar de passage zelf (tekstfragment), niet naar de top van de pagina.
+      const url=c&&CORPUS[c.srcIdx]?textFragmentUrl(b.sourceUrl,c.text,CORPUS[c.srcIdx].headings):b.sourceUrl;
+      parts.push(pad+"“"+(c?citaatMetLinks(c):b.text)+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${url})`:""));
       if(sp&&!b.alleenBron&&sp.ci===b.ci)parts.push(planTekst());
     }
   }
@@ -5117,8 +5121,6 @@ async function toonSimpel(r,btn){
     paneel.innerHTML=titel+'<p class="error">Herschrijven lukte niet: '+escapeHtml(((e&&e.message)||e).toString().slice(0,160))+'</p>';
   }finally{btn.disabled=false;}
 }
-// Kort, deelbaar bericht voor WhatsApp/e-mail: per citaat het antwoord + bron + DIRECTE
-// gemarkeerde link (springt op de bronpagina naar het citaat en arceert het geel).
 // Feedback lokaal opslaan, zodat we later kunnen zien waar de assistent fout zat.
 function bewaarFeedback(r,verdict,toelichting){
   try{
@@ -5217,12 +5219,49 @@ function exportFeedback(){
 // Waarom dat uitmaakt: een tarieftabel kwam hiervoor op het scherm als twaalf losse regels
 // ("Document", "Kosten", "Paspoort 18 jaar en ouder", "€ 169,15", …) en dan moet de voorlichter
 // aan de telefoon zelf uitzoeken welk bedrag bij welk document hoort.
-function blokkenHTML(blokken,klasse){
+// ---- Links van de pagina in een stuk tekst -----------------------------------------------------
+// De crawler bewaart per pagina de links uit de hoofdinhoud als [linktekst, href]. In de
+// bronviewer werden die al klikbaar; in het citaat en op het klembord niet, terwijl juist daar
+// "Ga naar DigiD Activeren" of "Maak een afspraak" staat. De tekst blijft letterlijk: er komt
+// alleen een <a> omheen (of op het klembord de URL erachter), er wordt niets toegevoegd dat niet
+// in het citaat staat. Langste linktekst eerst, en nooit twee links over elkaar heen.
+const linkHref=h=>/^https?:|^mailto:|^tel:/i.test(h)?h:(h&&h[0]==="/"?"https://www.nederlandwereldwijd.nl"+h:h);
+function linkLijst(links,vorm){
+  return (links||[]).filter(l=>Array.isArray(l)&&l[0]&&l[0].length>=5)
+    .map(l=>[vorm?vorm(l[0]):l[0],linkHref(l[1])]).sort((a,b)=>b[0].length-a[0].length);
+}
+function linkTreffers(tekst,lijst){
+  const ms=[];
+  for(const [t,href] of lijst){const i=tekst.indexOf(t);if(i>=0)ms.push([i,t.length,href]);}
+  ms.sort((a,b)=>a[0]-b[0]);
+  const uit=[];let eind=-1;
+  for(const m of ms){if(m[0]<eind)continue;uit.push(m);eind=m[0]+m[1];}
+  return uit;
+}
+function linkifyHTML(tekst,lijst,klasse){
+  let r="",pos=0;
+  for(const [i,len,href] of linkTreffers(tekst,lijst))
+    {r+=escapeHtml(tekst.slice(pos,i))+`<a class="${klasse}" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(tekst.slice(i,i+len))}</a>`;pos=i+len;}
+  return r+escapeHtml(tekst.slice(pos));
+}
+function linkifyTekst(tekst,lijst){
+  let r="",pos=0;
+  for(const [i,len,href] of linkTreffers(tekst,lijst)){r+=tekst.slice(pos,i+len)+` (${href})`;pos=i+len;}
+  return r+tekst.slice(pos);
+}
+// Het citaat voor op het klembord, met de links erbij als "tekst (url)".
+function citaatMetLinks(c){
+  const t=citaatAlsTekst(c);
+  return c&&CORPUS[c.srcIdx]?linkifyTekst(t,linkLijst(CORPUS[c.srcIdx].links)):t;
+}
+function blokkenHTML(blokken,klasse,links){
   const k=klasse||"cite";
+  const lijst=links?linkLijst(links):null;
+  const tx=t=>lijst&&lijst.length?linkifyHTML(t,lijst,k+"-link"):escapeHtml(t);
   return blokken.map(b=>{
     if(b.soort==="lijst"){
       const tag=b.genummerd?"ol":"ul",start=b.genummerd&&b.start>1?` start="${b.start}"`:"";
-      return `<${tag} class="${k}-lijst"${start}>`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</${tag}>`;
+      return `<${tag} class="${k}-lijst"${start}>`+b.items.map(t=>`<li>${tx(t)}</li>`).join("")+`</${tag}>`;
     }
     if(b.soort==="tabel"){
       const kop=b.kop?`<thead><tr><th>${escapeHtml(b.kop[0])}</th><th>${escapeHtml(b.kop[1])}</th></tr></thead>`:"";
@@ -5231,13 +5270,14 @@ function blokkenHTML(blokken,klasse){
         +`<table class="${k}-tabel">${kop}<tbody>${rijen}</tbody></table>`;
     }
     if(b.soort==="kop")return `<p class="${k}-kop">${escapeHtml(b.tekst)}</p>`;
-    return `<p class="${k}-p">${escapeHtml(b.tekst)}</p>`;
+    return `<p class="${k}-p">${tx(b.tekst)}</p>`;
   }).join("");
 }
 function citeBodyHTML(c){
-  if(c&&c.heleSectie)return blokkenHTML(sectieBlokken(c),"cite");
+  const links=c&&CORPUS[c.srcIdx]?CORPUS[c.srcIdx].links:null;
+  if(c&&c.heleSectie)return blokkenHTML(sectieBlokken(c),"cite",links);
   const blokken=blokkenVan(c);
-  return blokkenHTML(blokken,"cite")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
+  return blokkenHTML(blokken,"cite",links)||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
 }
 const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
 // Laat na een lokaal antwoord zien waar de tijd heen ging. Niet als opsmuk: zonder deze regel is
@@ -5488,7 +5528,7 @@ function renderResult(turn,r,voorlopig){
   slot.querySelectorAll(".uitvraag").forEach(fm=>koppelUitvraag(fm,turn,r));
   slot.querySelectorAll(".open-rij").forEach(b=>{b.onclick=()=>askText(b.getAttribute("data-q"));});
   koppelAlternatieven(slot,r);
-  slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(citaatAlsTekst(r.citations[+b.getAttribute("data-ci")]),b);});
+  slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(citaatMetLinks(r.citations[+b.getAttribute("data-ci")]),b);});
   const openCite=el=>{const c=r.citations[+el.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);};
   slot.querySelectorAll(".cite-chip").forEach(el=>el.onclick=e=>{e.stopPropagation();openCite(el);});
   slot.querySelectorAll(".cite-body.clickable-cite, .src-card").forEach(el=>{
@@ -5540,15 +5580,11 @@ function isContinuation(prev,cur){
 // Render de paginatekst als een echte pagina: losse regels worden samengevoegd tot alinea's,
 // H2-koppen worden uitklapbare secties (de sectie met het citaat staat open) en het citaat blijft geel.
 function buildSourceHTML(fullText,quote,headings,links,lists){
-  // Maak hrefs absoluut en linkify de (geëscapete) tekst met de echte pagina-links.
-  const linkHref=h=>/^https?:|^mailto:|^tel:/i.test(h)?h:(h&&h[0]==="/"?"https://www.nederlandwereldwijd.nl"+h:h);
-  const linkList=(links||[]).filter(l=>l&&l[0]&&l[0].length>=5).map(l=>[escapeHtml(l[0]),linkHref(l[1])]).sort((a,b)=>b[0].length-a[0].length);
+  // Linkify de (geëscapete) tekst met de echte pagina-links: zie linkTreffers.
+  const linkList=linkLijst(links,escapeHtml);
   function linkify(escd){
-    if(!linkList.length)return escd;
-    const ms=[];for(const [et,href] of linkList){const i=escd.indexOf(et);if(i>=0)ms.push([i,et.length,href]);}
-    ms.sort((a,b)=>a[0]-b[0]);
-    let r="",pos=0,end=-1;
-    for(const [i,len,href] of ms){if(i<end)continue;r+=escd.slice(pos,i)+`<a class="vlink" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">`+escd.slice(i,i+len)+`</a>`;pos=i+len;end=pos;}
+    let r="",pos=0;
+    for(const [i,len,href] of linkTreffers(escd,linkList)){r+=escd.slice(pos,i)+`<a class="vlink" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">`+escd.slice(i,i+len)+`</a>`;pos=i+len;}
     return r+escd.slice(pos);
   }
   const [ms,me]=matchRange(fullText,quote);
@@ -5646,8 +5682,13 @@ function textFragmentUrl(url,quote,headings){
   const hset=new Set((headings||[]).map(h=>h[1]));
   const lines=q.split(/\n+/).map(s=>s.trim()).filter(s=>s&&!hset.has(s));
   q=(lines.join(" ").replace(/\s+/g," ")||q.replace(/\s+/g," ")).trim();
+  // De crawler zet een link op een eigen regel, ook als er een punt achter staat ("Activeren\n.");
+  // op de pagina staat er geen spatie voor die punt, en dan vindt de browser het fragment niet.
+  q=q.replace(/\s+([.,;:!?)])/g,"$1");
   const w=q.split(" ");
-  const frag=w.length<=10?encodeURIComponent(q):encodeURIComponent(w.slice(0,6).join(" "))+","+encodeURIComponent(w.slice(-6).join(" "));
+  // Een streepje heeft in een tekstfragment een eigen betekenis (prefix-/-suffix): coderen.
+  const enc=t=>encodeURIComponent(t).replace(/-/g,"%2D");
+  const frag=w.length<=10?enc(q):enc(w.slice(0,6).join(" "))+","+enc(w.slice(-6).join(" "));
   return url+"#:~:text="+frag;
 }
 async function openViewer(srcIdx,quote,url,title){
