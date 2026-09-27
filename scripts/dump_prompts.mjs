@@ -28,11 +28,11 @@ function literal(naam) {
 const PROMPTS = [
   ["PREPARE_SYSTEM", "Stap 1 — vraag begrijpen",
     "Draait bij ELKE vraag in de cloudmodus, als eerste. Herschrijft de vraag tot een zelfstandige informatiebehoefte en verzint zoektermen, alternatieve formuleringen en een HyDE-tekst.\nWordt NIET gebruikt bij een lokaal model (die slaan deze stap over).",
-    "systeem: PREPARE_SYSTEM\ngebruiker: [gesprekscontext] + \"Vraag van de burger: \" + <de getypte vraag>"],
+    "systeem: PREPARE_SYSTEM\ngebruiker: [gesprekscontext] + \"Vraag van de burger: \" + <de getypte vraag>\n[gesprekscontext] = gesprekContext(): de laatste 6 beurten, plus wat als chips boven het typvak staat (vastgelegd en weggehaald)."],
 
   ["CONDENSE_SYSTEM", "Vervolgvraag zelfstandig maken",
     "Draait alleen bij een LOKAAL model, en alleen als er al een gesprek loopt. Vervangt de zwaardere PREPARE-stap.",
-    "systeem: CONDENSE_SYSTEM\ngebruiker: \"Gesprek tot nu toe:\\n\" + <laatste 6 beurten> + \"\\n\\nNieuwe vraag: \" + <de vraag>"],
+    "systeem: CONDENSE_SYSTEM\ngebruiker: [gesprekscontext] + \"Nieuwe vraag: \" + <de vraag>"],
 
   ["RERANK_SYSTEM", "Stap 2 — beste pagina's kiezen",
     "Krijgt een genummerde lijst kandidaat-pagina's (titel + tekstfragment) en kiest daaruit maximaal 6.\nCloud: ~25-30 kandidaten met 300 tekens per stuk. Lokaal: 12 kandidaten met 110-140 tekens.",
