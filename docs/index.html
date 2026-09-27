@@ -2461,15 +2461,68 @@ function kopjesBoom(p){
 }
 const KEUZE_STAP=/^(stap\s*\d|\d+[.)]\s)/i;
 const KEUZE_GEEN=/^(check|controleer|lees|bekijk|meer informatie|let op|uitzondering(en)?|hulp nodig|contact|zie ook|snel naar|onderwerpen|in het kort|meteen regelen|lukt (het|dit) niet|werkt (het|dit) niet)\b/i;
-// Een werkwijze-keuze: kopjes met hetzelfde begin en een andere manier erachter ("Wachtwoord
-// herstellen met de DigiD app" / "Wachtwoord herstellen per e-mail en sms"). De manier begint
-// met een van deze woorden, direct na het gedeelde begin of één woord later.
-const KEUZE_MANIER=/^(met|per|via|door|zonder|online|digitaal|schriftelijk|op)$/;
-// "Wachtwoord herstellen" -> "Hoe wilt u uw wachtwoord herstellen?". Alleen bij zelfstandig
-// naamwoord + werkwoord; anders een neutrale vraag.
+// ---- Keuzes uit de VORM van de kopjes -------------------------------------------------------
+// Veel keuzes hebben geen vraag als kopje erboven, maar zijn te herkennen aan hoe de kopjes zelf
+// lopen: hetzelfde begin, en op het punt waar ze uit elkaar gaan een voorzetsel dat de manier,
+// de plek of de situatie noemt.
+//   manier:   "Wachtwoord herstellen met de DigiD app" / "… per e-mail en sms",
+//             "Machtigen met formulier" / "Machtigen met DigiD", "Legaliseren aan de balie" / "… via de post"
+//   plek:     "Vertaling op Tonga" / "Vertaling in Nederland", "Verzekerd in / buiten Nederland",
+//             "Document uit Nederland" / "Document uit het buitenland"
+//   situatie: "Als u in Nederland woont" / "Als u buiten Nederland woont",
+//             "Bewijs van uitschrijving als u …" / "… als u …"
+// De knoppen tonen dan alleen het deel vanaf dat voorzetsel ("Met de DigiD app"); het gedeelde
+// begin staat al in de vraag. Een opsomming ("Verklaring over de burgerlijke staat" / "Verklaring
+// van Nederlanderschap") valt erbuiten: "over" en "van" noemen geen manier of plek.
+const KEUZE_MANIER=/^(met|per|via|door|zonder|online|digitaal|schriftelijk|naar|aan)$/;
+const KEUZE_PLEKVZ=/^(in|op|bij|buiten|binnen|uit)$/;
+const LIDWOORD=/^(de|het|een|na|voor|van|om|te|als)$/i;
+const hoofdletter=t=>t.charAt(0).toUpperCase()+t.slice(1);
+// Het eerste woord klein, tenzij het een naam is ("DigiD", "SVB").
+const kleinBegin=w=>w.map((x,i)=>i===0&&/^[A-Z][a-zà-ÿ]+$/.test(x)?x.toLowerCase():x).join(" ");
+// "Wachtwoord herstellen" -> "Hoe wilt u uw wachtwoord herstellen?", "Machtigen" -> "Hoe wilt u
+// machtigen?". Alleen als het begin een handeling is; anders een neutrale vraag.
 function manierVraag(begin){
-  if(begin.length===2&&/en$/.test(begin[1]))return `Hoe wilt u uw ${begin[0].toLowerCase()} ${begin[1].toLowerCase()}?`;
-  return "Op welke manier wilt u het doen?";
+  const ok=begin.length&&begin.length<=3&&/en$/.test(begin[begin.length-1])&&!begin.some(w=>LIDWOORD.test(w));
+  if(!ok)return "Op welke manier wilt u het doen?";
+  // Eén woord moet een werkwoord zijn: "Machtigen" wel, "Wijzigingen" of "Verklaringen" niet.
+  if(begin.length===1)return /ingen$/i.test(begin[0])?"Op welke manier wilt u het doen?":`Hoe wilt u ${begin[0].toLowerCase()}?`;
+  return `Hoe wilt u uw ${kleinBegin(begin)}?`;
+}
+function plekVraagUit(begin,vz,standaard){
+  if(vz.every(v=>v==="uit")&&begin.length&&begin.length<=2&&!begin.some(w=>LIDWOORD.test(w)))
+    return `Waar ${/en$/.test(begin[begin.length-1])?"komen":"komt"} uw ${kleinBegin(begin)} vandaan?`;
+  // "Verzekerd", "Geboren": een toestand, geen handeling.
+  if(begin.length===1&&/^(ge\S+[dt]|verzekerd|ingeschreven|getrouwd)$/i.test(begin[0]))return `Waar bent u ${begin[0].toLowerCase()}?`;
+  return standaard;
+}
+function vormKeuze(opties,plekVraag,ouder){
+  // Onder "Waarom …?" of "Wat is …?" staat uitleg, geen keuze.
+  if(/^(waarom|wat is|wat zijn|wat betekent)\b/i.test(ouder||""))return null;
+  const w=opties.map(n=>n.t.split(/\s+/)),lw=w.map(x=>x.map(y=>y.toLowerCase()));
+  let g=0;
+  while(lw.every(x=>x.length>g+1&&x[g]===lw[0][g]))g++;
+  // Twee kopjes die na het knippen hetzelfde label krijgen ("Afspraak in Ethiopië" en "Afspraak
+  // maken in Ethiopië"): dan de hele kopjes tonen.
+  const vanaf=idx=>{const l={};opties.forEach((n,i)=>{l[n.i]=hoofdletter(w[i].slice(idx[i]).join(" "));});
+    return new Set(Object.values(l).map(x=>x.toLowerCase())).size===opties.length?l:undefined;};
+  // Het voorzetsel moet op het splitspunt staan: het laatste gedeelde woord of een van de twee
+  // woorden erna. Zo telt "Stemmen voor de Tweede Kamer" niet mee.
+  const vind=(re,van=g-1)=>lw.map(x=>x.findIndex((y,i)=>i>=van&&i<=g+1&&re.test(y)&&!(/^in$/.test(y)&&x[i+1]==="uw")));
+  // "Als u …" mag ook vooraan staan: "Als u in Nederland woont" / "Als u buiten Nederland woont".
+  const als=vind(/^als$/,0);
+  if(als.every(i=>i>=0))return {vraag:"Wat is uw situatie?",labels:vanaf(als)};
+  // "U bent verzekerd via het CAK" / "U bent op een andere manier verzekerd" is een situatie,
+  // geen manier: het begint bij de persoon, niet bij de handeling.
+  if(g>=2&&/^(u|ik|wij|we)$/.test(lw[0][0]))return {vraag:"Wat is uw situatie?"};
+  const vz=vind({test:y=>KEUZE_MANIER.test(y)||KEUZE_PLEKVZ.test(y)});
+  if(!vz.every(i=>i>=0))return null;
+  const woord=vz.map((i,k)=>lw[k][i]);
+  // Staat de manier vooraan ("Met de DigiD app" / "Met een sms"), dan zegt het kopje erboven
+  // wat er gebeurt: "Telefoonnummer wijzigen".
+  const begin=Math.min(...vz)?w[0].slice(0,Math.min(...vz)):(ouder||"").split(/\s+/).filter(Boolean);
+  if(woord.some(x=>KEUZE_MANIER.test(x)))return {vraag:manierVraag(begin),labels:vanaf(vz),manier:true};
+  return {vraag:plekVraagUit(begin,woord,plekVraag()),labels:vanaf(vz)};
 }
 // Ik-vorm telt pas vanaf drie woorden: "Ik woon buiten de EU" is een situatie, "Mijn SVB" of
 // "Mijn situatie" is een link of een kopje.
@@ -2491,10 +2544,14 @@ function keuzeUitKinderen(p,boom,o){
   const kind=boom.filter(n=>n.ouder===o);
   if(kind.length<2)return null;
   if(kind.filter(n=>KEUZE_STAP.test(n.t)).length>=2)return null;       // een stappenplan
-  let opties=kind.filter(n=>n.t.length<=70&&!/\?$/.test(n.t)&&!KEUZE_GEEN.test(n.t)&&!KEUZE_STAP.test(n.t));
+  const basis=n=>!/\?$/.test(n.t)&&!KEUZE_GEEN.test(n.t)&&!KEUZE_STAP.test(n.t);
+  let opties=kind.filter(n=>n.t.length<=70&&basis(n));
   // "Ik ben in Nederland ingeschreven" / "Uitzonderingen" / "Ik ben in een ander land
   // ingeschreven": de ik-kopjes zijn de situaties, de rest is toelichting ertussen.
-  const ik=opties.filter(n=>KEUZE_IK.test(n.t));
+  let ik=opties.filter(n=>KEUZE_IK.test(n.t));
+  // Ik-kopjes mogen langer zijn: "Ik ga (tijdelijk) in Nederland wonen en ik schrijf mij in bij
+  // de gemeente" is één situatie, geen alinea. Alleen als de korte er niet al twee opleveren.
+  if(ik.length<2){const lang=kind.filter(n=>n.t.length<=130&&basis(n)&&KEUZE_IK.test(n.t));if(lang.length>=2)ik=lang;}
   if(ik.length>=2)opties=ik;
   if(opties.length<2||opties.length>6)return null;
   const ouder=o>=0?boom[o].t:"";
@@ -2509,16 +2566,13 @@ function keuzeUitKinderen(p,boom,o){
   else if(opties.every(alsPlek)||(gedeeld&&/^(in|bij|via)$/.test(woorden[0][gedeeld-1])))vraag=plekVraag();
   // "Stap 5: Paspoort ophalen of laten opsturen" met "Ophalen" / "Laten opsturen" eronder.
   else if(/\bof\b/i.test(ouder)&&opties.every(n=>ouder.toLowerCase().includes(n.t.toLowerCase().split(/\s+/)[0])))vraag=ouder;
-  // "U bent verzekerd via het CAK" / "U bent op een andere manier verzekerd" is een situatie,
-  // geen manier: het begint bij de persoon, niet bij de handeling.
-  else if(gedeeld&&/^(u|ik|wij|we)$/.test(woorden[0][0]))vraag="Wat is uw situatie?";
-  else if(gedeeld&&woorden.every(w=>w.slice(gedeeld,gedeeld+2).some(x=>KEUZE_MANIER.test(x)))){
-    // Het gedeelde begin staat al in de vraag; de knoppen tonen alleen de manier.
-    const labels={};
-    for(const n of opties){const rest=n.t.split(/\s+/).slice(gedeeld).join(" ");labels[n.i]=rest.charAt(0).toUpperCase()+rest.slice(1);}
-    return {vraag:manierVraag(opties[0].t.split(/\s+/).slice(0,gedeeld)),ouder,ouderIdx:o,opties:opties.map(n=>n.i),labels,manier:true};
+  // Geen vraag uit het kopje erboven: kijk naar de vorm van de kopjes zelf. Die vraag is
+  // afgeleid, dus een passende vraag van het model mag hem vervangen (zie bouwAntwoord).
+  if(!vraag){
+    const v=vormKeuze(opties,plekVraag,ouder);
+    if(!v)return null;
+    return Object.assign({ouder,ouderIdx:o,opties:opties.map(n=>n.i),afgeleid:true},v);
   }
-  if(!vraag)return null;
   return {vraag,ouder,ouderIdx:o,opties:opties.map(n=>n.i)};
 }
 // De keuze die bij een citaat hoort. Twee gevallen:
@@ -2764,7 +2818,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 132";
+const APP_VERSION="build 133";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -4170,10 +4224,10 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   const plan=voorlopig?undefined:stappenplanVan({citations,restated_question:r.restated_question||q});
   let keuze=voorlopig||plan?null:keuzeVoor(citations);
   if(keuze){
-    // Bij een werkwijze-keuze is de vraag van het model ("Maakt u gebruik van de DigiD app?")
+    // Bij een keuze uit de vorm van de kopjes is de vraag van het model ("Maakt u gebruik van de DigiD app?")
     // meestal beter dan wat de app uit de kopjes afleidt. De opties blijven de kopjes.
     const zelfde=clarifications.find(c=>overlaptKeuze(c.question,keuze));
-    if(keuze.manier&&zelfde&&/\?$/.test(zelfde.question))keuze.vraag=zelfde.question;
+    if(keuze.afgeleid&&zelfde&&/\?$/.test(zelfde.question))keuze.vraag=zelfde.question;
     clarifications=clarifications.filter(c=>!overlaptKeuze(c.question,keuze));
     knipTotKeuze(citations,keuze,q);
     used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
