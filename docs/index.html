@@ -328,9 +328,12 @@ ol.srclist li{margin:2px 0;}
 .alt-knop{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:.9rem;color:var(--rijk-blauw);font-weight:600;background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:7px 12px;cursor:pointer;}
 .alt-knop:hover{border-color:var(--rijk-licht);background:var(--blauw-bg);}
 .alt-knop svg{flex:0 0 auto;color:var(--rijk-licht);}
-/* Stoppen en aanpassen */
-.stop-vraag{margin-left:12px;font-style:normal!important;white-space:nowrap;background:#fff;border:1px solid var(--rand-sterk);color:var(--ink-licht);border-radius:999px;padding:2px 10px;font:inherit;font-size:.78rem;cursor:pointer;vertical-align:middle;}
-.stop-vraag:hover{border-color:var(--rood);color:var(--rood);}
+/* Stoppen en aanpassen. Loopt er een vraag en is het invoerveld leeg, dan is de verstuurknop
+   een stopknop (zie refreshComposer). */
+.send-btn .ico-stop,.send-btn.stoppen .ico-send{display:none;}
+.send-btn.stoppen .ico-stop{display:inline;}
+.send-btn.stoppen{background:var(--ink);}
+.send-btn.stoppen:hover:not(:disabled){background:var(--rood);}
 .row.user{align-items:center;}
 .vraag-aanpassen{align-self:center;margin-right:6px;background:none;border:0;color:var(--ink-licht);padding:5px;border-radius:7px;cursor:pointer;opacity:0;transition:opacity .12s;}
 .row.user:hover .vraag-aanpassen,.vraag-aanpassen:focus-visible{opacity:1;}
@@ -524,6 +527,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
   .composer{padding:10px 12px 16px;}
   .btn-label{display:none;}
   .send-btn,.pill-btn{padding:0;width:40px;}
+  .send-btn.stoppen .btn-label{display:none;}
   .bubble{max-width:90%;}
   .bubble.antwoord{max-width:96%;}
   .welcome{font-size:1.04rem;}
@@ -583,7 +587,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <div class="composer-pill">
         <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus />
         <button type="button" id="mic" class="mic-btn" title="Start luistermodus (spraak → automatisch passende antwoorden)" aria-label="Luistermodus starten" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-        <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="btn-label">Verstuur</span></button>
+        <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg class="ico-send" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><svg class="ico-stop" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg><span class="btn-label ico-send">Verstuur</span><span class="btn-label ico-stop">Stop</span></button>
         <span class="spraak-el spraak-status" id="spraak-status" hidden>Luistert mee…</span>
         <span class="spraak-el spraak-live" id="spraak-live" hidden></span>
         <span class="spraak-el spraak-meter" id="spraak-meter" hidden><i style="width:0"></i></span>
@@ -2893,7 +2897,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 149";
+const APP_VERSION="build 150";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2926,6 +2930,7 @@ function showWelcome(){
 // vraagt op het vorige voortbouwt, en waar je dat loslaat.
 const PH_EERSTE="Typ hier de vraag van de burger…", PH_VERVOLG="Stel een vervolgvraag";
 let gesprekLoopt=false,corpusKlaar=false;
+let VRAAG=null,VRAAGNR=0;   // de lopende vraag, zie "Eén vraag tegelijk" verderop
 function refreshComposer(){
   const lopend=gesprekLoopt||history.length>0;
   if(inputEl)inputEl.placeholder=lopend?PH_VERVOLG:PH_EERSTE;
@@ -2933,8 +2938,18 @@ function refreshComposer(){
   // wist, en juist die moet je kunnen pakken zodra het gesprek een andere kant op gaat.
   const luistert=typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.active;
   const r=document.getElementById("reset");if(r)r.hidden=!(lopend||luistert);
-  sendBtn.disabled=!corpusKlaar||!inputEl||!inputEl.value.trim();
+  // Loopt er een vraag en staat er niets nieuws in het invoerveld, dan wordt de verstuurknop een
+  // stopknop. Typ je intussen een nieuwe vraag, dan is het weer de verstuurknop: versturen stopt
+  // de lopende vraag ook (zie nieuweVraag).
+  const leeg=!inputEl||!inputEl.value.trim(),stoppen=!!VRAAG&&leeg;
+  sendBtn.classList.toggle("stoppen",stoppen);
+  const label=stoppen?"Stop deze vraag":"Vraag stellen";
+  sendBtn.title=label;sendBtn.setAttribute("aria-label",label);
+  sendBtn.disabled=!stoppen&&(!corpusKlaar||leeg);
 }
+// In stopstand stopt de knop de vraag in plaats van het formulier te versturen. Enter in een leeg
+// veld klikt hem ook (impliciet versturen), maar dat verstuurde toch al niets.
+sendBtn.addEventListener("click",e=>{if(sendBtn.classList.contains("stoppen")){e.preventDefault();stopVraag();inputEl.focus();}});
 function newConversation(){
   stopVraag();
   history=[];gesprekLoopt=false;
@@ -3894,8 +3909,8 @@ async function beantwoord(turn,v){
   if(result.terugval){
     const knop=turn.querySelector(".terugval .opnieuw");
     if(knop)knop.onclick=()=>{
-      turn.querySelector(".slot").innerHTML=`<div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Opnieuw proberen…</span>${STOPKNOP}</div></div>`;
-      koppelStop(turn);stapStart();beantwoord(turn,{...v,nr:nieuweVraag(turn)});
+      turn.querySelector(".slot").innerHTML=`<div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Opnieuw proberen…</span></div></div>`;
+      stapStart();beantwoord(turn,{...v,nr:nieuweVraag(turn)});
     };
     return;     // een terugval is geen antwoord van de AI: niet in de gesprekscontext
   }
@@ -4989,20 +5004,19 @@ async function schrijfAntwoord(q,citations,key,onAlineas,keuze){
 // "Nieuw gesprek" breken de lopende aanroepen af (fetch via het signaal, WebLLM via
 // interruptGenerate, wllama via abortSignal); een verouderde run toont niets meer en komt niet
 // in de geschiedenis.
-let VRAAG=null,VRAAGNR=0;
-const STOPKNOP=`<button type="button" class="stop-vraag" title="Stop deze vraag">■ Stop</button>`;
 const ICON_POTLOOD='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 function vraagSignaal(){return VRAAG?VRAAG.ctrl.signal:undefined;}
 function isHuidig(nr){return !!VRAAG&&VRAAG.nr===nr;}
 function nieuweVraag(turn){
   stopVraag();
   VRAAG={nr:++VRAAGNR,ctrl:new AbortController(),turn};
+  refreshComposer();
   return VRAAG.nr;
 }
-function vraagKlaar(nr){if(isHuidig(nr))VRAAG=null;}
+function vraagKlaar(nr){if(isHuidig(nr)){VRAAG=null;refreshComposer();}}
 function stopVraag(){
   if(!VRAAG)return;
-  const v=VRAAG;VRAAG=null;
+  const v=VRAAG;VRAAG=null;refreshComposer();
   try{v.ctrl.abort();}catch(e){}
   stopTypen();
   const slot=v.turn&&v.turn.isConnected&&v.turn.querySelector(".slot");
@@ -5011,7 +5025,6 @@ function stopVraag(){
   const k=slot&&slot.querySelector(".vraag-aanpassen-tekst");
   if(k){const q=(v.turn.querySelector(".bubble.vraag")||{}).textContent||"";k.onclick=()=>vraagAanpassen(q,v.turn);}
 }
-function koppelStop(turn){const b=turn.querySelector(".stop-vraag");if(b)b.onclick=()=>{if(VRAAG&&VRAAG.turn===turn)stopVraag();};}
 // De vraag terug in het invoerveld. Loopt hij nog, dan eerst stoppen.
 function vraagAanpassen(q,turn){
   if(VRAAG&&VRAAG.turn===turn)stopVraag();
@@ -5030,10 +5043,9 @@ function addTurn(q,gesproken,via){
     ? `<div class="vraagblok"><div class="bubble vraag">${escapeHtml(q)}</div><span class="via-pagina">alleen uit: ${escapeHtml(via)}</span></div>`
     : `<div class="bubble vraag">${escapeHtml(q)}</div>`;
   art.innerHTML=`<div class="row user"><button type="button" class="vraag-aanpassen" title="Vraag aanpassen: zet de tekst terug in het invoerveld" aria-label="Vraag aanpassen">${ICON_POTLOOD}</button>${vraagblok}</div>`
-    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span>${STOPKNOP}</div></div></div></div>`;
+    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span></div></div></div></div>`;
   conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});
   art.querySelector(".vraag-aanpassen").onclick=()=>vraagAanpassen(q,art);
-  koppelStop(art);
   return art;
 }
 function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
