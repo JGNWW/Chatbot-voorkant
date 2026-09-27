@@ -16,6 +16,9 @@ aanroep mee, net als bij de andere providers. Het geeft alleen `/v1/models` en
    **Deploy**.
 3. Klik **Edit code**, vervang alles door de inhoud van `nvidia-nim-worker.js` en klik **Deploy**.
 4. Kopieer het adres van de worker, bijvoorbeeld `https://nim.jouwnaam.workers.dev`.
+5. Controle: open dat adres in een nieuw tabblad. Je hoort **"Doorgeefluik voor NVIDIA NIM
+   werkt"** te zien. Zie je "Hello World!", dan is de code nog niet vervangen of niet opnieuw
+   gedeployd. Een net aangemaakte worker kan een paar minuten nodig hebben voor hij bereikbaar is.
 
 Host je de app op een ander adres dan `https://jgnww.github.io`? Zet dat adres dan in
 `TOEGESTAAN` voordat je op Deploy klikt.
@@ -27,7 +30,11 @@ Host je de app op een ander adres dan `https://jgnww.github.io`? Zet dat adres d
 2. Open **Instellingen**, kies **NVIDIA NIM (gratis, via doorgeefluik)**.
 3. Plak de sleutel, en in het veld ernaast het adres van de worker.
 4. De modellenlijst wordt dan bij NVIDIA opgehaald; de modellen die het best bij deze app passen
-   staan bovenaan.
+   staan bovenaan. Lukt dat niet, dan staat onder de instellingen waarom (bijvoorbeeld: het luik
+   is niet bereikbaar, of het adres is dat van NVIDIA zelf in plaats van dat van de worker).
+
+Heb je de worker gemaakt vóór build 130? Plak dan de nieuwe `nvidia-nim-worker.js` en deploy
+opnieuw: die heeft de controlezin en geeft bij een storing een leesbare foutmelding.
 
 ## Welke modellen?
 
