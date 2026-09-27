@@ -63,7 +63,7 @@ def extract(html: str, url: str) -> tuple[str, str, str, list, list]:
             seen.add((t, href))
             links.append([t, href])
 
-    text = main.get_text(separator="\n", strip=True) if main else ""
+    text = plak_beginletters(main.get_text(separator="\n", strip=True)) if main else ""
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
 
     # Footer-blokken ('Contact', 'Ook nuttig') meteen weglaten: kop + alles tot de volgende kop.
@@ -79,6 +79,23 @@ def extract(html: str, url: str) -> tuple[str, str, str, list, list]:
         i += 1
     headings = [[lvl, t] for lvl, t in headings if t not in DROP_HEADINGS]
     return title, desc, cap_text("\n".join(out)), headings, links
+
+
+BEGINLETTER = re.compile(r"(^|[^\w])([A-ZÀ-Þ])\n(?=[a-zß-ÿ])", re.M)
+EENLETTERWOORDEN = {"U", "A", "O", "I"}
+
+
+def plak_beginletters(text: str) -> str:
+    """Plak een losgeknipte beginletter weer aan zijn woord: "E\\nn wilt u" -> "En wilt u".
+
+    De site zet de eerste letter van sommige zinnen in een eigen inline-element, en
+    get_text(separator="\\n") zet daar dan een regelbreuk tussen. Een hoofdletter die zelf een
+    woord is ("U\\nkunt niet zelf kiezen") blijft staan. Zelfde regel als
+    scripts/plak_beginletters.mjs (de nabewerking van een bestaand corpus); wijzig ze samen.
+    """
+    def plak(m: re.Match) -> str:
+        return m.group(0) if m.group(2) in EENLETTERWOORDEN else m.group(1) + m.group(2)
+    return BEGINLETTER.sub(plak, text)
 
 
 def cap_text(text: str) -> str:

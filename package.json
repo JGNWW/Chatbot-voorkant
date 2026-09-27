@@ -8,7 +8,8 @@
     "probe": "node scripts/probe.mjs",
     "test:browser": "node scripts/browser_test.mjs",
     "test:index": "node scripts/index_test.mjs",
-    "test:quote": "node scripts/quote_test.mjs"
+    "test:quote": "node scripts/quote_test.mjs",
+    "eval:winnaar": "node scripts/winnaar_eval.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1"

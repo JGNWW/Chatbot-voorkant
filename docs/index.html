@@ -244,6 +244,12 @@ ol.srclist li{margin:2px 0;}
 .genherstel{font-size:.8rem;color:var(--ink-licht);margin:8px 0 0;}
 .genweg{font-size:.82rem;color:var(--ink-licht);background:var(--grijs);border-radius:8px;padding:8px 11px;margin:10px 0;}
 .note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
+/* Terugval na een AI-fout: geel zoals een waarschuwing, met de knop om het opnieuw te proberen. */
+.terugval{background:#fff4dc;border:1px solid #f1d58f;border-radius:10px;padding:9px 12px;margin:0 0 12px;font-size:.88rem;color:var(--ink);}
+.terugval p{margin:0 0 4px;}
+.terugval .terugval-fout{color:var(--ink-licht);font-size:.8rem;overflow-wrap:anywhere;}
+.terugval .opnieuw{display:inline-flex;align-items:center;gap:6px;margin-top:4px;background:var(--rijk-blauw);color:#fff;border:0;border-radius:999px;padding:5px 13px;font:inherit;font-weight:600;font-size:.85rem;cursor:pointer;}
+.terugval .opnieuw:hover{background:var(--rijk-donker);}
 .no-answer{color:#666;margin-bottom:12px;}
 .section{margin-top:16px;font-size:.9rem;}
 .section ul{margin:4px 0 0;padding-left:18px;}
@@ -316,6 +322,23 @@ ol.srclist li{margin:2px 0;}
 .open-rij{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:.93rem;color:var(--rijk-blauw);font-weight:600;background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:8px 12px;margin-top:6px;cursor:pointer;}
 .open-rij:hover{border-color:var(--rijk-licht);background:var(--blauw-bg);}
 .open-rij svg{flex:0 0 auto;color:var(--rijk-licht);}
+/* "Bedoelde je misschien…": dezelfde rijen als "Nog niet beantwoord". */
+.alternatieven{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+.alt-titel{margin:0 0 2px;font-size:.85rem;font-weight:700;color:var(--rijk-blauw);}
+.alt-knop{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font:inherit;font-size:.9rem;color:var(--rijk-blauw);font-weight:600;background:#fff;border:1.5px solid var(--rand);border-radius:10px;padding:7px 12px;cursor:pointer;}
+.alt-knop:hover{border-color:var(--rijk-licht);background:var(--blauw-bg);}
+.alt-knop svg{flex:0 0 auto;color:var(--rijk-licht);}
+/* Stoppen en aanpassen */
+.stop-vraag{margin-left:12px;font-style:normal!important;white-space:nowrap;background:#fff;border:1px solid var(--rand-sterk);color:var(--ink-licht);border-radius:999px;padding:2px 10px;font:inherit;font-size:.78rem;cursor:pointer;vertical-align:middle;}
+.stop-vraag:hover{border-color:var(--rood);color:var(--rood);}
+.row.user{align-items:center;}
+.vraag-aanpassen{align-self:center;margin-right:6px;background:none;border:0;color:var(--ink-licht);padding:5px;border-radius:7px;cursor:pointer;opacity:0;transition:opacity .12s;}
+.row.user:hover .vraag-aanpassen,.vraag-aanpassen:focus-visible{opacity:1;}
+.vraag-aanpassen:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
+@media (hover:none){.vraag-aanpassen{opacity:.7;}}
+.bubble.gestopt{display:flex;align-items:center;gap:12px;color:var(--ink-licht);font-size:.9rem;}
+.vraag-aanpassen-tekst{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--rijk-licht);color:var(--rijk-blauw);border-radius:999px;padding:3px 11px;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
+.via-pagina{display:block;text-align:right;font-size:.74rem;color:var(--ink-licht);margin:3px 4px 0;}
 a{color:var(--rijk-licht);}
 /* De wachtregel breekt over twee regels omdat de bel tijdens het laden weinig inhoud heeft en
    dus smal is. white-space:nowrap is geprobeerd en weer weggehaald: de bel groeit dan niet mee,
@@ -473,6 +496,16 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 .viewer-body mark.hl{background:#ffec70;padding:1px 1px;border-radius:2px;box-shadow:0 0 0 3px #ffec70;}
 .viewer-body a.vlink{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
 .viewer-body a.vlink:hover{color:var(--rijk-blauw);}
+.cite-body a.cite-link{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
+.cite-body a.cite-link:hover{color:var(--rijk-blauw);}
+/* "Let op" uit dezelfde sectie: ingeklapt, geel zoals een waarschuwing op de site. */
+.letop{margin:6px 0 2px;border:1px solid #f1d58f;background:#fff8e6;border-radius:8px;padding:5px 11px;font-size:.92rem;}
+.letop summary{cursor:pointer;font-weight:700;color:#7a4f00;font-size:.85rem;}
+.letop summary::marker{color:#b37400;}
+.letop[open] summary{margin-bottom:4px;}
+.letop-blok+.letop-blok{border-top:1px solid #f1d58f;margin-top:6px;padding-top:6px;}
+.letop .cite-p{margin:0 0 4px;}
+.letop a.cite-link{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
 .viewer-note{color:var(--oranje);font-size:.85rem;margin-bottom:12px;font-style:italic;}
 .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55;border:0;}
 .viewer-backdrop[hidden]{display:none;}
@@ -822,7 +855,7 @@ async function oaiChat(endpoint,key,model,system,user,name,onDelta){
     const doe=async(json)=>{
       const body={model,temperature:0,max_tokens:3000,stream:true,messages:[{role:"system",content:system},{role:"user",content:user}]};
       if(json)body.response_format={type:"json_object"};
-      const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
+      const r=await fetch(endpoint,{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
       return r;
     };
     let r=await doe(true);
@@ -839,7 +872,7 @@ async function oaiChat(endpoint,key,model,system,user,name,onDelta){
   return oaiChatHeel(endpoint,key,model,system,user,name);
 }
 async function oaiChatHeel(endpoint,key,model,system,user,name,tweedeKans){
-  const r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
+  const r=await fetch(endpoint,{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify({model,temperature:0,max_tokens:3000,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:user}]})});
   if(!r.ok){
     const tekst=(await r.text()).slice(0,400);
     // "model_not_found" is geen storing maar een verlopen keuze. Zeg dan wat er aan de hand is
@@ -996,7 +1029,13 @@ const LOKAALAI=(function(){
     // Zonder dit schrijft een denkend model eerst honderden tokens hardop nadenken vóór de JSON:
     // pure vertraging, en de app leest die tekst als een kapot antwoord.
     if(LOKAAL_MODELLEN[sleutel].denkt)verzoek.extra_body={enable_thinking:false};
-    const r=await e.chat.completions.create(verzoek);
+    // Stoppen: WebLLM heeft geen signaal, maar wel interruptGenerate().
+    const sig=vraagSignaal(),onderbreek=()=>{try{e.interruptGenerate&&e.interruptGenerate();}catch(_){}};
+    if(sig)sig.addEventListener("abort",onderbreek,{once:true});
+    let r;
+    try{r=await e.chat.completions.create(verzoek);}
+    finally{if(sig)sig.removeEventListener("abort",onderbreek);}
+    if(sig&&sig.aborted)throw new DOMException("gestopt","AbortError");
     // WebLLM meet zelf hoe snel het ging. We tellen het per vraag op, zodat je kunt ZIEN waar de
     // tijd blijft in plaats van te gissen: doorrekenen van de prompt, of het schrijven zelf.
     try{
@@ -1153,6 +1192,7 @@ const WASMAI=(function(){
       // het verschil tussen een bruikbaar antwoord en een half codeblok.
       response_format:{type:"json_object"},
       cache_prompt:true,
+      abortSignal:vraagSignaal(),      // wllama breekt de generatie af op dit signaal
     });
     try{
       const u=r&&r.usage,sec=(performance.now()-t0)/1000;
@@ -1259,7 +1299,7 @@ const PROVIDERS={
       const doe=async extra=>{
         const cfg=Object.assign({temperature:0,maxOutputTokens:8000,responseMimeType:"application/json"},extra);
         const body={systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:user}]}],generationConfig:cfg};
-        const r=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+        const r=await fetch(url,{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json"},body:JSON.stringify(body)});
         if(!r.ok)return {ok:false,status:r.status,tekst:await r.text()};
         if(onDelta){
           // Bij streamen komt de tekst los binnen; de JSON-omhulling van één antwoord bouwen we
@@ -1338,7 +1378,7 @@ const PROVIDERS={
         const body={model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]};
         if(onDelta)body.stream=true;
         if(json)body.response_format={type:"json_object"};
-        const r=await fetch("https://router.huggingface.co/v1/chat/completions",{method:"POST",
+        const r=await fetch("https://router.huggingface.co/v1/chat/completions",{method:"POST",signal:vraagSignaal(),
           headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
         if(!r.ok)return {ok:false,status:r.status,tekst:await r.text()};
         if(onDelta){
@@ -1409,7 +1449,7 @@ const PROVIDERS={
       // systeemprompt vraagt zelf al om uitsluitend JSON, en parseModelJSON is er tegen bestand.
       const body={model,max_tokens:3000,system:sys,messages:[{role:"user",content:user}]};
       if(onDelta)body.stream=true;
-      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(body)});
+      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("Claude "+r.status+": "+(await r.text()).slice(0,200));
       if(onDelta)return leesSSE(r,j=>(j.type==="content_block_delta"&&j.delta&&j.delta.text)||"",onDelta);
       const d=await r.json();return (d.content||[]).map(c=>c.text||"").join("");}},
@@ -1455,7 +1495,7 @@ const PROVIDERS={
     async call(key,model,system,user,onDelta){
       const body={model,temperature:0,max_tokens:3000,messages:[{role:"system",content:system},{role:"user",content:user}]};
       if(onDelta)body.stream=true;
-      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
+      const r=await fetch("https://openrouter.ai/api/v1/chat/completions",{method:"POST",signal:vraagSignaal(),headers:{"content-type":"application/json","authorization":"Bearer "+key},body:JSON.stringify(body)});
       if(!r.ok)throw new Error("OpenRouter "+r.status+": "+(await r.text()).slice(0,200));
       if(onDelta)return leesSSE(r,j=>j.choices?.[0]?.delta?.content||"",onDelta);
       const d=await r.json();
@@ -2853,7 +2893,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 141";
+const APP_VERSION="build 149";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2896,6 +2936,7 @@ function refreshComposer(){
   sendBtn.disabled=!corpusKlaar||!inputEl||!inputEl.value.trim();
 }
 function newConversation(){
+  stopVraag();
   history=[];gesprekLoopt=false;
   // Ook het spraakvenster leeg: wat er tot nu toe gezegd is hoort bij het oude gesprek.
   if(typeof LISTEN!=="undefined"&&LISTEN&&LISTEN.nieuweContext)LISTEN.nieuweContext();
@@ -3514,16 +3555,32 @@ function landenViaLink(idx){
   const uit=best>=0?landenBij(best):null;
   _LANDENVIA.set(idx,uit);return uit;
 }
+// Welk land is er al genoemd? In de vraag, in de eerdere vragen van dit gesprek, of via het
+// zoekgebied. Precies één land telt; bij twee of meer weet de app niet welk er bedoeld is.
+function genoemdLand(r){
+  const tekst=[r&&r.restated_question,r&&r.__vraag&&r.__vraag.rawQ,...history.map(h=>h.q)].filter(Boolean).join(" \n ");
+  const landen=detectCountries(tekst);
+  if(FILTER.country)landen.add(FILTER.country);
+  return landen.size===1?[...landen][0]:null;
+}
 function uitvraagHTML(r,c,n){
   const id="uv-"+Math.random().toString(36).slice(2,8);
-  const landen=isLandVraag(c)?landenVoor(r):null;
-  const kop=`<label class="uv-vraag" for="${id}">${escapeHtml(c.question)}</label>`;
+  let landen=isLandVraag(c)?landenVoor(r):null;
+  // Het land is al genoemd: dan hoeft de burger het niet nog eens gezegd te hebben. Staat het in
+  // de landenkiezer, dan staat het daar al gekozen en is het één klik; staat het er niet in, dan
+  // is er niets meer uit te vragen en valt de vraag weg.
+  const bekend=isLandVraag(c)?genoemdLand(r):null;
+  const voorkeuze=bekend&&landen?landen.findIndex(l=>l.slug===bekend):-1;
+  if(bekend&&voorkeuze<0)return "";
+  const kop=voorkeuze>=0
+    ?`<label class="uv-vraag" for="${id}">Land al genoemd: ${escapeHtml(landen[voorkeuze].naam)}</label>`
+    :`<label class="uv-vraag" for="${id}">${escapeHtml(c.question)}</label>`;
   if(landen){
-    return `<form class="uitvraag" data-n="${n}" data-land="1" autocomplete="off">${kop}<div class="uv-regel">`
-      +`<div class="uv-combo"><input id="${id}" type="text" role="combobox" aria-expanded="false" aria-controls="${id}-l" aria-autocomplete="list" placeholder="Typ of kies een land…">`
+    return `<form class="uitvraag" data-n="${n}" data-land="1"${voorkeuze>=0?` data-voorkeuze="${voorkeuze}"`:""} autocomplete="off">${kop}<div class="uv-regel">`
+      +`<div class="uv-combo"><input id="${id}" type="text" role="combobox" aria-expanded="false" aria-controls="${id}-l" aria-autocomplete="list" placeholder="Typ of kies een land…"${voorkeuze>=0?` value="${escapeHtml(landen[voorkeuze].naam)}"`:""}>`
       +`<svg class="uv-pijl" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`
       +`<ul class="uv-lijst" id="${id}-l" role="listbox" hidden></ul></div>`
-      +`<button class="uv-knop" type="submit" disabled>Toon antwoord ${ICON_ARROW}</button></div></form>`;
+      +`<button class="uv-knop" type="submit"${voorkeuze>=0?"":" disabled"}>Toon antwoord ${ICON_ARROW}</button></div></form>`;
   }
   return `<form class="uitvraag" data-n="${n}" autocomplete="off">${kop}<div class="uv-regel">`
     +`<input class="uv-tekst" id="${id}" type="text" value="${escapeHtml(c.prefill||"")}">`
@@ -3549,7 +3606,7 @@ function koppelUitvraag(fm,bronTurn,r){
   }
   const landen=landenVoor(r)||[];
   const lijst=fm.querySelector(".uv-lijst");
-  let treffers=[],actief=-1,gekozen=null;
+  let treffers=[],actief=-1,gekozen=fm.dataset.voorkeuze!==undefined&&landen[+fm.dataset.voorkeuze]?+fm.dataset.voorkeuze:null;
   const zoek=q=>{
     const f=fold(q.trim());
     if(!f)return landen.map((l,i)=>i);
@@ -3648,6 +3705,28 @@ function eersteProza(idx){
 }
 // Stap 2 (AI-modus): laat het model uit de brede kandidatenlijst de best passende pagina's kiezen
 // (op titel + tekstfragment). Retour: array picks (kan [] zijn = niets past), of null bij fout.
+// ---- De keuzestap overslaan bij een duidelijke winnaar ---------------------------------------
+// Staat één pagina met ruime voorsprong bovenaan (duidelijkeWinnaar in search-core.js), dan gaat
+// die vooraan in de zes pagina's voor het antwoordmodel, zonder dat een aparte modelaanroep er
+// eerst uit ~25 kandidaten zes kiest. Dat scheelt een hele aanroep: tijd, en een kans minder om
+// op een limiet te stuiten.
+//
+// De drempel komt uit scripts/winnaar_eval.mjs (op de vraag zoals gesteld, met het
+// semantische model). Bij 0,35 valt 20% van de handgemaakte vragen, 32% van de standaardvragen en
+// 65% van de gegenereerde vragen in de winnaarsgroep, zonder verlies op de handgemaakte en de
+// standaardvragen. Op de vijandige vragen (in de woorden van de beller) valt 14-17% erin, en
+// daar stond bij 2 van de ~110 vragen de goede pagina op plek 7 t/m 25: die had alleen de
+// keuzestap nog kunnen kiezen. Wat de keuzestap verder doet (de volgorde van plek 2-6, de
+// "past er niets bij"-controle) is zonder sleutel niet te meten. Niet overslaan: zet de drempel
+// op Infinity.
+const STAP_OVERGESLAGEN="Beste pagina's kiezen — overgeslagen (duidelijke treffer)";
+async function winnaarVoorKeuze(q,rawQ,broad){
+  // Bij een eerste vraag is de vraag zoals gesteld precies wat gemeten is; bij een vervolgvraag
+  // is alleen de zelfstandig gemaakte vraag zinvol ("en voor mijn kind?" zegt op zich niets).
+  const w=await duidelijkeWinnaar(history.length?q:rawQ);
+  if(w.idx<0||!(w.marge>=WINNAAR_MARGE))return null;
+  return {idx:w.idx,cands:[w.idx,...broad.filter(i=>i!==w.idx)].slice(0,TOPK)};
+}
 async function rerankCandidates(q,cands){
   const key=keyInput.value.trim();
   if(!aiKlaar()||cands.length<=TOPK)return cands.slice(0,TOPK);
@@ -3669,10 +3748,14 @@ async function rerankCandidates(q,cands){
 async function runQuestion(rawQ,gesproken){
   if(!corpusKlaar||!rawQ)return;
   const turn=addTurn(rawQ,gesproken);     // toon de vraag zoals gesteld
+  // Eén vraag tegelijk: een nieuwe vraag stopt de vorige (zie nieuweVraag). Na elke wachtstap
+  // kijkt deze run of hij nog de huidige is; zo niet, dan stopt hij zonder iets te tonen.
+  const nr=nieuweVraag(turn),weg=()=>!isHuidig(nr);
   gesprekLoopt=true;refreshComposer();    // vanaf nu: vervolgvragen bouwen voort op dit gesprek
   // In turbomodus komt de paginatekst op de achtergrond binnen. Vanaf de herrangschikking is hij
   // nodig; meestal is hij er dan allang, want de voorlichter heeft eerst zitten typen.
   await tekstKlaar();
+  if(weg())return;
   const key=keyInput.value.trim();const ai=aiKlaar();
   const lokaal=geenSleutelNodig();
   if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
@@ -3698,6 +3781,7 @@ async function runQuestion(rawQ,gesproken){
     // Alleen bij een vervolgvraag nog een tweede aanroep: zonder de context is "en wat kost dat?"
     // niet te beantwoorden. Bij een eerste vraag blijft het dus echt bij één.
     q=history.length?await condenseQuestion(rawQ):rawQ;
+    if(weg())return;
     const broad=hubCandidates(await fuseRetrieval(uniek([q,rawQ]),[rawQ,q].join(" "),"",25),[rawQ,q].join(" "));
     cands=forceProduct(rawQ+" "+q,broad.slice(0,TOPK));
   }else if(lokaal){
@@ -3708,19 +3792,27 @@ async function runQuestion(rawQ,gesproken){
     // het model alleen doen wat het wél moet: kiezen en citeren.
     stap(turn,"Pagina's zoeken");stapModel(turn);
     q=await condenseQuestion(rawQ);
+    if(weg())return;
     const broad=hubCandidates(await fuseRetrieval(uniek([q,rawQ]),[rawQ,q].join(" "),"",lokLimiet().kandidaten),[rawQ,q].join(" "));
-    stap(turn,"Beste pagina's kiezen");
-    const picked=await rerankCandidates(q,broad);
-    cands=forceProduct(rawQ+" "+q,(picked&&picked.length?picked:broad.slice(0,TOPK)));
+    const winnaar=await winnaarVoorKeuze(q,rawQ,broad);
+    if(winnaar)cands=forceProduct(rawQ+" "+q,winnaar.cands);
+    else{
+      stap(turn,"Beste pagina's kiezen");
+      const picked=await rerankCandidates(q,broad);
+      if(weg())return;
+      cands=forceProduct(rawQ+" "+q,(picked&&picked.length?picked:broad.slice(0,TOPK)));
+    }
+    if(winnaar)stap(turn,STAP_OVERGESLAGEN);
   }else if(ai){
     // Expansie+HyDE+multi-query -> breed ophalen (+hubs) -> AI kiest op intentie -> confidence-check.
     stap(turn,"Vraag begrijpen");
     const pre=await prepareQuery(rawQ);q=pre.q;
+    if(weg())return;
     stap(turn,"Pagina's zoeken");stapModel(turn);
     if(!pre.inScope){                                           // buiten het domein -> niet zoeken
       logMiss(rawQ,"buiten-domein");
       const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[],clarifications:[]};
-      renderResult(turn,nores);recordTurn(rawQ,nores);return;
+      vraagKlaar(nr);renderResult(turn,nores);recordTurn(rawQ,nores);return;
     }
     let broad;
     deelvragen=pre.subs||[];
@@ -3741,40 +3833,90 @@ async function runQuestion(rawQ,gesproken){
       const semTexts=uniek([q,rawQ,...pre.queries,pre.hyde]);
       broad=hubCandidates(await fuseRetrieval(semTexts,[rawQ,q,...pre.terms].join(" "),pre.category,25),[rawQ,q].join(" "));
     }
-    stap(turn,"Beste pagina's kiezen");
-    const picked=await rerankCandidates(q,broad);
-    if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
-    else if(picked.length===0){                                 // niets past echt -> lage confidence
-      logMiss(rawQ,"geen-passende-pagina");
-      const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[]};
-      renderResult(turn,nores);recordTurn(rawQ,nores);return;
-    }else cands=picked;
+    // Duidelijke winnaar? Dan de keuzestap overslaan (zie winnaarVoorKeuze). Nooit bij een
+    // samengestelde vraag: daar moet de keuze juist over meerdere onderwerpen gespreid zijn.
+    const winnaar=pre.subs.length>=2?null:await winnaarVoorKeuze(q,rawQ,broad);
+    if(winnaar){stap(turn,STAP_OVERGESLAGEN);cands=winnaar.cands;}
+    else{
+      stap(turn,"Beste pagina's kiezen");
+      const picked=await rerankCandidates(q,broad);
+      if(weg())return;
+      if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
+      else if(picked.length===0){                                 // niets past echt -> lage confidence
+        logMiss(rawQ,"geen-passende-pagina");
+        const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[],
+                     __vraag:{rawQ,q},__cands:broad};
+        vraagKlaar(nr);renderResult(turn,nores);recordTurn(rawQ,nores);return;
+      }else cands=picked;
+    }
     cands=forceProduct(rawQ+" "+q,cands);   // genoemde vakterm hoort bovenaan
   }else{
     q=await condenseQuestion(rawQ);
     cands=await rankFor(q);
   }
-  if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
+  if(weg())return;
+  if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[]};vraagKlaar(nr);renderResult(turn,nores);recordTurn(rawQ,nores);return;}
+  await beantwoord(turn,{rawQ,q,cands,deelvragen,ai,lokaal,key,nr});
+}
+// De laatste stap van een vraag: het antwoord opstellen en tonen. Los van runQuestion, zodat
+// "Opnieuw proberen" na een fout precies deze stap kan herhalen met dezelfde vraag en dezelfde
+// gevonden pagina's, zonder opnieuw te zoeken.
+async function beantwoord(turn,v){
+  const {rawQ,q,cands,deelvragen,ai,lokaal,key}=v;
+  const nr=v.nr||nieuweVraag(turn),weg=()=>!isHuidig(nr);
+  let result;
   try{
     stap(turn,"Antwoord opstellen");
-    const result=ai
+    result=ai
       ?await askAI(q,cands,key,deelvragen,(uit,alineas)=>schrijfLive(turn,uit,alineas))
       :demoAnswer(q,cands);
-    const meting=stapKlaar(turn);
-    // Laat de typemachine eerst uitschrijven; anders overschrijft de eindrender de laatste zin
-    // terwijl die nog aan het verschijnen is, en dan springt het toch.
-    await typKlaar();stopTypen();
-    renderResult(turn,result);
-    if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
-    recordTurn(rawQ,result);
-    if(result.citations&&result.citations.length){
-      const summary=(result.citations[0].text||"").slice(0,220);
-      history.push({q:result.restated_question||q,summary});
-      if(history.length>12)history.shift();
-      refreshComposer();
-    }
+  }catch(err){
+    if(weg())return;     // gestopt of vervangen door een nieuwe vraag: geen terugval tonen
+    // De AI viel weg (netwerk, limiet van een gratis sleutel, time-out). De pagina's zijn dan
+    // al gevonden en gerangschikt; alleen een foutmelding tonen gooit dat weg, terwijl de
+    // voorlichter de burger aan de lijn heeft. Dus: de best gevonden passage, letterlijk, zoals
+    // zonder sleutel — met erboven dat de AI er niet aan te pas kwam en waarom.
+    console.warn("antwoordstap mislukt:",err);
+    stopTypen();
+    result=terugvalAntwoord(q,cands,err);
+    if(!result){vraagKlaar(nr);turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';return;}
   }
-  catch(err){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';}
+  // Voor "Bedoelde je misschien…": de vraag en de pagina's die er nog meer gevonden waren.
+  result.__vraag={rawQ,q};result.__cands=v.alt||cands;
+  if(weg())return;
+  const meting=stapKlaar(turn);
+  // Laat de typemachine eerst uitschrijven; anders overschrijft de eindrender de laatste zin
+  // terwijl die nog aan het verschijnen is, en dan springt het toch.
+  await typKlaar();
+  if(weg())return;
+  stopTypen();vraagKlaar(nr);
+  renderResult(turn,result);
+  if(result.terugval){
+    const knop=turn.querySelector(".terugval .opnieuw");
+    if(knop)knop.onclick=()=>{
+      turn.querySelector(".slot").innerHTML=`<div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Opnieuw proberen…</span>${STOPKNOP}</div></div>`;
+      koppelStop(turn);stapStart();beantwoord(turn,{...v,nr:nieuweVraag(turn)});
+    };
+    return;     // een terugval is geen antwoord van de AI: niet in de gesprekscontext
+  }
+  if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
+  recordTurn(rawQ,result);
+  if(result.citations&&result.citations.length){
+    const summary=(result.citations[0].text||"").slice(0,220);
+    history.push({q:result.restated_question||q,summary});
+    if(history.length>12)history.shift();
+    refreshComposer();
+  }
+}
+// Het antwoord als de AI-stap faalt: dezelfde passagekeuze als zonder sleutel (demoAnswer),
+// maar met een eigen melding — "vul een sleutel in" klopt hier niet, die is er juist.
+function terugvalAntwoord(q,cands,err){
+  if(!cands||!cands.length)return null;
+  let r;
+  try{r=demoAnswer(q,cands);}catch(e){return null;}
+  r.demo=false;r.terugval=true;r.note="";
+  r.fout=((err&&err.message)||String(err||"")).slice(0,300);
+  return r;
 }
 document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";runQuestion(q);refreshComposer();});
 
@@ -4520,6 +4662,7 @@ function inleidingAlsAlineas(citations){
   return uit.length?uit:null;
 }
 async function askAI(q,cands,key,subs,opGeneratief){
+  const sig=vraagSignaal();
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
   // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
@@ -4569,6 +4712,7 @@ async function askAI(q,cands,key,subs,opGeneratief){
         if(uit.keuze)alineas=(zonderKeuzeLijst(alineas.map(t=>({tekst:t,bronnen:[]})),uit.keuze)||[]).map(a=>a.tekst);
         if(alineas.length)opGeneratief(uit,alineas);
       }:null;
+    if(sig&&sig.aborted)throw new DOMException("gestopt","AbortError");
     uit.generatief=await schrijfAntwoord(q,uit.citations,key,live,uit.keuze);
     if(uit.generatief&&uit.keuze)uit.generatief=zonderKeuzeLijst(uit.generatief,uit.keuze);
     if(uit.generatief&&uit.generatief.length===1&&!uit.generatief[0].bronnen.length&&geenInfoBijKeuze(uit.generatief[0].tekst))
@@ -4835,7 +4979,46 @@ async function schrijfAntwoord(q,citations,key,onAlineas,keuze){
   return alineas;
 }
 
-function addTurn(q,gesproken){
+// ---- Eén vraag tegelijk: stoppen en aanpassen --------------------------------------------------
+// Een verzonden vraag kon niet gestopt worden. Een typefout of een verkeerd verstane gesproken
+// vraag betekende: wachten tot alle modelaanroepen klaar waren, en dan opnieuw typen. Stelde je
+// intussen een nieuwe vraag, dan liepen twee runs door elkaar: ze deelden de gespreksgeschiedenis,
+// de stappenmeting (STAPPEN) en de typemachine (TYPER), en een oud antwoord kon na het nieuwe in
+// de context belanden.
+// Nu heeft elke vraag een volgnummer en een eigen AbortController. Een nieuwe vraag, "Stop" en
+// "Nieuw gesprek" breken de lopende aanroepen af (fetch via het signaal, WebLLM via
+// interruptGenerate, wllama via abortSignal); een verouderde run toont niets meer en komt niet
+// in de geschiedenis.
+let VRAAG=null,VRAAGNR=0;
+const STOPKNOP=`<button type="button" class="stop-vraag" title="Stop deze vraag">■ Stop</button>`;
+const ICON_POTLOOD='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+function vraagSignaal(){return VRAAG?VRAAG.ctrl.signal:undefined;}
+function isHuidig(nr){return !!VRAAG&&VRAAG.nr===nr;}
+function nieuweVraag(turn){
+  stopVraag();
+  VRAAG={nr:++VRAAGNR,ctrl:new AbortController(),turn};
+  return VRAAG.nr;
+}
+function vraagKlaar(nr){if(isHuidig(nr))VRAAG=null;}
+function stopVraag(){
+  if(!VRAAG)return;
+  const v=VRAAG;VRAAG=null;
+  try{v.ctrl.abort();}catch(e){}
+  stopTypen();
+  const slot=v.turn&&v.turn.isConnected&&v.turn.querySelector(".slot");
+  if(slot)slot.innerHTML=`<div class="bubble antwoord gestopt"><span>Gestopt.</span>`
+    +`<button type="button" class="vraag-aanpassen-tekst">${ICON_POTLOOD}<span>Vraag aanpassen</span></button></div>`;
+  const k=slot&&slot.querySelector(".vraag-aanpassen-tekst");
+  if(k){const q=(v.turn.querySelector(".bubble.vraag")||{}).textContent||"";k.onclick=()=>vraagAanpassen(q,v.turn);}
+}
+function koppelStop(turn){const b=turn.querySelector(".stop-vraag");if(b)b.onclick=()=>{if(VRAAG&&VRAAG.turn===turn)stopVraag();};}
+// De vraag terug in het invoerveld. Loopt hij nog, dan eerst stoppen.
+function vraagAanpassen(q,turn){
+  if(VRAAG&&VRAAG.turn===turn)stopVraag();
+  inputEl.value=q;refreshComposer();inputEl.focus();
+  const n=inputEl.value.length;inputEl.setSelectionRange(n,n);
+}
+function addTurn(q,gesproken,via){
   document.body.classList.remove("is-welcome");
   document.querySelector(".empty")?.remove();document.getElementById("samples")?.remove();
   const art=document.createElement("article");art.className="turn";
@@ -4843,10 +5026,15 @@ function addTurn(q,gesproken){
   // als eerste kunnen zien wat de AI van je woorden heeft gemaakt.
   const vraagblok=gesproken
     ? `<div class="vraagblok"><div class="bubble vraag">${escapeHtml(q)}</div><span class="gesproken">🎙 gesproken: “${escapeHtml(gesproken)}”</span></div>`
+    : via
+    ? `<div class="vraagblok"><div class="bubble vraag">${escapeHtml(q)}</div><span class="via-pagina">alleen uit: ${escapeHtml(via)}</span></div>`
     : `<div class="bubble vraag">${escapeHtml(q)}</div>`;
-  art.innerHTML=`<div class="row user">${vraagblok}</div>`
-    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span></div></div></div></div>`;
-  conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});return art;
+  art.innerHTML=`<div class="row user"><button type="button" class="vraag-aanpassen" title="Vraag aanpassen: zet de tekst terug in het invoerveld" aria-label="Vraag aanpassen">${ICON_POTLOOD}</button>${vraagblok}</div>`
+    +`<div class="row bot"><div class="avatar"><img src="assets/avatar.png" alt="" onerror="this.parentNode.textContent='🐶'"></div><div class="slot"><div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Bezig met opzoeken…</span>${STOPKNOP}</div></div></div></div>`;
+  conv.appendChild(art);art.scrollIntoView({behavior:"smooth",block:"end"});
+  art.querySelector(".vraag-aanpassen").onclick=()=>vraagAanpassen(q,art);
+  koppelStop(art);
+  return art;
 }
 function sourceList(items){return `<ul>${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ul>`;}
 // De kaart tonen bij zweven en bij Tab. Klikken op de tegel opent de bronweergave (dat regelt de
@@ -4916,6 +5104,8 @@ function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
 // Pijl = de vraag wordt meteen gesteld.
+// Rondje = dezelfde vraag nog eens door de AI.
+const ICON_OPNIEUW='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8M21 3v5h-5"/></svg>';
 const ICON_ARROW='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 // Twee regels tekst, de onderste korter: "minder woorden".
 const ICON_SIMPEL='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h9"/></svg>';
@@ -4953,7 +5143,9 @@ function answerPlainText(r){
       // dan moet de voorwaarde waaronder het geldt er niet onderweg af vallen.
       const c=r.citations&&r.citations[b.ci];
       const pad=c&&c.sectie&&c.sectie.pad&&c.sectie.pad.length?"["+c.sectie.pad.join(" › ")+"] ":"";
-      parts.push(pad+"“"+(c?citaatAlsTekst(c):b.text)+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${b.sourceUrl})`:""));
+      // De bronlink springt naar de passage zelf (tekstfragment), niet naar de top van de pagina.
+      const url=c&&CORPUS[c.srcIdx]?textFragmentUrl(b.sourceUrl,c.text,CORPUS[c.srcIdx].headings):b.sourceUrl;
+      parts.push(pad+"“"+(c?citaatMetLinks(c):b.text)+"”"+(b.sourceTitle?` (${b.sourceTitle} — ${url})`:""));
       if(sp&&!b.alleenBron&&sp.ci===b.ci)parts.push(planTekst());
     }
   }
@@ -5014,14 +5206,12 @@ async function toonSimpel(r,btn){
     paneel.innerHTML=titel+'<p class="error">Herschrijven lukte niet: '+escapeHtml(((e&&e.message)||e).toString().slice(0,160))+'</p>';
   }finally{btn.disabled=false;}
 }
-// Kort, deelbaar bericht voor WhatsApp/e-mail: per citaat het antwoord + bron + DIRECTE
-// gemarkeerde link (springt op de bronpagina naar het citaat en arceert het geel).
 // Feedback lokaal opslaan, zodat we later kunnen zien waar de assistent fout zat.
 function bewaarFeedback(r,verdict,toelichting){
   try{
     const k="vk_feedback",arr=JSON.parse(localStorage.getItem(k)||"[]");
     const rec={q:r.restated_question||"",verdict,hadAnswer:!!(r.citations&&r.citations.length),
-               toelichting:(toelichting||"").slice(0,500),ts:Date.now()};
+               toelichting:(toelichting||"").slice(0,500),gekozen:r.__gekozen||"",ts:Date.now()};
     // Klikt iemand nogmaals of vult hij achteraf een toelichting in, dan werken we hetzelfde
     // record bij in plaats van er een tweede naast te zetten.
     if(r.__fbIdx!=null&&arr[r.__fbIdx])arr[r.__fbIdx]=rec;
@@ -5032,7 +5222,39 @@ function bewaarFeedback(r,verdict,toelichting){
     localStorage.setItem(k,JSON.stringify(kort));
   }catch(e){}
 }
+// ---- "Bedoelde je misschien…" -----------------------------------------------------------------
+// De andere pagina's die bij deze vraag gevonden waren (de kandidaten die naar het antwoordmodel
+// gingen), zonder de pagina's die al in het antwoord staan. Eén klik beantwoordt de vraag
+// opnieuw met ALLEEN die pagina als bron: met sleutel via het model, zonder sleutel via dezelfde
+// passagekeuze als de demo. Het blijven bestaande NWW-pagina's; er komt geen eigen tekst bij.
+// De gekozen pagina gaat mee in de feedback: een gelabeld paar vraag → juiste pagina.
+function alternatievenVan(r){
+  const gebruikt=new Set((r.citations||[]).map(c=>c.srcIdx));
+  return (r.__cands||[]).filter(i=>Number.isInteger(i)&&CORPUS[i]&&!gebruikt.has(i)).slice(0,3);
+}
+function alternatievenHTML(r,titel){
+  const alt=alternatievenVan(r);
+  if(!alt.length)return "";
+  return `<div class="alternatieven"><p class="alt-titel">${titel}</p>`
+    +alt.map(i=>`<button type="button" class="alt-knop" data-idx="${i}" title="Beantwoord de vraag opnieuw met alleen deze pagina"><span>${escapeHtml(cleanTitle(CORPUS[i].title))}</span>${ICON_ARROW}</button>`).join("")
+    +`</div>`;
+}
+function koppelAlternatieven(root,r){
+  root.querySelectorAll(".alt-knop").forEach(b=>{b.onclick=()=>antwoordUitPagina(r,+b.dataset.idx);});
+}
+async function antwoordUitPagina(r,idx){
+  const v=r.__vraag||{},q=v.q||r.restated_question||"",rawQ=v.rawQ||q;
+  if(!q||!CORPUS[idx])return;
+  r.__gekozen=CORPUS[idx].url;
+  bewaarFeedback(r,r.__fbVerdict||0,r.__fbTekst||"");
+  const turn=addTurn(rawQ,null,cleanTitle(CORPUS[idx].title));
+  gesprekLoopt=true;refreshComposer();
+  stapStart();
+  await beantwoord(turn,{rawQ,q,cands:[idx],deelvragen:[],ai:aiKlaar(),lokaal:geenSleutelNodig(),key:keyInput.value.trim(),
+                         alt:(r.__cands||[]).filter(i=>i!==idx)});
+}
 function logFeedback(r,verdict,btn){
+  r.__fbVerdict=verdict;
   const wrap=btn.parentNode;wrap.querySelectorAll(".fb-btn").forEach(b=>b.classList.remove("sel-up","sel-down"));
   btn.classList.add(verdict>0?"sel-up":"sel-down");
   bewaarFeedback(r,verdict,verdict>0?"":(r.__fbTekst||""));
@@ -5046,6 +5268,10 @@ function logFeedback(r,verdict,btn){
     +'<textarea class="fbp-tekst" placeholder="Bijvoorbeeld: dit geldt alleen voor een eerste aanvraag, niet voor een verlenging."></textarea>'
     +'<div class="fbp-knoppen"><button type="button" class="fbp-ok">Versturen</button>'
     +'<button type="button" class="fbp-annuleer">Annuleren</button></div>';
+  // Klopt het antwoord niet, dan heeft de voorlichter nog steeds de burger aan de lijn: de
+  // andere gevonden pagina's staan er meteen bij, en één klik beantwoordt de vraag daaruit.
+  if(r.citations&&r.citations.length)paneel.insertAdjacentHTML("beforeend",alternatievenHTML(r,"Bedoelde je misschien…"));
+  koppelAlternatieven(paneel,r);
   acties.parentNode.insertBefore(paneel,acties.nextSibling);
   const veld=paneel.querySelector(".fbp-tekst");
   veld.value=r.__fbTekst||"";                         // eerder ingevuld? laat het staan
@@ -5065,9 +5291,10 @@ function logMiss(q,reason){
 // Exporteer feedback + gemiste vragen als CSV (voor analyse en het verbeteren van de eval-set).
 function exportFeedback(){
   const esc=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
-  let rows=[["type","vraag","oordeel","reden","toelichting","tijd"].join(";")];
-  try{for(const f of JSON.parse(localStorage.getItem("vk_feedback")||"[]"))rows.push(["feedback",esc(f.q),f.verdict>0?"goed":"niet goed",f.hadAnswer?"antwoord getoond":"geen antwoord",esc(f.toelichting||""),new Date(f.ts).toISOString()].join(";"));}catch(e){}
-  try{for(const m of JSON.parse(localStorage.getItem("vk_misses")||"[]"))rows.push(["gemist",esc(m.q),"",esc(m.reason),"",new Date(m.ts).toISOString()].join(";"));}catch(e){}
+  let rows=[["type","vraag","oordeel","reden","toelichting","gekozen pagina","tijd"].join(";")];
+  const oordeel=v=>v>0?"goed":v<0?"niet goed":"andere pagina gekozen";
+  try{for(const f of JSON.parse(localStorage.getItem("vk_feedback")||"[]"))rows.push(["feedback",esc(f.q),oordeel(f.verdict),f.hadAnswer?"antwoord getoond":"geen antwoord",esc(f.toelichting||""),esc(f.gekozen||""),new Date(f.ts).toISOString()].join(";"));}catch(e){}
+  try{for(const m of JSON.parse(localStorage.getItem("vk_misses")||"[]"))rows.push(["gemist",esc(m.q),"",esc(m.reason),"","",new Date(m.ts).toISOString()].join(";"));}catch(e){}
   const blob=new Blob(["﻿"+rows.join("\n")],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="leo-feedback.csv";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 }
@@ -5077,12 +5304,49 @@ function exportFeedback(){
 // Waarom dat uitmaakt: een tarieftabel kwam hiervoor op het scherm als twaalf losse regels
 // ("Document", "Kosten", "Paspoort 18 jaar en ouder", "€ 169,15", …) en dan moet de voorlichter
 // aan de telefoon zelf uitzoeken welk bedrag bij welk document hoort.
-function blokkenHTML(blokken,klasse){
+// ---- Links van de pagina in een stuk tekst -----------------------------------------------------
+// De crawler bewaart per pagina de links uit de hoofdinhoud als [linktekst, href]. In de
+// bronviewer werden die al klikbaar; in het citaat en op het klembord niet, terwijl juist daar
+// "Ga naar DigiD Activeren" of "Maak een afspraak" staat. De tekst blijft letterlijk: er komt
+// alleen een <a> omheen (of op het klembord de URL erachter), er wordt niets toegevoegd dat niet
+// in het citaat staat. Langste linktekst eerst, en nooit twee links over elkaar heen.
+const linkHref=h=>/^https?:|^mailto:|^tel:/i.test(h)?h:(h&&h[0]==="/"?"https://www.nederlandwereldwijd.nl"+h:h);
+function linkLijst(links,vorm){
+  return (links||[]).filter(l=>Array.isArray(l)&&l[0]&&l[0].length>=5)
+    .map(l=>[vorm?vorm(l[0]):l[0],linkHref(l[1])]).sort((a,b)=>b[0].length-a[0].length);
+}
+function linkTreffers(tekst,lijst){
+  const ms=[];
+  for(const [t,href] of lijst){const i=tekst.indexOf(t);if(i>=0)ms.push([i,t.length,href]);}
+  ms.sort((a,b)=>a[0]-b[0]);
+  const uit=[];let eind=-1;
+  for(const m of ms){if(m[0]<eind)continue;uit.push(m);eind=m[0]+m[1];}
+  return uit;
+}
+function linkifyHTML(tekst,lijst,klasse){
+  let r="",pos=0;
+  for(const [i,len,href] of linkTreffers(tekst,lijst))
+    {r+=escapeHtml(tekst.slice(pos,i))+`<a class="${klasse}" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">${escapeHtml(tekst.slice(i,i+len))}</a>`;pos=i+len;}
+  return r+escapeHtml(tekst.slice(pos));
+}
+function linkifyTekst(tekst,lijst){
+  let r="",pos=0;
+  for(const [i,len,href] of linkTreffers(tekst,lijst)){r+=tekst.slice(pos,i+len)+` (${href})`;pos=i+len;}
+  return r+tekst.slice(pos);
+}
+// Het citaat voor op het klembord, met de links erbij als "tekst (url)".
+function citaatMetLinks(c){
+  const t=citaatAlsTekst(c);
+  return c&&CORPUS[c.srcIdx]?linkifyTekst(t,linkLijst(CORPUS[c.srcIdx].links)):t;
+}
+function blokkenHTML(blokken,klasse,links){
   const k=klasse||"cite";
+  const lijst=links?linkLijst(links):null;
+  const tx=t=>lijst&&lijst.length?linkifyHTML(t,lijst,k+"-link"):escapeHtml(t);
   return blokken.map(b=>{
     if(b.soort==="lijst"){
       const tag=b.genummerd?"ol":"ul",start=b.genummerd&&b.start>1?` start="${b.start}"`:"";
-      return `<${tag} class="${k}-lijst"${start}>`+b.items.map(t=>`<li>${escapeHtml(t)}</li>`).join("")+`</${tag}>`;
+      return `<${tag} class="${k}-lijst"${start}>`+b.items.map(t=>`<li>${tx(t)}</li>`).join("")+`</${tag}>`;
     }
     if(b.soort==="tabel"){
       const kop=b.kop?`<thead><tr><th>${escapeHtml(b.kop[0])}</th><th>${escapeHtml(b.kop[1])}</th></tr></thead>`:"";
@@ -5091,13 +5355,65 @@ function blokkenHTML(blokken,klasse){
         +`<table class="${k}-tabel">${kop}<tbody>${rijen}</tbody></table>`;
     }
     if(b.soort==="kop")return `<p class="${k}-kop">${escapeHtml(b.tekst)}</p>`;
-    return `<p class="${k}-p">${escapeHtml(b.tekst)}</p>`;
+    return `<p class="${k}-p">${tx(b.tekst)}</p>`;
   }).join("");
 }
+// ---- "Let op" uit dezelfde sectie ---------------------------------------------------------------
+// De prompt laat losse "Let op:"-blokken bewust buiten het citaat (kort houden), maar juist daar
+// staan de uitzonderingen: "Let op: wilt u een paspoort voor uw adoptiekind…". Staat zo'n blok in
+// DEZELFDE sectie als het citaat — onder hetzelfde diepste kopje, tot het volgende kopje — dan
+// komt het ingeklapt onder het citaat, letterlijk. Een blok is de regel "Let op:" plus de alinea
+// erna (met regels die er als voortzetting bij horen, zoals een link midden in een zin). Staat de
+// tekst al in het citaat, dan niet nog eens. Geen modelaanroep, geen eigen tekst.
+const LETOP=/^let op\b[:!]?\s*/i;
+function letOpBlokken(c){
+  const p=c&&CORPUS[c.srcIdx];
+  if(!p||!p.text||c.heleSectie)return [];
+  const T=p.text;
+  const start=Number.isInteger(c.start)?c.start:T.indexOf(((c.text||"").split("\n")[0]||"").trim());
+  if(start<0)return [];
+  const knopen=kopjesBoom(p);
+  let van=0,tot=knopen.length?knopen[0].pos:T.length;
+  for(let k=0;k<knopen.length&&knopen[k].pos<=start;k++){van=knopen[k].kopEind;tot=k+1<knopen.length?knopen[k+1].pos:T.length;}
+  if(tot<=van)return [];
+  const regels=[];let pos=van;
+  for(const raw of T.slice(van,tot).split("\n")){regels.push({t:raw,pos});pos+=raw.length+1;}
+  const heads=headingSet(c.srcIdx),plat=x=>(x||"").replace(/\s+/g," ").trim().toLowerCase();
+  const links=new Set((p.links||[]).map(l=>Array.isArray(l)?(l[0]||"").trim():""));
+  const citaat=plat(c.text),uit=[];
+  for(let i=0;i<regels.length;i++){
+    const t=regels[i].t.trim();
+    if(!LETOP.test(t))continue;
+    let tekst=regels[i].t,j=i+1;const begin=regels[i].pos;
+    if(!t.replace(LETOP,"")){if(j>=regels.length)continue;tekst+="\n"+regels[j].t;j++;}
+    while(j<regels.length&&tekst.length<700){
+      const v=regels[j].t.trim();
+      if(!v||heads.has(v)||LETOP.test(v))break;
+      // Voortzetting: een regel die met een kleine letter of leesteken begint, een zin die nog niet
+      // af is, of een link van de pagina ("Staan uw kinderen nog niet ingeschreven? / Lees hoe u
+      // uw kinderen inschrijft in de RNI / .") — die staat op de site in hetzelfde blok.
+      if(/^[a-zà-ÿ.,;:)]/.test(v)||!/[.!?:]$/.test(tekst.trim())||links.has(v)){tekst+="\n"+regels[j].t;j++;}else break;
+    }
+    const kern=plat(tekst.replace(LETOP,""));
+    i=j-1;
+    if(!kern||citaat.includes(kern.slice(0,80)))continue;
+    uit.push({text:tekst.replace(LETOP,""),srcIdx:c.srcIdx,start:begin});
+  }
+  return uit;
+}
+function letOpHTML(c){
+  const blokken=letOpBlokken(c);
+  if(!blokken.length)return "";
+  const links=CORPUS[c.srcIdx].links;
+  return `<details class="letop"><summary>Let op op deze pagina${blokken.length>1?" ("+blokken.length+")":""}</summary>`
+    +blokken.map(b=>`<div class="letop-blok">${blokkenHTML(blokkenVan({text:b.text,srcIdx:b.srcIdx}),"cite",links)}</div>`).join("")
+    +`</details>`;
+}
 function citeBodyHTML(c){
-  if(c&&c.heleSectie)return blokkenHTML(sectieBlokken(c),"cite");
+  const links=c&&CORPUS[c.srcIdx]?CORPUS[c.srcIdx].links:null;
+  if(c&&c.heleSectie)return blokkenHTML(sectieBlokken(c),"cite",links);
   const blokken=blokkenVan(c);
-  return blokkenHTML(blokken,"cite")||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
+  return blokkenHTML(blokken,"cite",links)||`<p class="cite-p">${escapeHtml(c.text||"")}</p>`;
 }
 const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
 // Laat na een lokaal antwoord zien waar de tijd heen ging. Niet als opsmuk: zonder deze regel is
@@ -5123,7 +5439,7 @@ function toonMeting(turn){
 let STAPPEN=null;
 function stapStart(){STAPPEN={t0:performance.now(),vorig:performance.now(),lijst:[]};}
 function stap(turn,tekst){
-  if(STAPPEN){
+  if(STAPPEN&&(!VRAAG||VRAAG.turn===turn)){
     const nu=performance.now();
     if(STAPPEN.lijst.length)STAPPEN.lijst[STAPPEN.lijst.length-1].ms=Math.round(nu-STAPPEN.vorig);
     STAPPEN.vorig=nu;STAPPEN.lijst.push({naam:tekst,ms:0});
@@ -5142,7 +5458,7 @@ function stapKlaar(turn){
   if(!STAPPEN)return null;
   const nu=performance.now();
   if(STAPPEN.lijst.length)STAPPEN.lijst[STAPPEN.lijst.length-1].ms=Math.round(nu-STAPPEN.vorig);
-  const uit={totaal:Math.round(nu-STAPPEN.t0),lijst:STAPPEN.lijst.filter(x=>x.ms>=50)};
+  const uit={totaal:Math.round(nu-STAPPEN.t0),lijst:STAPPEN.lijst.filter(x=>x.ms>=50||x.naam===STAP_OVERGESLAGEN)};
   STAPPEN=null;return uit;
 }
 // Onder het antwoord: waar ging de tijd heen? Voor lokale modellen stond dit er al; nu ook voor
@@ -5152,7 +5468,7 @@ function toonStappen(turn,m){
   const bubble=turn.querySelector(".bubble.antwoord");if(!bubble)return;
   const el=document.createElement("div");el.className="meting";
   const sec=x=>(x/1000).toFixed(1)+"s";
-  el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ");
+  el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam===STAP_OVERGESLAGEN?x.naam.toLowerCase():x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ");
   bubble.appendChild(el);
 }
 // ---- Het generatieve antwoord zien ontstaan --------------------------------------------------
@@ -5226,7 +5542,7 @@ function schrijfLive(turn,uit,alineas){
   if(!TYPER.raf)TYPER.raf=requestAnimationFrame(typRonde);
 }
 function renderResult(turn,r,voorlopig){
-  const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
+  const badge=r.demo?'<span class="badge demo">DEMO</span>':r.terugval?'<span class="badge demo">ZONDER AI</span>':'<span class="badge ai">AI</span>';
   const hasCites=r.citations&&r.citations.length;
   let h=`<div class="bubble antwoord">`;
   // De intro herformuleert de vraag al; toon dan GEEN losse 'Je vraag:'-regel meer.
@@ -5235,6 +5551,9 @@ function renderResult(turn,r,voorlopig){
   const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   const sp=hasCites&&!voorlopig?stappenplanVan(r):null;
   if(r.stap)h+=stapkopHTML(r.stap.sp,r.stap.nr);
+  if(r.terugval)h+=`<div class="terugval" role="status"><p><b>AI niet bereikbaar.</b> Hieronder staat de best gevonden passage, letterlijk van de pagina maar niet door AI gekozen.</p>`
+    +(r.fout?`<p class="terugval-fout">${escapeHtml(r.fout)}</p>`:"")
+    +`<button type="button" class="opnieuw">${ICON_OPNIEUW}<span>Opnieuw proberen</span></button></div>`;
   if(hasCites){
     // Eén doorlopend stuk: AI-tekst en citaat wisselen elkaar af, elk met een streepje en
     // alleen de eerste keer een label (AI / NWW). Zo lees je van boven naar beneden af wie
@@ -5280,6 +5599,7 @@ function renderResult(turn,r,voorlopig){
         +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
         +sectieKruimel(r.citations[i])
         +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(r.citations[i])}</div>`
+        +(voorlopig?"":letOpHTML(r.citations[i]||{}))
         +(sp&&sp.ci===i?stappenplanHTML(sp):"")
         +brontegel(r.citations[i]||{},n,i)+`</div></div>`;
     }
@@ -5319,7 +5639,11 @@ function renderResult(turn,r,voorlopig){
         +r.open.map(q=>`<button type="button" class="open-rij" data-q="${escapeHtml(q)}" title="Stel dit deel van de vraag"><span>${escapeHtml(q)}</span>${ICON_ARROW}</button>`).join("")+`</div>`;
     }
   }
-  if(!hasCites&&r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
+  // Geen antwoord: de andere gevonden pagina's als knop die de vraag daaruit beantwoordt. Zijn die
+  // er niet (bv. buiten het domein), dan zoals voorheen de losse links.
+  const altGeen=!hasCites&&!voorlopig?alternatievenHTML(r,"Bedoelde je misschien…"):"";
+  if(altGeen)f+=altGeen;
+  else if(!hasCites&&r.related&&r.related.length)f+=`<details class="section"><summary><span class="label">Misschien ook relevant</span></summary>${sourceList(r.related)}</details>`;
   // Bij een tussenstand nog geen kopieerknop en geen duimpjes: het antwoord is niet af, dus
   // kopiëren levert een half citaat op en een oordeel slaat nergens op. In plaats daarvan een
   // regel die zegt dat er nog iets komt.
@@ -5340,7 +5664,8 @@ function renderResult(turn,r,voorlopig){
   if(spBij)slot.querySelectorAll(".sp-knop[data-sp]").forEach(b=>{b.onclick=()=>kiesStap(b,spBij,b.dataset.sp,+b.dataset.nr);});
   slot.querySelectorAll(".uitvraag").forEach(fm=>koppelUitvraag(fm,turn,r));
   slot.querySelectorAll(".open-rij").forEach(b=>{b.onclick=()=>askText(b.getAttribute("data-q"));});
-  slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(citaatAlsTekst(r.citations[+b.getAttribute("data-ci")]),b);});
+  koppelAlternatieven(slot,r);
+  slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(citaatMetLinks(r.citations[+b.getAttribute("data-ci")]),b);});
   const openCite=el=>{const c=r.citations[+el.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);};
   slot.querySelectorAll(".cite-chip").forEach(el=>el.onclick=e=>{e.stopPropagation();openCite(el);});
   slot.querySelectorAll(".cite-body.clickable-cite, .src-card").forEach(el=>{
@@ -5392,15 +5717,11 @@ function isContinuation(prev,cur){
 // Render de paginatekst als een echte pagina: losse regels worden samengevoegd tot alinea's,
 // H2-koppen worden uitklapbare secties (de sectie met het citaat staat open) en het citaat blijft geel.
 function buildSourceHTML(fullText,quote,headings,links,lists){
-  // Maak hrefs absoluut en linkify de (geëscapete) tekst met de echte pagina-links.
-  const linkHref=h=>/^https?:|^mailto:|^tel:/i.test(h)?h:(h&&h[0]==="/"?"https://www.nederlandwereldwijd.nl"+h:h);
-  const linkList=(links||[]).filter(l=>l&&l[0]&&l[0].length>=5).map(l=>[escapeHtml(l[0]),linkHref(l[1])]).sort((a,b)=>b[0].length-a[0].length);
+  // Linkify de (geëscapete) tekst met de echte pagina-links: zie linkTreffers.
+  const linkList=linkLijst(links,escapeHtml);
   function linkify(escd){
-    if(!linkList.length)return escd;
-    const ms=[];for(const [et,href] of linkList){const i=escd.indexOf(et);if(i>=0)ms.push([i,et.length,href]);}
-    ms.sort((a,b)=>a[0]-b[0]);
-    let r="",pos=0,end=-1;
-    for(const [i,len,href] of ms){if(i<end)continue;r+=escd.slice(pos,i)+`<a class="vlink" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">`+escd.slice(i,i+len)+`</a>`;pos=i+len;end=pos;}
+    let r="",pos=0;
+    for(const [i,len,href] of linkTreffers(escd,linkList)){r+=escd.slice(pos,i)+`<a class="vlink" href="${escapeHtml(href)}" target="_blank" rel="noreferrer">`+escd.slice(i,i+len)+`</a>`;pos=i+len;}
     return r+escd.slice(pos);
   }
   const [ms,me]=matchRange(fullText,quote);
@@ -5498,8 +5819,13 @@ function textFragmentUrl(url,quote,headings){
   const hset=new Set((headings||[]).map(h=>h[1]));
   const lines=q.split(/\n+/).map(s=>s.trim()).filter(s=>s&&!hset.has(s));
   q=(lines.join(" ").replace(/\s+/g," ")||q.replace(/\s+/g," ")).trim();
+  // De crawler zet een link op een eigen regel, ook als er een punt achter staat ("Activeren\n.");
+  // op de pagina staat er geen spatie voor die punt, en dan vindt de browser het fragment niet.
+  q=q.replace(/\s+([.,;:!?)])/g,"$1");
   const w=q.split(" ");
-  const frag=w.length<=10?encodeURIComponent(q):encodeURIComponent(w.slice(0,6).join(" "))+","+encodeURIComponent(w.slice(-6).join(" "));
+  // Een streepje heeft in een tekstfragment een eigen betekenis (prefix-/-suffix): coderen.
+  const enc=t=>encodeURIComponent(t).replace(/-/g,"%2D");
+  const frag=w.length<=10?enc(q):enc(w.slice(0,6).join(" "))+","+enc(w.slice(-6).join(" "));
   return url+"#:~:text="+frag;
 }
 async function openViewer(srcIdx,quote,url,title){

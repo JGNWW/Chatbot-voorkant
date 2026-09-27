@@ -307,6 +307,18 @@ const SEM_WACHT_MS=1500;
 
 async function semanticRank(q,limit){return (await semanticScored(q,limit)).map(x=>x[0]);}
 // Zelfde ranglijst, maar mét de cosinusafstand erbij — die heeft de fusie nodig.
+// De vraagvector van de laatste paar vragen onthouden: dezelfde tekst wordt binnen één vraag
+// soms twee keer ingebed (de fusie en duidelijkeWinnaar), en elke keer kost een modelbeurt.
+const VRAAGVEC=new Map();
+async function vraagVector(q){
+  let v=VRAAGVEC.get(q);
+  if(!v){
+    const out=await SEM.extractor([SEM.meta.query_prefix+q],{pooling:"mean",normalize:true});
+    v=out.data;VRAAGVEC.set(q,v);
+    if(VRAAGVEC.size>16)VRAAGVEC.delete(VRAAGVEC.keys().next().value);
+  }
+  return v;
+}
 async function semanticScored(q,limit){
   if(!SEM.ready){
     // Wacht kort — is het model bijna binnen, dan is het die anderhalve seconde waard.
@@ -314,8 +326,7 @@ async function semanticScored(q,limit){
     await Promise.race([SEM.modelPromise,new Promise(r=>setTimeout(r,SEM_WACHT_MS))]);
     if(!SEM.ready)return rankScored(q,limit);
   }
-  const out=await SEM.extractor([SEM.meta.query_prefix+q],{pooling:"mean",normalize:true});
-  const qv=out.data,dim=SEM.meta.dim,v=SEM.vecs,owner=SEM.owner;
+  const qv=await vraagVector(q),dim=SEM.meta.dim,v=SEM.vecs,owner=SEM.owner;
   let scored;
   if(owner){
     // Meerdere chunks per pagina: bewaar de hoogste chunk-score per pagina.
@@ -488,6 +499,31 @@ function hubCandidates(cands,text){
 // te veranderen, en het taalmodel kiest daarna zelf.
 async function rankFor(q,limit){return forceProduct(q,await hybrid(q,[],limit||TOPK));}
 
+// ---- Een duidelijke winnaar? -----------------------------------------------------------------
+// In de AI-weg kiest een aparte modelaanroep (rerankCandidates) uit ~25 kandidaten de zes die
+// naar het antwoordmodel gaan — dat daarna zelf nog de bron kiest. Staat er één pagina met
+// ruime voorsprong bovenaan, dan voegt die keuzestap weinig toe en kost hij wel een aanroep.
+//
+// De marge is het verschil tussen de eerste en de tweede fusiescore, als deel van het haalbare
+// maximum. Alleen met BEIDE lijsten (semantisch én trefwoord): op trefwoorden alleen is een
+// voorsprong vaak één toevallig zeldzaam woord. En de winnaar moet ook na zoekgebied, spreiding
+// en de vakterm-regel vooraan staan — anders is hij niet de pagina die de app zelf zou kiezen.
+// Gemeten met scripts/winnaar_eval.mjs op de vraag zoals de burger hem stelt; de drempel
+// WINNAAR_MARGE staat daar met onderbouwing.
+const WINNAAR_MARGE=0.35;
+async function duidelijkeWinnaar(q){
+  if(!SEM.meta||!SEM.ready)return {idx:-1,marge:0};    // anders is de "semantische" lijst een trefwoordlijst
+  let sem=[];
+  try{sem=await semanticScored(q,FUSE_DEPTH);}catch(e){}
+  const kw=rankScored([q,...scopeTerms()].join(" "),FUSE_DEPTH);
+  if(!sem.length||!kw.length)return {idx:-1,marge:0};
+  const {volgorde,score,max}=fuseScored([sem,kw],[W_SEM,W_KW]);
+  const top=volgorde[0],tweede=volgorde[1];
+  const marge=max>0?(score.get(top)-(tweede===undefined?0:score.get(tweede)))/max:0;
+  const lijst=forceProduct(q,spread(withAlgemeneVariant(q,applyScope(q,volgorde)),TOPK));
+  return {idx:lijst[0]===top?top:-1,marge};
+}
+
 // ---- Corpus en semantiek van buitenaf vullen (browser doet dit via de globals) ----
 function setCorpus(c){
   CORPUS=c;TIDX=null;TITLETOK=null;
@@ -503,7 +539,7 @@ if(typeof module!=="undefined"&&module.exports){
     stem,tokenize,tokensOf,rank,fuzzyFix,normalize,
     fold,detectCountries,applyScope,scopeTerms,
     urlIndex,ancestorsOf,productMatch,forceProduct,
-    semanticRank,semanticScored,rankScored,fuseScored,hybrid,withHub,hubCandidates,rankFor,spread,
+    semanticRank,semanticScored,rankScored,fuseScored,hybrid,withHub,hubCandidates,rankFor,spread,duidelijkeWinnaar,WINNAAR_MARGE,
     algemeneVariant,withAlgemeneVariant,metKostenpagina,
     bm25idf,PRIJSVRAAG,
     get CORPUS(){return CORPUS;},
