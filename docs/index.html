@@ -596,7 +596,7 @@ Stel een antwoord samen dat bestaat uit:
    - VOORWAARDE ERBIJ: op deze site staan vaak meerdere situaties op EEN pagina, elk onder een eigen tussenkopje (bijvoorbeeld "Nederlandse ambassade of consulaat-generaal", "VFS Global", "Nederlandse grensgemeente of Schiphol"). Een passage uit zo'n sectie geldt ALLEEN voor die situatie. Citeer je zo'n passage, noem de voorwaarde dan met zoveel woorden in de "bridge" of in "intro" — bijvoorbeeld "Vraagt u aan bij een tijdelijke aanvraaglocatie (pop-up ambassade)? Dan geldt:". Doe je dat niet, dan leest de voorlichter een uitzondering voor als algemene regel. Weet je niet welke situatie de burger bedoelt, zet die keuze dan in "clarifications" in plaats van er een te kiezen.
    - VOLGORDE: zet de citaten in de volgorde waarin je ze zou uitleggen — eerst het kernantwoord, dan waar of hoe aanvragen, daarna voorwaarden, kosten en termijnen, en uitzonderingen als laatste. De samenhang breng je aan met de "bridge"-zin vóór elk citaat, niet met tussenkopjes.
 2. "clarifications": hangt het juiste antwoord af van de situatie van de burger, neem dan geen aanname maar zet hier wat de voorlichter moet uitvragen. Geef per verduidelijking een "question" en een "prefill".
-   - ONDERSCHEIDEND: stel alleen vragen waarvan het antwoord het antwoord ECHT verandert. Vraag NOOIT iets dat voor vrijwel elke beller geldt: NederlandWereldwijd gaat over Nederlanders in of naar het buitenland, dus "Woont u in het buitenland?" is geen zinnige vraag. Vraag in plaats daarvan naar WELK land, WELKE situatie of VOOR WIE.
+   - ONDERSCHEIDEND: stel alleen vragen waarvan het antwoord het antwoord ECHT verandert. Vraag NOOIT iets dat voor vrijwel elke beller geldt: NederlandWereldwijd gaat over Nederlanders in of naar het buitenland, dus "Woont u in het buitenland?" is geen zinnige vraag. Vraag ook niet naar een voorwaarde waarmee de pagina opent om te zeggen voor wie hij is: begint de pagina met "Heeft u de Nederlandse nationaliteit? … Dan kunt u …", dan gaat het hele antwoord daarvan uit en is "Heeft u de Nederlandse nationaliteit?" geen zinnige vraag. Vraag in plaats daarvan naar WELK land, WELKE situatie of VOOR WIE.
    - UIT DE BRON: vraag alleen naar een onderscheid dat op de gegeven pagina's zelf gemaakt wordt. De voorbeeldvragen hieronder zijn alleen voorbeelden van de VORM; neem ze niet over. Een vraag waarvan de woorden niet op de pagina's staan, gooit de app weg.
    - OPEN, NIET JA/NEE: schrijf "In welk land woont u?" in plaats van "Woont u in het buitenland?". Gaat het echt om twee mogelijkheden, formuleer het dan als keuze: "Is dit een eerste aanvraag of een verlenging?".
    - "prefill" is het begin van het ANTWOORD, in de ik-vorm, zodat de voorlichter het ter plekke aanvult. Het is dus NIET de vraag zelf. Eindig met een spatie. Voorbeelden: vraag "In welk land woont u?" -> prefill "Ik woon in "; vraag "Is dit een eerste aanvraag of een verlenging?" -> prefill "Het is een "; vraag "Voor wie is de aanvraag: voor uzelf of voor een kind?" -> prefill "De aanvraag is voor ". Een prefill die de vraag herhaalt is fout en wordt weggegooid.
@@ -2127,6 +2127,40 @@ function uitvraagPastBijBron(vraag,teksten){
     return !kern.length||zinnen.some(z=>kern.every(s=>z.includes(s)));
   });
 }
+// Een pagina opent vaak met voor wie hij is: "Woont u buiten Nederland? Heeft u of uw kind de
+// Nederlandse nationaliteit? En nog geen Nederlands paspoort of ID-kaart? Dan kunt u …". Dat is
+// de doelgroep, geen splitsing: de hele pagina gaat ervan uit dat het antwoord ja is. Een uitvraag
+// die zo'n openingsvoorwaarde herhaalt ("Heeft u de Nederlandse nationaliteit?") verandert het
+// antwoord dus niet, ook al staan zijn woorden keurig op de pagina. Hier: de vraagzinnen
+// waarmee de pagina opent, als er een "Dan …" op volgt. Zet de opening twee situaties naast
+// elkaar ("Wilt u trouwen buiten Nederland? Of woont u in het buitenland en wilt u in Nederland
+// trouwen?"), dan is dat juist wél een keuze, en geldt dit niet.
+const _DOELGROEP=[];
+function openingsVoorwaarden(idx){
+  if(_DOELGROEP[idx])return _DOELGROEP[idx];
+  const p=CORPUS[idx]||{},T=p.text||"",eerste=kopjesBoom(p)[0];
+  const zinnen=T.slice(0,eerste?eerste.pos:T.length).split(/\n|(?<=[.!?])\s+/).map(z=>z.trim()).filter(Boolean);
+  const vragen=[];
+  for(const z of zinnen){if(!/\?$/.test(z))break;vragen.push(z.toLowerCase());}
+  const volgt=zinnen[vragen.length];
+  const doelgroep=vragen.length&&volgt&&/^dan\b/i.test(volgt)&&!vragen.some(z=>/^of\b/.test(z));
+  return _DOELGROEP[idx]=doelgroep?vragen:[];
+}
+// Alleen een ja/nee-vraag: een keuzevraag ("in Nederland of in het buitenland?") noemt ook de
+// situatie waar de pagina NIET over gaat, en die kan de burger dus bedoelen. Elk kernwoord moet
+// in één openingsvraag staan, op het begin van een woord ("land" niet in "buitenland"). Korte
+// woorden tellen hier wél mee: bij "Woont u in een EU-land?" is "EU" nu juist het onderscheid.
+const DOELGROEP_STOP=new Set("de het een en in op te of is u uw dit dat al".split(" "));
+function herhaaltDoelgroep(vraag,bronIdx){
+  const q=(vraag||"").toLowerCase();
+  if(/:|,|\bof\b/.test(q))return false;
+  const kern=[...new Set((q.match(/[a-zà-ÿ0-9]{2,}/g)||[])
+    .filter(w=>!UITVRAAG_KADER.has(w)&&!DOELGROEP_STOP.has(w))
+    .map(w=>w.length>=6?w.slice(0,5):w.length>=4?w.slice(0,4):w))];
+  if(!kern.length)return false;
+  const opWoordbegin=(z,s)=>new RegExp("(^|[^a-zà-ÿ0-9])"+s).test(z);
+  return (bronIdx||[]).some(i=>openingsVoorwaarden(i).some(z=>kern.every(s=>opWoordbegin(z,s))));
+}
 // Zin-eenheden per corpuspagina, gecachet. De luistermodus bouwt bij elk gesproken woord een
 // passage op; zonder cache zou dezelfde pagina telkens opnieuw worden opgedeeld.
 const _UNITS=[];
@@ -2819,7 +2853,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 138";
+const APP_VERSION="build 139";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3451,7 +3485,27 @@ function landenBij(idx){
 function landenVoor(r){
   const sp=stappenplanVan(r);if(sp&&sp.landen)return sp.landen;
   for(const c of r.citations||[]){const l=landenBij(c.srcIdx);if(l)return l;}
+  for(const c of r.citations||[]){const l=landenViaLink(c.srcIdx);if(l)return l;}
   return null;
+}
+// Veel pagina's hebben zelf geen versie per land, maar verwijzen wel naar de landenkiezer:
+// "Vul uw land in en doorloop de checklist" en "Eerste paspoort of ID-kaart aanvragen" linken
+// allebei naar /paspoort-id-kaart/buitenland. Vraagt het antwoord naar het land, dan is dát de
+// kiezer. Linkt een pagina naar meer dan één kiezer, dan telt die waar hij het vaakst naar linkt.
+const _LANDENVIA=new Map();
+function landenViaLink(idx){
+  if(_LANDENVIA.has(idx))return _LANDENVIA.get(idx);
+  const tel=new Map();
+  for(const l of (CORPUS[idx]||{}).links||[]){
+    if(!Array.isArray(l))continue;
+    const k=idxVanUrl(l[1]);
+    if(k<0||k===idx||!landenBij(k))continue;
+    tel.set(k,(tel.get(k)||0)+1);
+  }
+  let best=-1,n=0;
+  for(const [k,v] of tel)if(v>n){best=k;n=v;}
+  const uit=best>=0?landenBij(best):null;
+  _LANDENVIA.set(idx,uit);return uit;
 }
 function uitvraagHTML(r,c,n){
   const id="uv-"+Math.random().toString(36).slice(2,8);
@@ -4250,7 +4304,8 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   // citaat tellen de pagina's die het model te zien kreeg.
   const bronIdx=citations.length?[...usedSet]:bronnen.filter(Number.isInteger);
   const bronTekst=[q,...bronIdx.map(i=>((CORPUS[i]||{}).title||"")+"\n"+((CORPUS[i]||{}).text||""))];
-  clarifications=clarifications.filter(c=>uitvraagPastBijBron(c.question,bronTekst));
+  clarifications=clarifications.filter(c=>uitvraagPastBijBron(c.question,bronTekst)
+    &&(isLandVraag(c)||!herhaaltDoelgroep(c.question,bronIdx)));
   // Splitst de bronpagina het antwoord op in keuzes (situaties, plekken), dan toont de app die
   // keuzes als knoppen, letterlijk uit de kopjes (zie keuzeVoor). Een uitvraag van het model
   // over hetzelfde ("Waar woont u?") is dan dubbelop en valt weg.
