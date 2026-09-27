@@ -1186,6 +1186,29 @@ function nimBasis(){
   u=u.replace(/\/+$/,"").replace(/\/v1$/,"");
   return /^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$))/i.test(u)?u:"";
 }
+// "NetworkError when attempting to fetch resource" (Firefox) of "Failed to fetch" (Chrome) zegt
+// alleen DAT de browser het verzoek tegenhield, niet waarom — en daar kan een voorlichter niets
+// mee. Bij het doorgeefluik zijn er maar een paar oorzaken, en die zijn met één verzoek naar het
+// luik zelf uit elkaar te halen. Het luik antwoordt op zijn eigen adres met een vaste zin.
+const NIM_LUIK_OK="Doorgeefluik voor NVIDIA NIM werkt";
+function isNetwerkFout(e){return e instanceof TypeError&&/NetworkError|Failed to fetch|Load failed|fetch/i.test(e.message||"");}
+async function nimDiagnose(b){
+  let host=b;try{host=new URL(b).host;}catch(e){}
+  if(/(^|\.)nvidia\.com$/i.test(host))
+    return "het ingevulde adres ("+host+") is dat van NVIDIA zelf, niet van uw doorgeefluik. Vul bij Instellingen het adres van uw Cloudflare Worker in (eindigt meestal op workers.dev) — zie proxy/README.md.";
+  let tekst=null;
+  try{const r=await fetch(b+"/",{cache:"no-store"});tekst=await r.text().catch(()=>"");}catch(e){}
+  if(tekst===null)
+    return "het doorgeefluik ("+host+") geeft geen antwoord dat deze pagina mag lezen. Open "+b+" in een nieuw tabblad. "
+      +"Ziet u \""+NIM_LUIK_OK+"\"? Dan staat "+location.origin+" niet in TOEGESTAAN bovenin de worker. "
+      +"Ziet u \"Hello World\" of iets anders? Dan is de code uit proxy/nvidia-nim-worker.js nog niet geplakt en gedeployd. "
+      +"Laadt de pagina niet? Controleer dan het adres; een net aangemaakte worker kan ook een paar minuten nodig hebben.";
+  return "het doorgeefluik ("+host+") is bereikbaar, maar het verzoek naar NVIDIA liep vast. Probeer het nog eens, of kies een ander model.";
+}
+async function nimNetwerk(b,doe){
+  try{return await doe();}
+  catch(e){if(!isNetwerkFout(e))throw e;throw new Error("NVIDIA NIM: "+await nimDiagnose(b));}
+}
 const PROVIDERS={
   lokaal:{label:"Lokaal — videokaart (WebGPU)",models:Object.keys(LOKAAL_MODELLEN),geenSleutel:true,motor:LOKAALAI,
     keyUrl:"https://developer.mozilla.org/docs/Web/API/WebGPU_API",
@@ -1397,15 +1420,26 @@ const PROVIDERS={
   nvidia:{stream:true,proxy:true,label:"NVIDIA NIM (gratis, via doorgeefluik)",keyUrl:"https://build.nvidia.com/settings/api-keys",
     keyHint:"Gratis sleutel (nvapi-…) via build.nvidia.com",
     fallbackModels:NIM_VOORKEUR.slice(),
-    loadModels(key){
+    // Wat er bij het laatste ophalen van de lijst misging; refreshMode toont het bij Instellingen,
+    // zodat een kapot luik opvalt vóór de eerste vraag en niet pas midden in een gesprek.
+    laatsteFout:null,
+    async loadModels(key){
+      this.laatsteFout=null;
       const b=nimBasis();
-      if(!b)return Promise.reject(new Error("geen doorgeefluik"));
-      return oaiModels(b+"/v1/models",key,{voorkeur:NIM_VOORKEUR})
-        .then(ids=>{const uit=ids.filter(id=>!NIM_NIET.test(id));if(!uit.length)throw new Error("geen bruikbare modellen");return uit;});},
+      if(!b)throw new Error("geen doorgeefluik");
+      try{
+        const ids=await nimNetwerk(b,()=>oaiModels(b+"/v1/models",key,{voorkeur:NIM_VOORKEUR}));
+        const uit=ids.filter(id=>!NIM_NIET.test(id));
+        if(!uit.length)throw new Error("geen bruikbare modellen");
+        return uit;
+      }catch(e){
+        if(e.message!=="geen sleutel")this.laatsteFout=e.message.replace(/^NVIDIA NIM: /,"");
+        throw e;
+      }},
     call(key,model,system,user,onDelta){
       const b=nimBasis();
       if(!b)throw new Error("NVIDIA NIM: vul bij Instellingen het adres van je doorgeefluik in. NVIDIA staat aanroepen rechtstreeks vanuit de browser niet toe — zie proxy/README.md.");
-      return oaiChat(b+"/v1/chat/completions",key,model,system,user,"NVIDIA",onDelta);}},
+      return nimNetwerk(b,()=>oaiChat(b+"/v1/chat/completions",key,model,system,user,"NVIDIA",onDelta));}},
   openrouter:{stream:true,label:"OpenRouter (veel modellen)",keyUrl:"https://openrouter.ai/keys",keyHint:"Sleutel via openrouter.ai (gratis modellen beschikbaar)",
     fallbackModels:["deepseek/deepseek-chat-v3-0324:free","meta-llama/llama-3.3-70b-instruct:free","openai/gpt-4o-mini"],
     async loadModels(){
@@ -2681,6 +2715,7 @@ function refreshMode(){
   const aan=aiKlaar();
   keyStatus.textContent=aan?("AI-modus actief — "+p.label+" / "+naam+(lokaal?" · draait op dit apparaat":""))
                            :("Demo-modus (geen AI). Tip: "+(p.proxy&&!nimBasis()?"vul ook het adres van je NVIDIA-doorgeefluik in (https://…) — zie proxy/README.md":p.keyHint));
+  if(p.proxy&&nimBasis()&&p.laatsteFout)keyStatus.textContent+=" · ⚠ Modellenlijst ophalen mislukt: "+p.laatsteFout;
   modeBadge.innerHTML=aan?'<span class="badge ai">AI</span>':'<span class="badge demo">DEMO</span>';
   toonLokaalKnop();
 }
@@ -2709,7 +2744,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 129";
+const APP_VERSION="build 130";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 

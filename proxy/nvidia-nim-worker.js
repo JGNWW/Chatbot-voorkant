@@ -34,10 +34,15 @@ export default {
       "Vary": "Origin",
     };
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    const pad = new URL(req.url).pathname.replace(/\/+$/, "");
+    // Controle: open het adres van de worker in een tabblad (dan stuurt de browser geen Origin
+    // mee, dus dit staat vóór de origin-controle). De app zoekt deze zin op om te zien of het
+    // luik goed staat; vanaf een niet-toegestaan adres mag de app hem juist NIET kunnen lezen.
+    if (pad === "" && req.method === "GET")
+      return new Response("Doorgeefluik voor NVIDIA NIM werkt", { status: 200, headers: { ...cors, "content-type": "text/plain; charset=utf-8" } });
     if (!TOEGESTAAN.includes(origin))
       return new Response("Dit adres mag het doorgeefluik niet gebruiken: " + origin, { status: 403, headers: cors });
 
-    const pad = new URL(req.url).pathname.replace(/\/+$/, "");
     if (!PADEN.test(pad)) return new Response("Onbekend pad", { status: 404, headers: cors });
     if (req.method !== (pad === "/v1/models" ? "GET" : "POST"))
       return new Response("Methode niet toegestaan", { status: 405, headers: cors });
@@ -49,7 +54,15 @@ export default {
     // De vraag eerst helemaal inlezen (± 30 kB): een doorgestroomd verzoeklijf werkt niet in
     // elke omgeving hetzelfde, een ingelezen lijf wel.
     const lijf = req.method === "POST" ? await req.arrayBuffer() : undefined;
-    const antw = await fetch(DOEL + pad, { method: req.method, headers: kop, body: lijf });
+    let antw;
+    try {
+      antw = await fetch(DOEL + pad, { method: req.method, headers: kop, body: lijf });
+    } catch (e) {
+      // Zonder deze vangst geeft Cloudflare een eigen foutpagina ZONDER CORS-koppen, en dan ziet
+      // de app alleen een nietszeggende "NetworkError" in plaats van wat er misging.
+      return new Response(JSON.stringify({ error: { message: "Doorgeefluik kon NVIDIA niet bereiken: " + (e && e.message || e) } }),
+        { status: 502, headers: { ...cors, "content-type": "application/json" } });
+    }
     // Het lijf gaat als stroom door, dus een gestreamd antwoord blijft gestreamd.
     const uit = new Headers(antw.headers);
     for (const [k, v] of Object.entries(cors)) uit.set(k, v);
