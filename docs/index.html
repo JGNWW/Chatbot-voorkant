@@ -268,6 +268,7 @@ ol.srclist li{margin:2px 0;}
 .stappenplan{margin:8px 0 0;border:1px dashed var(--blauw-licht);background:#fbfdff;border-radius:10px;padding:9px 13px 10px;}
 .sp-kop{margin:0 0 6px;font-size:.84rem;color:var(--ink-licht);}
 .sp-lijst{margin:0;padding:0;list-style:none;display:grid;gap:4px;}
+.sp-voet{margin:8px 0 0;font-size:.84rem;color:var(--ink-licht);}
 .sp-lijst li{display:flex;gap:10px;align-items:flex-start;font-size:.92rem;line-height:1.4;color:var(--rijk-blauw);}
 .sp-nr{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:21px;height:21px;border-radius:50%;border:1.5px solid var(--rijk-licht);background:#fff;color:var(--rijk-blauw);font-size:.72rem;font-weight:700;font-variant-numeric:tabular-nums;}
 .stapblok{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;}
@@ -2744,7 +2745,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 130";
+const APP_VERSION="build 131";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2928,7 +2929,7 @@ function sectieVan(idx,offset){
 }
 // Beschrijft de pagina meerdere situaties? Vraag dan uit welke geldt. De keuzes komen letterlijk
 // uit de kopjes van de pagina, dus de app verzint hier niets.
-const NAVKOP=/^(snel naar|onderwerpen|meer informatie|zie ook|contact|in het kort|let op)$/i;
+const NAVKOP=/^(snel naar|onderwerpen|meer informatie|zie ook|contact|in het kort|let op|meteen regelen)$/i;
 function variantVraag(idx,offset){
   const s=sectieVan(idx,offset);
   if(!s)return null;
@@ -2941,7 +2942,11 @@ function variantVraag(idx,offset){
   // Niet kleiner maken (het zijn namen: "VFS Global") en met een schuine streep scheiden — een
   // kopje bevat vaak zelf al het woord "of" ("Nederlandse grensgemeente of Schiphol"), en dan
   // leest een opsomming met "of" als een lijst zonder einde.
-  return maakVerduidelijking("Om welke situatie gaat het: "+lijst.join(" / ")+"?","Het gaat om ");
+  const v=maakVerduidelijking("Om welke situatie gaat het: "+lijst.join(" / ")+"?","Het gaat om ");
+  // Twee citaten uit verschillende delen van dezelfde pagina geven dezelfde kopjes, alleen in
+  // een andere volgorde (het eigen deel staat voorop). Aan deze sleutel zie je dat het één vraag is.
+  if(v)v.sleutel=idx+":"+[...lijst].sort().join("|");
+  return v;
 }
 // ---- Keuzes uit de kopjes: de app-kant ------------------------------------------------------
 // De herkenning zelf staat in het CITAAT-LOGICA-blok (keuzeBijCitaat); hier het koppelen aan
@@ -3048,6 +3053,72 @@ function stappenplanVoor(c){
   }
   return null;
 }
+// Een citaat kan ook naar een stappenplan op een ANDERE pagina verwijzen: "Om te weten wat u
+// precies moet doen, volgt u het stappenplan: eerste paspoort of ID-kaart aanvragen", met die
+// laatste woorden als link. Het plan staat dan achter de link, in twee vormen:
+//   - de linkpagina heeft zelf de stapkopjes (DigiD aanvragen, auto exporteren): toon die;
+//   - de linkpagina is een landenkiezer en elk land heeft een eigen stappenplan (paspoort vanuit
+//     het buitenland): toon de stappen die vrijwel elk land deelt, en laat het land kiezen.
+const STAPPENPLAN_WOORD=/\bstappenplan/i;
+const STAPPENPLAN_AFSTAND=200;      // zoveel tekens na het citaat mag de verwijzing nog beginnen
+let _PADIDX=null;
+function idxVanUrl(u){
+  if(!_PADIDX){_PADIDX=new Map();for(let i=0;i<CORPUS.length;i++)if(!_PADIDX.has(padVan(i)))_PADIDX.set(padVan(i),i);}
+  const pad=(u||"").replace(/^https?:\/\/[^/]+/,"").replace(/[?#].*$/,"").replace(/\/+$/,"");
+  return _PADIDX.has(pad)?_PADIDX.get(pad):-1;
+}
+// De stappen op een pagina, als er precies één stappenplan op staat. Staan er meer (per situatie
+// een eigen plan), dan weet de app niet welk bedoeld is.
+function enigPlan(idx){
+  const boom=kopjesBoom(CORPUS[idx]),groepen=new Map();
+  for(const n of boom)if(STAP_KOP.test(n.t))(groepen.get(n.ouder)||groepen.set(n.ouder,[]).get(n.ouder)).push(n.i);
+  const plannen=[...groepen].filter(([,st])=>st.length>=2);
+  return plannen.length===1?{ouder:plannen[0][0],stappen:plannen[0][1]}:null;
+}
+// De stappen die de landenpagina's gemeen hebben: de reeks stapkopjes die het vaakst voorkomt,
+// als minstens de helft van de landen hem heeft. Anders is er geen gemeenschappelijk plan.
+const _GEMEEN=new Map();
+function gemeenStappen(landen,sleutel){
+  if(_GEMEEN.has(sleutel))return _GEMEEN.get(sleutel);
+  const tel=new Map();
+  for(const l of landen){
+    const pl=enigPlan(l.j);if(!pl)continue;
+    const boom=kopjesBoom(CORPUS[l.j]);
+    const k=JSON.stringify(pl.stappen.map(i=>stapTitel(boom[i].t)));
+    tel.set(k,(tel.get(k)||0)+1);
+  }
+  let best=null,n=0;
+  for(const [k,v] of tel)if(v>n){best=k;n=v;}
+  const uit=best&&n*2>=landen.length?JSON.parse(best):null;
+  _GEMEEN.set(sleutel,uit);return uit;
+}
+function gelinktPlan(c){
+  if(!c||c.heleSectie||!Number.isInteger(c.srcIdx))return null;
+  const p=CORPUS[c.srcIdx];if(!p||!p.text||!c.text)return null;
+  const start=Number.isInteger(c.start)?c.start:p.text.indexOf(c.text);
+  if(start<0)return null;
+  const eind=start+c.text.length;
+  // De verwijzing hoort bij het citaat: in het citaat zelf of vlak erna, en niet voorbij het
+  // volgende kopje (dan gaat hij over iets anders).
+  let grens=Math.min(p.text.length,eind+STAPPENPLAN_AFSTAND);
+  for(const n of kopjesBoom(p))if(n.pos>=eind){grens=Math.min(grens,n.pos);break;}
+  const m=STAPPENPLAN_WOORD.exec(p.text.slice(start,grens));
+  if(!m)return null;
+  const van=p.text.lastIndexOf("\n",start+m.index)+1;
+  const links=new Map();
+  for(const l of p.links||[])if(Array.isArray(l)&&l[0]&&!links.has(l[0].trim()))links.set(l[0].trim(),l[1]);
+  // De link staat op de regel met "stappenplan" ("Bekijk het stappenplan DigiD aanvragen") of
+  // op een van de regels direct eronder.
+  for(const regel of p.text.slice(van).split("\n",3)){
+    const url=links.get(regel.trim());if(!url)continue;
+    const idx=idxVanUrl(url);if(idx<0||idx===c.srcIdx)continue;
+    const pl=enigPlan(idx);
+    if(pl)return {idx,ouder:pl.ouder,stappen:pl.stappen,via:c.srcIdx};
+    const landen=landenBij(idx),titels=landen&&gemeenStappen(landen,idx);
+    if(titels)return {idx,landen,titels,via:c.srcIdx};
+  }
+  return null;
+}
 // Het stappenplan bij een antwoord: bij het eerste citaat dat er een inleidt. Onthouden op het
 // antwoord, zodat opnieuw tekenen en kopiëren hetzelfde plan gebruiken. Een stap-beurt krijgt
 // geen tweede overzicht.
@@ -3056,7 +3127,7 @@ function stappenplanVan(r){
   if(r.__sp===undefined){
     r.__sp=null;
     for(let i=0;i<r.citations.length&&!r.__sp;i++){
-      const s=stappenplanVoor(r.citations[i]);
+      const s=stappenplanVoor(r.citations[i])||gelinktPlan(r.citations[i]);
       if(s)r.__sp=Object.assign(s,{ci:i,vraag:(r.restated_question||"").trim()});
     }
   }
@@ -3064,16 +3135,30 @@ function stappenplanVan(r){
 }
 // "Stap 2: Check de extra eisen" -> "Check de extra eisen": het nummer staat er al in een rondje.
 function stapTitel(t){return (t||"").replace(/^stap\s*\d+\s*[:.\-–—]?\s*/i,"").trim()||t;}
-function stappenplanHTML(sp){
+// De titels van de stappen, voor het overzicht en het kopiëren.
+function stapTitels(sp){
+  if(sp.landen)return sp.titels;
   const boom=kopjesBoom(CORPUS[sp.idx]);
+  return sp.stappen.map(k=>stapTitel(boom[k].t));
+}
+// "Paspoort aanvragen | NederlandWereldwijd" -> "Paspoort aanvragen"
+const paginaNaam=idx=>((CORPUS[idx]||{}).title||"").replace(/\s*\|\s*NederlandWereldwijd\s*$/i,"").trim();
+function stappenplanHTML(sp){
+  const titels=stapTitels(sp),N=titels.length;
+  const kop=sp.landen?`Het stappenplan staat op een pagina per land en heeft ${N} stappen:`
+    :sp.via!==undefined?`Het stappenplan staat op de pagina „${escapeHtml(paginaNaam(sp.idx))}” en heeft ${N} stappen:`
+    :`Dit stappenplan heeft ${N} stappen:`;
   return `<div class="stappenplan" role="group" aria-label="Stappenplan">`
-    +`<p class="sp-kop">Dit stappenplan heeft ${sp.stappen.length} stappen:</p>`
-    +`<ol class="sp-lijst">`+sp.stappen.map((k,n)=>`<li><span class="sp-nr" aria-hidden="true">${n+1}</span><span>${escapeHtml(stapTitel(boom[k].t))}</span></li>`).join("")+`</ol></div>`;
+    +`<p class="sp-kop">${kop}</p>`
+    +`<ol class="sp-lijst">`+titels.map((t,n)=>`<li><span class="sp-nr" aria-hidden="true">${n+1}</span><span>${escapeHtml(t)}</span></li>`).join("")+`</ol>`
+    +(sp.landen?`<p class="sp-voet">Wat u per stap moet doen, verschilt per land. Kies hieronder het land van de burger; dan verschijnt het stappenplan voor dat land.</p>`:"")
+    +`</div>`;
 }
 const ICON_VOLGENDE='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
 // De knoppen in de voet. Onder het overzicht: beginnen of alles tonen. Onder een stap: door naar
 // de volgende, of een vraag stellen over deze stap.
 function stapknoppenHTML(sp,nr){
+  if(sp.landen)return "";               // eerst een land kiezen; de landvraag staat eronder
   const boom=kopjesBoom(CORPUS[sp.idx]),N=sp.stappen.length;
   const knop=(klasse,actie,n,tekst,titel)=>`<button type="button" class="sp-knop ${klasse}" data-sp="${actie}"${n!==undefined?` data-nr="${n}"`:""} title="${escapeHtml(titel)}">${tekst}</button>`;
   let h="";
@@ -3192,6 +3277,7 @@ function landenBij(idx){
   _LANDENBIJ.set(idx,uit);return uit;
 }
 function landenVoor(r){
+  const sp=stappenplanVan(r);if(sp&&sp.landen)return sp.landen;
   for(const c of r.citations||[]){const l=landenBij(c.srcIdx);if(l)return l;}
   return null;
 }
@@ -3996,16 +4082,22 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   // Splitst de bronpagina het antwoord op in keuzes (situaties, plekken), dan toont de app die
   // keuzes als knoppen, letterlijk uit de kopjes (zie keuzeVoor). Een uitvraag van het model
   // over hetzelfde ("Waar woont u?") is dan dubbelop en valt weg.
-  const keuze=voorlopig?null:keuzeVoor(citations);
+  let keuze=voorlopig?null:keuzeVoor(citations);
   if(keuze)clarifications=clarifications.filter(c=>!overlaptKeuze(c.question,keuze));
   else for(const c of citations){
     // Geen herkenbare keuze, maar het citaat staat wel onder een van meerdere kopjes: vraag
     // dan uit welke geldt, met de kopjes als opsomming.
     if(clarifications.length>=3)break;
     const v=c.start!==undefined?variantVraag(c.srcIdx,c.start):null;
-    if(v&&!clarifications.some(x=>x.question===v.question))clarifications.unshift(v);
+    if(v&&!clarifications.some(x=>x.question===v.question||(x.sleutel&&x.sleutel===v.sleutel)))clarifications.unshift(v);
   }
   clarifications=clarifications.slice(0,3);
+  // Leidt een citaat een stappenplan in, dan IS dat het antwoord: de voorlichter loopt het plan
+  // door. Vragen naar de situatie ("voor mijzelf / voor mijn kind") of keuzeknoppen ernaast
+  // leiden daar alleen van af. Verschilt het plan per land, dan blijft alleen de landvraag over:
+  // die opent het stappenplan van dat land.
+  const plan=voorlopig?undefined:stappenplanVan({citations,restated_question:r.restated_question||q});
+  if(plan){keuze=null;clarifications=plan.landen?[{question:"In welk land woont u?",prefill:"Ik woon in "}]:[];}
   if(r.__partial&&citations.length&&!voorlopig)note="Het antwoord was lang en mogelijk niet volledig; de getoonde citaten kloppen wel. Stel de vraag eventueel specifieker.";
   if(!citations.length&&!voorlopig){
     // Zonder onderbouwend citaat tonen we GEEN vrije AI-tekst (geen note),
@@ -4027,7 +4119,7 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   let open=[];
   if(citations.length&&subs&&subs.length>=2)open=ongedekteDelen(subs,citations).slice(0,3);
   if(voorlopig&&!citations.length)return null;
-  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,open,keuze};
+  return {restated_question:r.restated_question||q,intro,citations,used,related,note,clarifications,open,keuze,__sp:citations.length?plan:undefined};
 }
 async function askAI(q,cands,key,subs,opGeneratief){
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
@@ -4420,8 +4512,8 @@ function answerPlainText(r){
     parts.push(`Stap ${r.stap.nr+1} van ${sp.stappen.length}: ${stapTitel(boom[sp.stappen[r.stap.nr]].t)}`);
   }
   const sp=stappenplanVan(r);
-  const planTekst=()=>{const boom=kopjesBoom(CORPUS[sp.idx]);
-    return "Stappenplan:\n"+sp.stappen.map((k,n)=>`${n+1}. ${stapTitel(boom[k].t)}`).join("\n");};
+  const planTekst=()=>"Stappenplan"+(sp.via!==undefined?` (${CORPUS[sp.idx].url})`:"")+":\n"
+    +stapTitels(sp).map((t,n)=>`${n+1}. ${t}`).join("\n");
   for(const b of answerBlocks(r)){
     if(b.type==="bridge"||b.type==="generated")parts.push(b.text);
     else{
@@ -4783,9 +4875,11 @@ function renderResult(turn,r,voorlopig){
     // Onder het overzicht is "Begin bij stap 1" de eerste actie; onder een stap komt eerst de
     // keuze binnen die stap ("Ophalen" / "Laten opsturen") en dan pas de volgende stap.
     if(sp)f+=stapknoppenHTML(sp);
-    if(r.keuze)f+=keuzeHTML(r.keuze);
+    // Naast een stappenplan geen situatievragen of keuzes: het plan is het antwoord. Alleen de
+    // landvraag van een plan per land blijft (zie bouwAntwoord).
+    if(r.keuze&&!sp)f+=keuzeHTML(r.keuze);
     if(r.stap)f+=stapknoppenHTML(r.stap.sp,r.stap.nr);
-    clar.slice(0,2).forEach((c,n)=>{f+=uitvraagHTML(r,c,n);});
+    clar.slice(0,2).forEach((c,n)=>{if(!sp||(sp.landen&&isLandVraag(c)))f+=uitvraagHTML(r,c,n);});
     if(r.open&&r.open.length){
       f+=`<div class="openblok"><span class="label">Nog niet beantwoord</span>`
         +r.open.map(q=>`<button type="button" class="open-rij" data-q="${escapeHtml(q)}" title="Stel dit deel van de vraag"><span>${escapeHtml(q)}</span>${ICON_ARROW}</button>`).join("")+`</div>`;
