@@ -2819,7 +2819,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 135";
+const APP_VERSION="build 136";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -4334,7 +4334,15 @@ async function askAI(q,cands,key,subs,opGeneratief){
   const uit=bouwAntwoord(r,q,bronnen,cands,subs,false);
   // WEL streamen: het volledig generatieve antwoord. Dat is één lopend verhaal dat van boven
   // naar beneden groeit, dus er springt niets — precies waar streamen wél voor deugt.
-  if(GENERATIEF&&uit.citations.length){
+  // Bestaat het antwoord alleen uit de inleiding boven een keuze ("…Dan mag u niet autorijden.
+  // Wat u kunt doen, hangt af van uw situatie."), dan valt er niets te schrijven: de inleiding IS
+  // het antwoord, en de stappen staan achter de knoppen. De schrijver kortte hem toch in tot de
+  // laatste zin, en dan viel juist weg wat voor iedereen geldt. Dus: de inleiding letterlijk.
+  const alleenInleiding=!!uit.keuze&&uit.keuze.huidig===-1&&(()=>{
+    const eerste=kopjesBoom(CORPUS[uit.keuze.idx])[uit.keuze.opties[0]];
+    return !!eerste&&uit.citations.every(c=>c.srcIdx===uit.keuze.idx&&Number.isInteger(c.start)&&c.start<eerste.pos);
+  })();
+  if(GENERATIEF&&uit.citations.length&&!alleenInleiding){
     // Staat er een keuze bij het antwoord, dan is het citaat vaak alleen de inleiding erboven
     // ("Wat u kunt doen, hangt af van uw situatie."). De schrijver hoort dat de keuzes volgen
     // (zie schrijfAntwoord), maar zegt hij tóch "Wij hebben geen informatie", dan spreekt dat de
