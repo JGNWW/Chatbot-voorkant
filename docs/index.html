@@ -600,7 +600,7 @@ Stel een antwoord samen dat bestaat uit:
    - UIT DE BRON: vraag alleen naar een onderscheid dat op de gegeven pagina's zelf gemaakt wordt. De voorbeeldvragen hieronder zijn alleen voorbeelden van de VORM; neem ze niet over. Een vraag waarvan de woorden niet op de pagina's staan, gooit de app weg.
    - OPEN, NIET JA/NEE: schrijf "In welk land woont u?" in plaats van "Woont u in het buitenland?". Gaat het echt om twee mogelijkheden, formuleer het dan als keuze: "Is dit een eerste aanvraag of een verlenging?".
    - "prefill" is het begin van het ANTWOORD, in de ik-vorm, zodat de voorlichter het ter plekke aanvult. Het is dus NIET de vraag zelf. Eindig met een spatie. Voorbeelden: vraag "In welk land woont u?" -> prefill "Ik woon in "; vraag "Is dit een eerste aanvraag of een verlenging?" -> prefill "Het is een "; vraag "Voor wie is de aanvraag: voor uzelf of voor een kind?" -> prefill "De aanvraag is voor ". Een prefill die de vraag herhaalt is fout en wordt weggegooid.
-   - Meestal is één verduidelijking genoeg, hoogstens drie. Valt er niets zinnigs uit te vragen, laat de lijst dan leeg.
+   - Geef hoogstens ÉÉN verduidelijking: de vraag die het antwoord het meest bepaalt. Meer vragen tegelijk maakt het voor de voorlichter verwarrend; een volgende vraag kan in een volgend antwoord. Valt er niets zinnigs uit te vragen, laat de lijst dan leeg.
 3. "bridge" (per citaat, MAG LEEG ZIJN): korte verbindende tekst. Dit is de ENIGE plek waar je eigen woorden staan, en hoe minder je er gebruikt, hoe beter.
    - WAT EEN BRUG WEL MAG: de volgorde verduidelijken, aangeven dat er verschillende situaties zijn, aangeven dat de volgende passage over een andere situatie gaat, of de lezer naar het volgende onderdeel leiden.
    - WAT EEN BRUG NOOIT MAG: nieuwe feiten noemen; conclusies trekken die niet letterlijk uit de bron volgen; voorwaarden, termijnen, bedragen of uitzonderingen introduceren; juridische of procedurele betekenis toevoegen; stelliger zijn dan de bron; of informatie uit twee passages samenvoegen tot een nieuwe conclusie. Bedragen, aantallen en termijnen in een brug worden door de app gecontroleerd tegen het citaat en anders verwijderd.
@@ -2853,7 +2853,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 139";
+const APP_VERSION="build 140";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3216,6 +3216,13 @@ function kiesSectie(bronTurn,r,k,hulp){
   }
   const res={restated_question:vorige?vorige+" — "+n.t:n.t,citations:[cit],used:[srcOf(kz.idx)],related:[],note:"",
     clarifications:[],uitSectie:true,keuze:binnen?Object.assign(binnen,{idx:kz.idx}):null,vervolg,vervolgVan:{bronTurn,r}};
+  // De uitvraag die bij het vorige antwoord wachtte op de keuze, komt nu: maar alleen als er in
+  // dit deel geen nieuwe keuze staat (één vraag tegelijk) en de tekst van dit deel er nog van
+  // afhangt. "In welk land woont u?" onder "VFS Global" alleen als die sectie het over landen heeft.
+  if(!hulp&&!binnen){
+    const c=(kz.uitgesteld||[]).find(c=>uitvraagPastBijBron(c.question,[sec.tekst]));
+    if(c)res.clarifications=[c];
+  }
   renderResult(turn,res);
   const bubble=turn.querySelector(".bubble.antwoord");
   if(bubble){
@@ -4297,7 +4304,7 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   // ingeschreven in de RNI?"). Die hoort bij de uitvraag, met een prefill.
   for(const fu of (Array.isArray(r.followups)?r.followups:[])){
     const u=alsUitvraag((fu||"").trim());
-    if(u&&u!=="weg"&&clarifications.length<3&&!clarifications.some(c=>c.question===u.question))
+    if(u&&u!=="weg"&&!clarifications.length&&!clarifications.some(c=>c.question===u.question))
       clarifications.push(u);
   }
   // Alleen uitvragen wat op de geciteerde pagina's speelt (zie uitvraagPastBijBron). Zonder
@@ -4318,7 +4325,11 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
     // De opties blijven de kopjes.
     const zelfde=clarifications.find(c=>vraagOverKeuze(c.question,keuze));
     if(keuze.afgeleid&&zelfde&&/\?$/.test(zelfde.question))keuze.vraag=zelfde.question;
-    clarifications=clarifications.filter(c=>!overlaptKeuze(c.question,keuze));
+    // Eén vervolgvraag tegelijk: de keuzeknoppen komen uit de pagina zelf en gaan dus voor. De
+    // uitvraag van het model ("In welk land woont u?") schuift door naar het gekozen deel (zie
+    // kiesSectie) en komt daar alleen als dat deel er nog van afhangt.
+    keuze.uitgesteld=clarifications.filter(c=>!overlaptKeuze(c.question,keuze));
+    clarifications=[];
     knipTotKeuze(citations,keuze,q);
     heleInleiding(citations,keuze);
     used=[...new Set(citations.map(c=>c.srcIdx))].map(srcOf);
@@ -4326,11 +4337,13 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   else for(const c of citations){
     // Geen herkenbare keuze, maar het citaat staat wel onder een van meerdere kopjes: vraag
     // dan uit welke geldt, met de kopjes als opsomming.
-    if(clarifications.length>=3)break;
+    if(clarifications.length>=1)break;
     const v=c.start!==undefined?variantVraag(c.srcIdx,c.start):null;
     if(v&&!clarifications.some(x=>x.question===v.question||(x.sleutel&&x.sleutel===v.sleutel)))clarifications.unshift(v);
   }
-  clarifications=clarifications.slice(0,3);
+  // Nooit meer dan één vervolgvraag onder een antwoord; staat er een uit de kopjes van de pagina
+  // (variantVraag, vooraan gezet), dan is dat die.
+  clarifications=clarifications.slice(0,1);
   // Leidt een citaat een stappenplan in, dan IS dat het antwoord: de voorlichter loopt het plan
   // door. Vragen naar de situatie ("voor mijzelf / voor mijn kind") of keuzeknoppen ernaast
   // leiden daar alleen van af. Verschilt het plan per land, dan blijft alleen de landvraag over:
@@ -5186,7 +5199,8 @@ function renderResult(turn,r,voorlopig){
     if(r.keuze&&!sp)f+=keuzeHTML(r.keuze);
     if(r.stap)f+=stapknoppenHTML(r.stap.sp,r.stap.nr);
     f+=vervolgHTML(r.vervolg);
-    clar.slice(0,2).forEach((c,n)=>{if(!sp||(sp.landen&&isLandVraag(c)))f+=uitvraagHTML(r,c,n);});
+    // Eén vervolgvraag tegelijk: staan er keuzeknoppen, dan geen invulblok ernaast.
+    if(!(r.keuze&&!sp))clar.slice(0,1).forEach((c,n)=>{if(!sp||(sp.landen&&isLandVraag(c)))f+=uitvraagHTML(r,c,n);});
     if(r.open&&r.open.length){
       f+=`<div class="openblok"><span class="label">Nog niet beantwoord</span>`
         +r.open.map(q=>`<button type="button" class="open-rij" data-q="${escapeHtml(q)}" title="Stel dit deel van de vraag"><span>${escapeHtml(q)}</span>${ICON_ARROW}</button>`).join("")+`</div>`;
