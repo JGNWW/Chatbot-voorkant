@@ -2859,7 +2859,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 143";
+const APP_VERSION="build 144";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3654,6 +3654,28 @@ function eersteProza(idx){
 }
 // Stap 2 (AI-modus): laat het model uit de brede kandidatenlijst de best passende pagina's kiezen
 // (op titel + tekstfragment). Retour: array picks (kan [] zijn = niets past), of null bij fout.
+// ---- De keuzestap overslaan bij een duidelijke winnaar ---------------------------------------
+// Staat één pagina met ruime voorsprong bovenaan (duidelijkeWinnaar in search-core.js), dan gaat
+// die vooraan in de zes pagina's voor het antwoordmodel, zonder dat een aparte modelaanroep er
+// eerst uit ~25 kandidaten zes kiest. Dat scheelt een hele aanroep: tijd, en een kans minder om
+// op een limiet te stuiten.
+//
+// De drempel komt uit scripts/winnaar_eval.mjs (op de vraag zoals gesteld, met het
+// semantische model). Bij 0,35 valt 20% van de handgemaakte vragen, 32% van de standaardvragen en
+// 65% van de gegenereerde vragen in de winnaarsgroep, zonder verlies op de handgemaakte en de
+// standaardvragen. Op de vijandige vragen (in de woorden van de beller) valt 14-17% erin, en
+// daar stond bij 2 van de ~110 vragen de goede pagina op plek 7 t/m 25: die had alleen de
+// keuzestap nog kunnen kiezen. Wat de keuzestap verder doet (de volgorde van plek 2-6, de
+// "past er niets bij"-controle) is zonder sleutel niet te meten. Niet overslaan: zet de drempel
+// op Infinity.
+const STAP_OVERGESLAGEN="Beste pagina's kiezen — overgeslagen (duidelijke treffer)";
+async function winnaarVoorKeuze(q,rawQ,broad){
+  // Bij een eerste vraag is de vraag zoals gesteld precies wat gemeten is; bij een vervolgvraag
+  // is alleen de zelfstandig gemaakte vraag zinvol ("en voor mijn kind?" zegt op zich niets).
+  const w=await duidelijkeWinnaar(history.length?q:rawQ);
+  if(w.idx<0||!(w.marge>=WINNAAR_MARGE))return null;
+  return {idx:w.idx,cands:[w.idx,...broad.filter(i=>i!==w.idx)].slice(0,TOPK)};
+}
 async function rerankCandidates(q,cands){
   const key=keyInput.value.trim();
   if(!aiKlaar()||cands.length<=TOPK)return cands.slice(0,TOPK);
@@ -3715,9 +3737,14 @@ async function runQuestion(rawQ,gesproken){
     stap(turn,"Pagina's zoeken");stapModel(turn);
     q=await condenseQuestion(rawQ);
     const broad=hubCandidates(await fuseRetrieval(uniek([q,rawQ]),[rawQ,q].join(" "),"",lokLimiet().kandidaten),[rawQ,q].join(" "));
-    stap(turn,"Beste pagina's kiezen");
-    const picked=await rerankCandidates(q,broad);
-    cands=forceProduct(rawQ+" "+q,(picked&&picked.length?picked:broad.slice(0,TOPK)));
+    const winnaar=await winnaarVoorKeuze(q,rawQ,broad);
+    if(winnaar)cands=forceProduct(rawQ+" "+q,winnaar.cands);
+    else{
+      stap(turn,"Beste pagina's kiezen");
+      const picked=await rerankCandidates(q,broad);
+      cands=forceProduct(rawQ+" "+q,(picked&&picked.length?picked:broad.slice(0,TOPK)));
+    }
+    if(winnaar)stap(turn,STAP_OVERGESLAGEN);
   }else if(ai){
     // Expansie+HyDE+multi-query -> breed ophalen (+hubs) -> AI kiest op intentie -> confidence-check.
     stap(turn,"Vraag begrijpen");
@@ -3747,14 +3774,20 @@ async function runQuestion(rawQ,gesproken){
       const semTexts=uniek([q,rawQ,...pre.queries,pre.hyde]);
       broad=hubCandidates(await fuseRetrieval(semTexts,[rawQ,q,...pre.terms].join(" "),pre.category,25),[rawQ,q].join(" "));
     }
-    stap(turn,"Beste pagina's kiezen");
-    const picked=await rerankCandidates(q,broad);
-    if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
-    else if(picked.length===0){                                 // niets past echt -> lage confidence
-      logMiss(rawQ,"geen-passende-pagina");
-      const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[]};
-      renderResult(turn,nores);recordTurn(rawQ,nores);return;
-    }else cands=picked;
+    // Duidelijke winnaar? Dan de keuzestap overslaan (zie winnaarVoorKeuze). Nooit bij een
+    // samengestelde vraag: daar moet de keuze juist over meerdere onderwerpen gespreid zijn.
+    const winnaar=pre.subs.length>=2?null:await winnaarVoorKeuze(q,rawQ,broad);
+    if(winnaar){stap(turn,STAP_OVERGESLAGEN);cands=winnaar.cands;}
+    else{
+      stap(turn,"Beste pagina's kiezen");
+      const picked=await rerankCandidates(q,broad);
+      if(picked===null)cands=broad.slice(0,TOPK);                 // rerank faalde -> gewone retrieval
+      else if(picked.length===0){                                 // niets past echt -> lage confidence
+        logMiss(rawQ,"geen-passende-pagina");
+        const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:broad.slice(0,3).map(srcOf),clarifications:[]};
+        renderResult(turn,nores);recordTurn(rawQ,nores);return;
+      }else cands=picked;
+    }
     cands=forceProduct(rawQ+" "+q,cands);   // genoemde vakterm hoort bovenaan
   }else{
     q=await condenseQuestion(rawQ);
@@ -5184,7 +5217,7 @@ function stapKlaar(turn){
   if(!STAPPEN)return null;
   const nu=performance.now();
   if(STAPPEN.lijst.length)STAPPEN.lijst[STAPPEN.lijst.length-1].ms=Math.round(nu-STAPPEN.vorig);
-  const uit={totaal:Math.round(nu-STAPPEN.t0),lijst:STAPPEN.lijst.filter(x=>x.ms>=50)};
+  const uit={totaal:Math.round(nu-STAPPEN.t0),lijst:STAPPEN.lijst.filter(x=>x.ms>=50||x.naam===STAP_OVERGESLAGEN)};
   STAPPEN=null;return uit;
 }
 // Onder het antwoord: waar ging de tijd heen? Voor lokale modellen stond dit er al; nu ook voor
@@ -5194,7 +5227,7 @@ function toonStappen(turn,m){
   const bubble=turn.querySelector(".bubble.antwoord");if(!bubble)return;
   const el=document.createElement("div");el.className="meting";
   const sec=x=>(x/1000).toFixed(1)+"s";
-  el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ");
+  el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam===STAP_OVERGESLAGEN?x.naam.toLowerCase():x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ");
   bubble.appendChild(el);
 }
 // ---- Het generatieve antwoord zien ontstaan --------------------------------------------------
