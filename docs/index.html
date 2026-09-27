@@ -339,8 +339,7 @@ ol.srclist li{margin:2px 0;}
 .row.user:hover .vraag-aanpassen,.vraag-aanpassen:focus-visible{opacity:1;}
 .vraag-aanpassen:hover{background:var(--blauw-bg);color:var(--rijk-blauw);}
 @media (hover:none){.vraag-aanpassen{opacity:.7;}}
-.bubble.gestopt{display:flex;align-items:center;gap:12px;color:var(--ink-licht);font-size:.9rem;}
-.vraag-aanpassen-tekst{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--rijk-licht);color:var(--rijk-blauw);border-radius:999px;padding:3px 11px;font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;}
+.bubble.gestopt{color:var(--ink-licht);font-size:.9rem;}
 .via-pagina{display:block;text-align:right;font-size:.74rem;color:var(--ink-licht);margin:3px 4px 0;}
 a{color:var(--rijk-licht);}
 /* De wachtregel breekt over twee regels omdat de bel tijdens het laden weinig inhoud heeft en
@@ -2897,7 +2896,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 150";
+const APP_VERSION="build 151";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -5020,10 +5019,7 @@ function stopVraag(){
   try{v.ctrl.abort();}catch(e){}
   stopTypen();
   const slot=v.turn&&v.turn.isConnected&&v.turn.querySelector(".slot");
-  if(slot)slot.innerHTML=`<div class="bubble antwoord gestopt"><span>Gestopt.</span>`
-    +`<button type="button" class="vraag-aanpassen-tekst">${ICON_POTLOOD}<span>Vraag aanpassen</span></button></div>`;
-  const k=slot&&slot.querySelector(".vraag-aanpassen-tekst");
-  if(k){const q=(v.turn.querySelector(".bubble.vraag")||{}).textContent||"";k.onclick=()=>vraagAanpassen(q,v.turn);}
+  if(slot)slot.innerHTML=`<div class="bubble antwoord gestopt">Gestopt. Stel je vraag opnieuw.</div>`;
 }
 // De vraag terug in het invoerveld. Loopt hij nog, dan eerst stoppen.
 function vraagAanpassen(q,turn){
