@@ -2819,7 +2819,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 136";
+const APP_VERSION="build 137";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3083,6 +3083,9 @@ function heleInleiding(citations,kz){
     if(telWoorden(cit.text)>MAX_INLEIDING_WOORDEN)continue;
     Object.assign(c,{text:cit.text,start:cit.start,sectie:sectieVan(kz.idx,cit.start)});
   }
+  // Geen brug vóór de inleiding. Het model kent de hele pagina en schreef daar een stap uit een
+  // van de keuzes in ("moet u eerst het verlies melden bij de RDW"), terwijl nog niet gekozen is.
+  for(const c of citations)if(c.srcIdx===kz.idx&&Number.isInteger(c.start)&&c.start<eerste.pos)c.bridge="";
 }
 // De citaten die BINNEN een van de opties staan. Weet de burger nog niet welke manier of situatie
 // geldt, dan hoort de uitwerking van één optie (laat staan van allemaal) nog niet in het
@@ -4308,6 +4311,22 @@ function zonderKeuzeLijst(alineas,kz){
   if(!uit.length)return null;
   return Object.assign(uit,{afgevallen:alineas.afgevallen,hersteld:alineas.hersteld});
 }
+// De letterlijke inleiding als alinea's voor het generatieve blok. Een citaat is regel voor regel
+// uit de pagina geknipt; daar zit soms een linktekst tussen ("Lees wat u kunt doen als …") en een
+// losse "Let op:". Linkteksten vallen weg, "Let op:" gaat samen met de regel erna.
+function inleidingAlsAlineas(citations){
+  const uit=[];
+  citations.forEach((c,i)=>{
+    const A=anchorSet(c.srcIdx);
+    const regels=(c.text||"").split("\n").map(t=>t.trim()).filter(t=>t&&!A.has(t)&&!/^[.,;:]$/.test(t));
+    for(let k=0;k<regels.length;k++){
+      let t=regels[k];
+      while(/:$/.test(t)&&k+1<regels.length)t+=" "+regels[++k];
+      uit.push({tekst:t,bronnen:[i+1]});
+    }
+  });
+  return uit.length?uit:null;
+}
 async function askAI(q,cands,key,subs,opGeneratief){
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
@@ -4342,6 +4361,9 @@ async function askAI(q,cands,key,subs,opGeneratief){
     const eerste=kopjesBoom(CORPUS[uit.keuze.idx])[uit.keuze.opties[0]];
     return !!eerste&&uit.citations.every(c=>c.srcIdx===uit.keuze.idx&&Number.isInteger(c.start)&&c.start<eerste.pos);
   })();
+  // In de generatieve modus blijft het wel het generatieve blok: dezelfde layout als altijd,
+  // alleen met de tekst van de site erin.
+  if(GENERATIEF&&alleenInleiding)uit.generatief=inleidingAlsAlineas(uit.citations);
   if(GENERATIEF&&uit.citations.length&&!alleenInleiding){
     // Staat er een keuze bij het antwoord, dan is het citaat vaak alleen de inleiding erboven
     // ("Wat u kunt doen, hangt af van uw situatie."). De schrijver hoort dat de keuzes volgen
