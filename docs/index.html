@@ -244,6 +244,12 @@ ol.srclist li{margin:2px 0;}
 .genherstel{font-size:.8rem;color:var(--ink-licht);margin:8px 0 0;}
 .genweg{font-size:.82rem;color:var(--ink-licht);background:var(--grijs);border-radius:8px;padding:8px 11px;margin:10px 0;}
 .note{font-size:.85rem;color:var(--oranje);margin:10px 0;}
+/* Terugval na een AI-fout: geel zoals een waarschuwing, met de knop om het opnieuw te proberen. */
+.terugval{background:#fff4dc;border:1px solid #f1d58f;border-radius:10px;padding:9px 12px;margin:0 0 12px;font-size:.88rem;color:var(--ink);}
+.terugval p{margin:0 0 4px;}
+.terugval .terugval-fout{color:var(--ink-licht);font-size:.8rem;overflow-wrap:anywhere;}
+.terugval .opnieuw{display:inline-flex;align-items:center;gap:6px;margin-top:4px;background:var(--rijk-blauw);color:#fff;border:0;border-radius:999px;padding:5px 13px;font:inherit;font-weight:600;font-size:.85rem;cursor:pointer;}
+.terugval .opnieuw:hover{background:var(--rijk-donker);}
 .no-answer{color:#666;margin-bottom:12px;}
 .section{margin-top:16px;font-size:.9rem;}
 .section ul{margin:4px 0 0;padding-left:18px;}
@@ -2853,7 +2859,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 142";
+const APP_VERSION="build 143";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3755,26 +3761,60 @@ async function runQuestion(rawQ,gesproken){
     cands=await rankFor(q);
   }
   if(!cands.length){logMiss(rawQ,"geen-kandidaten");const nores={restated_question:q,citations:[],note:GEEN_INFO,used:[],related:[]};renderResult(turn,nores);recordTurn(rawQ,nores);return;}
+  await beantwoord(turn,{rawQ,q,cands,deelvragen,ai,lokaal,key});
+}
+// De laatste stap van een vraag: het antwoord opstellen en tonen. Los van runQuestion, zodat
+// "Opnieuw proberen" na een fout precies deze stap kan herhalen met dezelfde vraag en dezelfde
+// gevonden pagina's, zonder opnieuw te zoeken.
+async function beantwoord(turn,v){
+  const {rawQ,q,cands,deelvragen,ai,lokaal,key}=v;
+  let result;
   try{
     stap(turn,"Antwoord opstellen");
-    const result=ai
+    result=ai
       ?await askAI(q,cands,key,deelvragen,(uit,alineas)=>schrijfLive(turn,uit,alineas))
       :demoAnswer(q,cands);
-    const meting=stapKlaar(turn);
-    // Laat de typemachine eerst uitschrijven; anders overschrijft de eindrender de laatste zin
-    // terwijl die nog aan het verschijnen is, en dan springt het toch.
-    await typKlaar();stopTypen();
-    renderResult(turn,result);
-    if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
-    recordTurn(rawQ,result);
-    if(result.citations&&result.citations.length){
-      const summary=(result.citations[0].text||"").slice(0,220);
-      history.push({q:result.restated_question||q,summary});
-      if(history.length>12)history.shift();
-      refreshComposer();
-    }
+  }catch(err){
+    // De AI viel weg (netwerk, limiet van een gratis sleutel, time-out). De pagina's zijn dan
+    // al gevonden en gerangschikt; alleen een foutmelding tonen gooit dat weg, terwijl de
+    // voorlichter de burger aan de lijn heeft. Dus: de best gevonden passage, letterlijk, zoals
+    // zonder sleutel — met erboven dat de AI er niet aan te pas kwam en waarom.
+    console.warn("antwoordstap mislukt:",err);
+    stopTypen();
+    result=terugvalAntwoord(q,cands,err);
+    if(!result){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';return;}
   }
-  catch(err){turn.querySelector(".slot").innerHTML='<div class="bubble antwoord"><div class="error">Er ging iets mis: '+escapeHtml(err.message)+'</div></div>';}
+  const meting=stapKlaar(turn);
+  // Laat de typemachine eerst uitschrijven; anders overschrijft de eindrender de laatste zin
+  // terwijl die nog aan het verschijnen is, en dan springt het toch.
+  await typKlaar();stopTypen();
+  renderResult(turn,result);
+  if(result.terugval){
+    const knop=turn.querySelector(".terugval .opnieuw");
+    if(knop)knop.onclick=()=>{
+      turn.querySelector(".slot").innerHTML=`<div class="bubble antwoord"><div class="loading" aria-live="polite"><span class="shimmer">Opnieuw proberen…</span></div></div>`;
+      stapStart();beantwoord(turn,v);
+    };
+    return;     // een terugval is geen antwoord van de AI: niet in de gesprekscontext
+  }
+  if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
+  recordTurn(rawQ,result);
+  if(result.citations&&result.citations.length){
+    const summary=(result.citations[0].text||"").slice(0,220);
+    history.push({q:result.restated_question||q,summary});
+    if(history.length>12)history.shift();
+    refreshComposer();
+  }
+}
+// Het antwoord als de AI-stap faalt: dezelfde passagekeuze als zonder sleutel (demoAnswer),
+// maar met een eigen melding — "vul een sleutel in" klopt hier niet, die is er juist.
+function terugvalAntwoord(q,cands,err){
+  if(!cands||!cands.length)return null;
+  let r;
+  try{r=demoAnswer(q,cands);}catch(e){return null;}
+  r.demo=false;r.terugval=true;r.note="";
+  r.fout=((err&&err.message)||String(err||"")).slice(0,300);
+  return r;
 }
 document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";runQuestion(q);refreshComposer();});
 
@@ -4916,6 +4956,8 @@ function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
 // Pijl = de vraag wordt meteen gesteld.
+// Rondje = dezelfde vraag nog eens door de AI.
+const ICON_OPNIEUW='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8M21 3v5h-5"/></svg>';
 const ICON_ARROW='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 // Twee regels tekst, de onderste korter: "minder woorden".
 const ICON_SIMPEL='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 8h16M4 16h9"/></svg>';
@@ -5226,7 +5268,7 @@ function schrijfLive(turn,uit,alineas){
   if(!TYPER.raf)TYPER.raf=requestAnimationFrame(typRonde);
 }
 function renderResult(turn,r,voorlopig){
-  const badge=r.demo?'<span class="badge demo">DEMO</span>':'<span class="badge ai">AI</span>';
+  const badge=r.demo?'<span class="badge demo">DEMO</span>':r.terugval?'<span class="badge demo">ZONDER AI</span>':'<span class="badge ai">AI</span>';
   const hasCites=r.citations&&r.citations.length;
   let h=`<div class="bubble antwoord">`;
   // De intro herformuleert de vraag al; toon dan GEEN losse 'Je vraag:'-regel meer.
@@ -5235,6 +5277,9 @@ function renderResult(turn,r,voorlopig){
   const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   const sp=hasCites&&!voorlopig?stappenplanVan(r):null;
   if(r.stap)h+=stapkopHTML(r.stap.sp,r.stap.nr);
+  if(r.terugval)h+=`<div class="terugval" role="status"><p><b>AI niet bereikbaar.</b> Hieronder staat de best gevonden passage, letterlijk van de pagina maar niet door AI gekozen.</p>`
+    +(r.fout?`<p class="terugval-fout">${escapeHtml(r.fout)}</p>`:"")
+    +`<button type="button" class="opnieuw">${ICON_OPNIEUW}<span>Opnieuw proberen</span></button></div>`;
   if(hasCites){
     // Eén doorlopend stuk: AI-tekst en citaat wisselen elkaar af, elk met een streepje en
     // alleen de eerste keer een label (AI / NWW). Zo lees je van boven naar beneden af wie
