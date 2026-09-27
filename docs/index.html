@@ -706,6 +706,7 @@ Regels:
 - Staat het antwoord NIET in de passages, schrijf dan geen antwoord bij elkaar. Geef in dat geval precies één alinea met exact deze tekst, zonder bronnen:
 "Wij hebben geen informatie over dit onderwerp. Verwijs eventueel door naar een partner."
   Dat geldt ook als de passages er in de buurt komen: liever geen antwoord dan een antwoord dat net naast de vraag zit.
+  UITZONDERING: staat onder de passages een blok "KEUZES OP DE PAGINA", dan staat het vervolg van het antwoord op de pagina achter die keuzes, en de app toont ze als knoppen onder je antwoord. Zeg dan NIET dat er geen informatie is. Schrijf op wat de passage zegt dat voor iedereen geldt (bijvoorbeeld wat u wel of niet mag, of dat het afhangt van uw situatie) en sluit af met één zin dat wat de burger verder moet doen afhangt van zijn situatie, zoals hieronder te kiezen. Noem bij die keuzes geen stappen, bedragen of termijnen: die staan niet in de passage.
   Die zin is een HEEL antwoord op zichzelf: hij is dan de ENIGE alinea, zonder bronnen. Plak hem nooit achter, voor of tussen een alinea die wel antwoord geeft, en gebruik hem nooit voor een ONDERDEEL van de vraag terwijl een passage dat onderdeel wel beantwoordt. Beantwoordt een passage een deel van de vraag, schrijf dat deel dan gewoon op.
 
 Antwoord UITSLUITEND met JSON: {"alineas":[{"tekst":"<alinea>","bronnen":[<passagenummers>]}]}`;
@@ -2818,7 +2819,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 133";
+const APP_VERSION="build 134";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -4295,9 +4296,18 @@ async function askAI(q,cands,key,subs,opGeneratief){
   // WEL streamen: het volledig generatieve antwoord. Dat is één lopend verhaal dat van boven
   // naar beneden groeit, dus er springt niets — precies waar streamen wél voor deugt.
   if(GENERATIEF&&uit.citations.length){
-    const live=(STREAM&&kanStreamen()&&opGeneratief)?(alineas)=>opGeneratief(uit,alineas):null;
-    uit.generatief=await schrijfAntwoord(q,uit.citations,key,live);
-    if(!uit.generatief)uit.genReden=GEN_REDEN||"onbekende reden";
+    // Staat er een keuze bij het antwoord, dan is het citaat vaak alleen de inleiding erboven
+    // ("Wat u kunt doen, hangt af van uw situatie."). De schrijver hoort dat de keuzes volgen
+    // (zie schrijfAntwoord), maar zegt hij tóch "Wij hebben geen informatie", dan spreekt dat de
+    // bron en de keuzeknoppen ernaast tegen: het antwoord staat wél op de pagina. Dan tonen we
+    // de inleiding letterlijk, met de keuzes eronder.
+    const geenInfoBijKeuze=t=>!!uit.keuze&&GEEN_INFO_KERN.some(k=>plat(t).includes(k));
+    const live=(STREAM&&kanStreamen()&&opGeneratief)
+      ?(alineas)=>{if(!alineas.some(geenInfoBijKeuze))opGeneratief(uit,alineas);}:null;
+    uit.generatief=await schrijfAntwoord(q,uit.citations,key,live,uit.keuze);
+    if(uit.generatief&&uit.generatief.length===1&&!uit.generatief[0].bronnen.length&&geenInfoBijKeuze(uit.generatief[0].tekst))
+      uit.generatief=null;
+    else if(!uit.generatief)uit.genReden=GEN_REDEN||"onbekende reden";
     else{
       const echt=(uit.generatief.hersteld||[]).filter(x=>!x.zelfdeWaarde);
       if(echt.length)uit.genHersteld=echt;
@@ -4465,9 +4475,16 @@ function herstelTekst(hersteld){
 }
 // Vergelijken zonder te struikelen over een hoofdletter of een dubbele spatie.
 const plat=t=>String(t).toLowerCase().replace(/\s+/g," ").trim();
-async function schrijfAntwoord(q,citations,key,onAlineas){
+async function schrijfAntwoord(q,citations,key,onAlineas,keuze){
   GEN_REDEN="";
   const lijst=citations.map((c,i)=>"["+(i+1)+"] "+c.text).join("\n\n");
+  // Volgt er op de pagina een keuze (zie keuzeVoor), dan ziet de schrijver alleen de inleiding
+  // erboven. Zonder dit blok vindt hij dat te weinig en zegt hij "geen informatie", terwijl de
+  // inleiding vaak iets zegt wat voor iedereen geldt ("Dan mag u niet autorijden.").
+  const keuzeBlok=keuze&&keuze.huidig===-1
+    ?"\n\nKEUZES OP DE PAGINA (de app toont ze als knoppen onder je antwoord):\n"+(keuze.vraag||"Wat is uw situatie?")+"\n"
+      +keuze.opties.map(k=>"- "+keuzeLabel(keuze,k)).join("\n")
+    :"";
   let j;
   try{
     // Tijdens het schrijven tonen we de alinea's zoals ze binnenkomen. Er wordt NIETS
@@ -4485,7 +4502,7 @@ async function schrijfAntwoord(q,citations,key,onAlineas){
       };
     }
     const text=await PROVIDERS[provSel.value].call(key,modelSel.value,GENERATIEF_SYSTEM,
-      "Vraag:\n"+q+"\n\nPassages:\n"+lijst,onDelta);
+      "Vraag:\n"+q+"\n\nPassages:\n"+lijst+keuzeBlok,onDelta);
     j=parseModelJSON(text);
   }catch(e){
     console.warn("generatief antwoord:",e);
