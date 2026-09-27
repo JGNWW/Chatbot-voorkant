@@ -2866,7 +2866,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 145";
+const APP_VERSION="build 146";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3527,16 +3527,32 @@ function landenViaLink(idx){
   const uit=best>=0?landenBij(best):null;
   _LANDENVIA.set(idx,uit);return uit;
 }
+// Welk land is er al genoemd? In de vraag, in de eerdere vragen van dit gesprek, of via het
+// zoekgebied. Precies één land telt; bij twee of meer weet de app niet welk er bedoeld is.
+function genoemdLand(r){
+  const tekst=[r&&r.restated_question,r&&r.__vraag&&r.__vraag.rawQ,...history.map(h=>h.q)].filter(Boolean).join(" \n ");
+  const landen=detectCountries(tekst);
+  if(FILTER.country)landen.add(FILTER.country);
+  return landen.size===1?[...landen][0]:null;
+}
 function uitvraagHTML(r,c,n){
   const id="uv-"+Math.random().toString(36).slice(2,8);
-  const landen=isLandVraag(c)?landenVoor(r):null;
-  const kop=`<label class="uv-vraag" for="${id}">${escapeHtml(c.question)}</label>`;
+  let landen=isLandVraag(c)?landenVoor(r):null;
+  // Het land is al genoemd: dan hoeft de burger het niet nog eens gezegd te hebben. Staat het in
+  // de landenkiezer, dan staat het daar al gekozen en is het één klik; staat het er niet in, dan
+  // is er niets meer uit te vragen en valt de vraag weg.
+  const bekend=isLandVraag(c)?genoemdLand(r):null;
+  const voorkeuze=bekend&&landen?landen.findIndex(l=>l.slug===bekend):-1;
+  if(bekend&&voorkeuze<0)return "";
+  const kop=voorkeuze>=0
+    ?`<label class="uv-vraag" for="${id}">Land al genoemd: ${escapeHtml(landen[voorkeuze].naam)}</label>`
+    :`<label class="uv-vraag" for="${id}">${escapeHtml(c.question)}</label>`;
   if(landen){
-    return `<form class="uitvraag" data-n="${n}" data-land="1" autocomplete="off">${kop}<div class="uv-regel">`
-      +`<div class="uv-combo"><input id="${id}" type="text" role="combobox" aria-expanded="false" aria-controls="${id}-l" aria-autocomplete="list" placeholder="Typ of kies een land…">`
+    return `<form class="uitvraag" data-n="${n}" data-land="1"${voorkeuze>=0?` data-voorkeuze="${voorkeuze}"`:""} autocomplete="off">${kop}<div class="uv-regel">`
+      +`<div class="uv-combo"><input id="${id}" type="text" role="combobox" aria-expanded="false" aria-controls="${id}-l" aria-autocomplete="list" placeholder="Typ of kies een land…"${voorkeuze>=0?` value="${escapeHtml(landen[voorkeuze].naam)}"`:""}>`
       +`<svg class="uv-pijl" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`
       +`<ul class="uv-lijst" id="${id}-l" role="listbox" hidden></ul></div>`
-      +`<button class="uv-knop" type="submit" disabled>Toon antwoord ${ICON_ARROW}</button></div></form>`;
+      +`<button class="uv-knop" type="submit"${voorkeuze>=0?"":" disabled"}>Toon antwoord ${ICON_ARROW}</button></div></form>`;
   }
   return `<form class="uitvraag" data-n="${n}" autocomplete="off">${kop}<div class="uv-regel">`
     +`<input class="uv-tekst" id="${id}" type="text" value="${escapeHtml(c.prefill||"")}">`
@@ -3562,7 +3578,7 @@ function koppelUitvraag(fm,bronTurn,r){
   }
   const landen=landenVoor(r)||[];
   const lijst=fm.querySelector(".uv-lijst");
-  let treffers=[],actief=-1,gekozen=null;
+  let treffers=[],actief=-1,gekozen=fm.dataset.voorkeuze!==undefined&&landen[+fm.dataset.voorkeuze]?+fm.dataset.voorkeuze:null;
   const zoek=q=>{
     const f=fold(q.trim());
     if(!f)return landen.map((l,i)=>i);
