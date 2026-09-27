@@ -2853,7 +2853,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 140";
+const APP_VERSION="build 141";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -4221,7 +4221,120 @@ function proseLines(idx){
   return (PROSE[idx]=out);
 }
 
+// ---- Demo-modus: zelf een passage kiezen, zonder taalmodel ----------------------------------
+// Zonder sleutel toonde de demo het BEGIN van de beste pagina. Op "wat kost een paspoort?" was
+// dat een alinea over vernieuwen, zonder één bedrag: de demo liet zo niet zien wat de app kan.
+// Terwijl alles na de keuze van de passage (hele zinnen, tabel als tabel, sectiepad, keuzes)
+// geen model nodig heeft. Hier doet een eenvoudige score die keuze; daarna loopt de passage
+// door bouwAntwoord(), precies zoals een door de AI aangewezen passage.
+//
+// Zonder model om pagina's naast elkaar te leggen, blijft de demo bij de bovenste pagina van de
+// zoeker, en kiest daarop één blok (een alinea, of een hele tabel); zie kiesDemoPassage voor de
+// regels. Gemeten met scripts/demo_eval.mjs op de 103 standaardvragen van de site: het antwoord
+// staat nu in 70 van de demo-antwoorden, tegen 64 bij het begin van de pagina, en bij de vragen
+// naar een bedrag of termijn in 7 van de 9 in plaats van 4.
+const DEMO_DUURVRAAG=/\b(hoe\s*lang|duurt|duren|termijn|doorlooptijd|wachttijd)\b/i;
+const DEMO_DUUR=/\b\d+\s*(werk)?(dag|dagen|week|weken|maand|maanden|jaar)\b/i;
+const DEMO_KOP=0.6, DEMO_VROEG=5, DEMO_MIN_WOORDEN=70;
+const _DEMOBLOK=[];
+function demoBlokken(idx){
+  if(_DEMOBLOK[idx])return _DEMOBLOK[idx];
+  const H=headingSet(idx),A=anchorSet(idx),uit=[];
+  let huidig=null;
+  for(const u of unitsOf(idx)){
+    const t=u.text.trim();
+    if(H.has(t)||A.has(t)){huidig=null;continue;}
+    // Een tabel is één blok, van de aankondiging tot de laatste waarde; een alinea ook.
+    const soort=u.tabel?"tabel":"al"+u.al;
+    if(huidig&&huidig.soort===soort){huidig.end=u.end;continue;}
+    huidig={soort,start:u.start,end:u.end};uit.push(huidig);
+  }
+  const txt=(CORPUS[idx]||{}).text||"";
+  for(const b of uit){
+    b.text=txt.slice(b.start,b.end);
+    const s=sectieVan(idx,b.start);
+    b.kop=s?s.pad.join(" "):"";
+  }
+  return (_DEMOBLOK[idx]=uit.filter(b=>b.soort==="tabel"||!isWeakQuote(b.text)));
+}
+function kiesDemoPassage(q,cands){
+  if(!DF)buildDF();
+  const gewicht=new Map([...new Set(tokenize(q))].map(t=>[t,bm25idf(t)]).filter(x=>x[1]>0));
+  const totaal=[...gewicht.values()].reduce((a,b)=>a+b,0);
+  const prijs=PRIJSVRAAG.test(q),duur=DEMO_DUURVRAAG.test(q);
+  const waarde=b=>(prijs&&/€/.test(b.text))||(duur&&DEMO_DUUR.test(b.text));
+  const lijst=cands.slice(0,TOPK).filter(i=>CORPUS[i]&&CORPUS[i].text&&demoBlokken(i).length);
+  if(!lijst.length)return null;
+  // PAGINA: de bovenste. De zoeker is daar goed in, en een taalmodel dat de pagina's naast
+  // elkaar kan leggen is er niet. Alleen als naar een bedrag of termijn gevraagd wordt dat daar
+  // niet staat, gaan we verder: eerst naar de tariefpagina van de rubriek (die metKostenpagina
+  // bij een prijsvraag al achteraan zette), anders naar de eerste pagina waar het wel staat.
+  let idx=lijst[0];
+  if((prijs||duur)&&!demoBlokken(idx).some(waarde)){
+    const heeft=i=>demoBlokken(i).some(waarde);
+    const kost=i=>/kost|tarief|prijs/i.test((CORPUS[i].url||"")+" "+(CORPUS[i].title||""));
+    // Alleen binnen dezelfde rubriek: "betaal ik belasting" is ook een prijsvraag, maar de
+    // paspoorttarieven zijn daar geen antwoord op.
+    const rubriek=i=>((CORPUS[i].url||"").replace(/^https?:\/\/[^/]+\//,"").split("/")[0]);
+    const zelfde=lijst.filter(i=>rubriek(i)===rubriek(idx));
+    const alt=(prijs&&zelfde.find(i=>kost(i)&&heeft(i)))??zelfde.find(heeft);
+    if(alt!==undefined)idx=alt;
+  }
+  // BLOK: vraagt de burger naar een bedrag of termijn en staat die op de pagina, dan komen alleen
+  // blokken mét een bedrag of termijn in aanmerking. Dezelfde regel als in de prompt van het
+  // model ("HET ANTWOORD MOET ER ECHT IN STAAN"): "Wat u betaalt, hangt af van waar u de aanvraag
+  // doet" is geen antwoord op "wat kost een paspoort", de tabel eronder wel.
+  // Daarbinnen telt het deel van de vraagwoorden dat in het blok staat (gewogen naar
+  // zeldzaamheid; een woord uit het kopje erboven telt voor DEMO_KOP), en een voorsprong voor wat
+  // vooraan staat. Die voorsprong is groot: de opening van een pagina is bijna altijd het
+  // algemene antwoord, en verderop staan de uitzonderingen. Een telling van losse woorden kan dat
+  // onderscheid niet maken, dus wint de opening tenzij een later blok duidelijk beter past.
+  const blokken=demoBlokken(idx);
+  const metWaarde=(prijs||duur)&&blokken.some(waarde);
+  let beste=null;
+  blokken.forEach((b,k)=>{
+    if(metWaarde&&!waarde(b))return;
+    let s=0;
+    if(totaal>0){
+      const eigen=new Set(tokenize(b.text)),kop=new Set(tokenize(b.kop));
+      for(const [t,w] of gewicht)s+=eigen.has(t)?w:kop.has(t)?DEMO_KOP*w:0;
+      s/=totaal;
+    }
+    s+=DEMO_VROEG*(1-k/blokken.length);
+    if(!beste||s>beste.s)beste={s,k,start:b.start,end:b.end};
+  });
+  // AANVULLEN: is het gekozen stuk kort ("Woont u in het buitenland? Dan geldt:"), dan hoort
+  // wat erna komt er meestal bij: het volgende blok uit dezelfde sectie, in hetzelfde citaat.
+  // Staat dat volgende blok onder een nieuw kopje, dan wordt het een TWEEDE citaat: een citaat
+  // loopt nooit over een kopje heen (zie buildCitation), maar het antwoord staat vaak net
+  // onder het eerste kopje van de pagina.
+  const woorden=t=>(t.match(/\S+/g)||[]).length;
+  const delen=[{start:beste.start,end:beste.end}];
+  let k=beste.k,n=woorden(blokken[k].text);
+  while((n<DEMO_MIN_WOORDEN||/[:?]$/.test(blokken[k].text.trim()))&&blokken[k+1]&&blokken[k].soort!=="tabel"){
+    const volgend=blokken[k+1];
+    if(volgend.soort==="tabel"&&!waarde(volgend))break;
+    if(volgend.kop===blokken[k].kop&&volgend.soort!=="tabel")delen[delen.length-1].end=volgend.end;
+    else if(delen.length<2)delen.push({start:volgend.start,end:volgend.end});
+    else break;
+    k++;n+=woorden(volgend.text);
+  }
+  return {idx,rang:cands.indexOf(idx),delen};
+}
+const DEMO_NOOT="Demo-modus: deze passage is zonder AI gekozen. Met een sleutel kiest de AI zelf de passages en schrijft hij er een inleiding bij.";
 function demoAnswer(q,cands){
+  const keus=kiesDemoPassage(q,cands);
+  if(keus){
+    const tekst=CORPUS[keus.idx].text;
+    const citations=keus.delen.map(d=>({source_index:keus.rang,quote:tekst.slice(d.start,d.end)}));
+    const uit=bouwAntwoord({citations,restated_question:q},q,cands,cands,[],false);
+    if(uit.citations.length){
+      uit.demo=true;uit.note=DEMO_NOOT;
+      uit.related=cands.filter(i=>i!==keus.idx).slice(0,3).map(srcOf);
+      return uit;
+    }
+  }
+  // Niets bruikbaars gevonden: dan zoals vroeger het begin van de beste pagina.
   const paras=proseLines(cands[0]);
   const body=paras.slice(0,2).join("\n")||CORPUS[cands[0]].desc||"";
   return {restated_question:q,demo:true,

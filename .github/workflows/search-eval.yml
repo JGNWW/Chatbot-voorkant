@@ -21,6 +21,7 @@ on:
       - scripts/eval_set_gauntlet_dev.json
       - scripts/eval_set_gauntlet_blind.json
       - scripts/antwoord_eval.mjs
+      - scripts/demo_eval.mjs
       - scripts/standaardvragen.json
   push:
     paths:
@@ -36,6 +37,7 @@ on:
       - scripts/eval_set_gauntlet_blind.json
       - scripts/quote_test.mjs
       - scripts/antwoord_eval.mjs
+      - scripts/demo_eval.mjs
       - scripts/standaardvragen.json
 
 jobs:
@@ -55,6 +57,11 @@ jobs:
       # informatie over dit onderwerp" omdat het antwoord in een tabel stond.
       - name: Standaardvragen leveren een compleet citaat op (103)
         run: node scripts/antwoord_eval.mjs --no-sem --gate
+      # Wie zonder sleutel begint, krijgt de demo: de app kiest dan zelf een passage. Die keuze
+      # moet op de standaardvragen minstens zo vaak het antwoord bevatten als de oude demo (het
+      # begin van de beste pagina).
+      - name: Demo zonder sleutel geeft het antwoord (103)
+        run: node scripts/demo_eval.mjs --no-sem --gate
       # De drempels hieronder horen bij de treffertoets zoals die sinds "Een landenpagina is geen
       # antwoord op een vraag zonder land" telt: een landvariant is alleen een treffer als de
       # vraag dat land noemt. De oude drempels (0,91 en 0,82) stamden van vóór die strengere

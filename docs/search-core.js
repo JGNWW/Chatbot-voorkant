@@ -505,6 +505,7 @@ if(typeof module!=="undefined"&&module.exports){
     urlIndex,ancestorsOf,productMatch,forceProduct,
     semanticRank,semanticScored,rankScored,fuseScored,hybrid,withHub,hubCandidates,rankFor,spread,
     algemeneVariant,withAlgemeneVariant,metKostenpagina,
+    bm25idf,PRIJSVRAAG,
     get CORPUS(){return CORPUS;},
     get PTOKENS(){return PTOKENS;},
     weights:{get TOPK(){return TOPK;},get W_SEM(){return W_SEM;},get W_KW(){return W_KW;},get FUSE_DEPTH(){return FUSE_DEPTH;},

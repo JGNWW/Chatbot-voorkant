@@ -87,12 +87,13 @@ naar de backend.
 
 ## Meten: zoekt hij goed, en komt er ook echt een antwoord uit?
 
-Twee harnassen, en ze meten verschillende dingen:
+Drie harnassen, en ze meten verschillende dingen:
 
 ```bash
 node scripts/eval.mjs --no-sem              # welke PAGINA vindt de zoeker? (recall@6, MRR)
 node scripts/antwoord_eval.mjs --no-sem     # komt er op een standaardvraag een ANTWOORD uit?
 node scripts/antwoord_eval.mjs              # idem, mét het semantische model erbij
+node scripts/demo_eval.mjs --no-sem         # en ZONDER sleutel: staat het antwoord in wat de demo kiest?
 ```
 
 `antwoord_eval.mjs` loopt per standaardvraag de hele keten na die zonder
