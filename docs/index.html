@@ -2819,7 +2819,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 137";
+const APP_VERSION="build 138";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3046,6 +3046,16 @@ function overlaptKeuze(vraag,kz){
   const kant=stammen([kz.vraag,...kz.opties.map(k=>(boom[k]||{}).t)].join(" "));
   for(const w of stammen(vraag))if(kant.has(w))return true;
   return /^(om welke situatie|wat is uw situatie|welke situatie)/i.test((vraag||"").trim());
+}
+// Mag de vraag van het model de afgeleide keuzevraag vervangen? Alleen als de app zelf niet meer
+// dan een algemene vraag kon afleiden ("Op welke manier wilt u het doen?"). Een concrete vraag uit
+// de kopjes ("Hoe wilt u uw wachtwoord herstellen?" boven "Met de DigiD app" / "Per e-mail en sms")
+// past precies bij de knoppen. Het model zet daar makkelijk een vraag voor in de plaats die wel
+// dezelfde woorden deelt maar iets anders vraagt ("Heeft u al een DigiD gebruikersnaam?"), of een
+// ja/nee-vraag waar de tweede knop geen antwoord op is ("Maakt u gebruik van de DigiD app?").
+const KEUZE_ALGEMEEN=/^(op welke manier wilt u het doen|waar wilt u (dit regelen|het aanvragen)|wat is uw situatie)\?$/i;
+function vraagOverKeuze(vraag,kz){
+  return KEUZE_ALGEMEEN.test(kz.vraag||"")&&overlaptKeuze(vraag,kz);
 }
 function keuzeLabel(kz,k){return (kz.labels&&kz.labels[k])||(kopjesBoom(CORPUS[kz.idx])[k]||{}).t||"";}
 // Welke keuze-optie noemt de vraag zelf al? "…herstellen met de app" kiest de app; dan hoeft de
@@ -4248,9 +4258,10 @@ function bouwAntwoord(r,q,bronnen,cands,subs,voorlopig){
   const plan=voorlopig?undefined:stappenplanVan({citations,restated_question:r.restated_question||q});
   let keuze=voorlopig||plan?null:keuzeVoor(citations);
   if(keuze){
-    // Bij een keuze uit de vorm van de kopjes is de vraag van het model ("Maakt u gebruik van de DigiD app?")
-    // meestal beter dan wat de app uit de kopjes afleidt. De opties blijven de kopjes.
-    const zelfde=clarifications.find(c=>overlaptKeuze(c.question,keuze));
+    // Bij een keuze uit de vorm van de kopjes kon de app soms alleen een algemene vraag afleiden
+    // ("Op welke manier wilt u het doen?"); dan is die van het model beter (zie vraagOverKeuze).
+    // De opties blijven de kopjes.
+    const zelfde=clarifications.find(c=>vraagOverKeuze(c.question,keuze));
     if(keuze.afgeleid&&zelfde&&/\?$/.test(zelfde.question))keuze.vraag=zelfde.question;
     clarifications=clarifications.filter(c=>!overlaptKeuze(c.question,keuze));
     knipTotKeuze(citations,keuze,q);
