@@ -7,6 +7,7 @@
 // <</CITAAT-LOGICA>>. Dit bestand knipt dat blok eruit en voert het uit, zodat test en app
 // gegarandeerd dezelfde code gebruiken; verdwijnt het blok, dan faalt de test meteen.
 import fs from "fs";
+import { plakBeginletters, schuif } from "./plak_beginletters.mjs";
 
 const html = fs.readFileSync(new URL("../docs/index.html", import.meta.url), "utf-8");
 const A = html.indexOf("// ===== <<CITAAT-LOGICA>>");
@@ -517,6 +518,27 @@ test("O7. letterlijk overgenomen stappen en tabelrijen in een AI-alinea", () => 
 
 // --- steekproef op het echte corpus ---
 console.log("\nCORPUS-STEEKPROEF\n");
+// Een losgeknipte beginletter ("E\nn wilt u") hoort niet in het corpus: het citaat begon dan met
+// "n wilt u". Zie scripts/plak_beginletters.mjs en plak_beginletters() in scripts/crawl.py.
+test("B1. beginletter weer aan het woord, eenletterwoord blijft los", () => {
+  eq(plakBeginletters("Caribisch Nederland? E\nn wilt u uw DigiD activeren?").tekst,
+     "Caribisch Nederland? En wilt u uw DigiD activeren?");
+  eq(plakBeginletters("Let op:\nD\ne RNI is onderdeel").tekst, "Let op:\nDe RNI is onderdeel");
+  eq(plakBeginletters("moet reizen. U\nkunt niet zelf kiezen").tekst, "moet reizen. U\nkunt niet zelf kiezen");
+  const { tekst, weg } = plakBeginletters("ab E\nn cd");
+  eq(tekst, "ab En cd"); eq(schuif(7, weg), 6); eq(schuif(2, weg), 2);
+});
+test("B2. het corpus bevat geen losgeknipte beginletters meer", () => {
+  const corpus = JSON.parse(fs.readFileSync(new URL("../docs/data/corpus.json", import.meta.url), "utf-8"));
+  const over = corpus.filter(p => plakBeginletters(p.text).weg.length).map(p => p.url);
+  eq(over.length, 0, "nog losse beginletters op: " + over.slice(0, 3).join(", "));
+  const dig = corpus.find(p => /digid-buiten-nederland\/activeren$/.test(p.url));
+  waar(dig.text.includes("Caribisch Nederland? En wilt u uw DigiD activeren?"), "DigiD-zin niet hersteld");
+  // De lijstposities zijn meegeschoven: elke lijstregel begint nog op een regelbegin.
+  for (const p of corpus) for (const l of p.lists || []) for (let k = 1; k < l.length; k += 2)
+    waar(l[k] === 0 || p.text[l[k] - 1] === "\n", "lijstpositie verschoven op " + p.url);
+});
+
 test("citaten uit het echte corpus zijn compleet en letterlijk", () => {
   const corpus = JSON.parse(fs.readFileSync(new URL("../docs/data/corpus.json", import.meta.url), "utf-8"));
   let gecontroleerd = 0, stuk = [];
