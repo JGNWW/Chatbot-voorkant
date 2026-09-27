@@ -488,6 +488,14 @@ body.viewer-active .viewer{width:min(560px,94vw);}
 .viewer-body a.vlink:hover{color:var(--rijk-blauw);}
 .cite-body a.cite-link{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
 .cite-body a.cite-link:hover{color:var(--rijk-blauw);}
+/* "Let op" uit dezelfde sectie: ingeklapt, geel zoals een waarschuwing op de site. */
+.letop{margin:6px 0 2px;border:1px solid #f1d58f;background:#fff8e6;border-radius:8px;padding:5px 11px;font-size:.92rem;}
+.letop summary{cursor:pointer;font-weight:700;color:#7a4f00;font-size:.85rem;}
+.letop summary::marker{color:#b37400;}
+.letop[open] summary{margin-bottom:4px;}
+.letop-blok+.letop-blok{border-top:1px solid #f1d58f;margin-top:6px;padding-top:6px;}
+.letop .cite-p{margin:0 0 4px;}
+.letop a.cite-link{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
 .viewer-note{color:var(--oranje);font-size:.85rem;margin-bottom:12px;font-style:italic;}
 .viewer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:55;border:0;}
 .viewer-backdrop[hidden]{display:none;}
@@ -2868,7 +2876,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 147";
+const APP_VERSION="build 148";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -5273,6 +5281,57 @@ function blokkenHTML(blokken,klasse,links){
     return `<p class="${k}-p">${tx(b.tekst)}</p>`;
   }).join("");
 }
+// ---- "Let op" uit dezelfde sectie ---------------------------------------------------------------
+// De prompt laat losse "Let op:"-blokken bewust buiten het citaat (kort houden), maar juist daar
+// staan de uitzonderingen: "Let op: wilt u een paspoort voor uw adoptiekind…". Staat zo'n blok in
+// DEZELFDE sectie als het citaat — onder hetzelfde diepste kopje, tot het volgende kopje — dan
+// komt het ingeklapt onder het citaat, letterlijk. Een blok is de regel "Let op:" plus de alinea
+// erna (met regels die er als voortzetting bij horen, zoals een link midden in een zin). Staat de
+// tekst al in het citaat, dan niet nog eens. Geen modelaanroep, geen eigen tekst.
+const LETOP=/^let op\b[:!]?\s*/i;
+function letOpBlokken(c){
+  const p=c&&CORPUS[c.srcIdx];
+  if(!p||!p.text||c.heleSectie)return [];
+  const T=p.text;
+  const start=Number.isInteger(c.start)?c.start:T.indexOf(((c.text||"").split("\n")[0]||"").trim());
+  if(start<0)return [];
+  const knopen=kopjesBoom(p);
+  let van=0,tot=knopen.length?knopen[0].pos:T.length;
+  for(let k=0;k<knopen.length&&knopen[k].pos<=start;k++){van=knopen[k].kopEind;tot=k+1<knopen.length?knopen[k+1].pos:T.length;}
+  if(tot<=van)return [];
+  const regels=[];let pos=van;
+  for(const raw of T.slice(van,tot).split("\n")){regels.push({t:raw,pos});pos+=raw.length+1;}
+  const heads=headingSet(c.srcIdx),plat=x=>(x||"").replace(/\s+/g," ").trim().toLowerCase();
+  const links=new Set((p.links||[]).map(l=>Array.isArray(l)?(l[0]||"").trim():""));
+  const citaat=plat(c.text),uit=[];
+  for(let i=0;i<regels.length;i++){
+    const t=regels[i].t.trim();
+    if(!LETOP.test(t))continue;
+    let tekst=regels[i].t,j=i+1;const begin=regels[i].pos;
+    if(!t.replace(LETOP,"")){if(j>=regels.length)continue;tekst+="\n"+regels[j].t;j++;}
+    while(j<regels.length&&tekst.length<700){
+      const v=regels[j].t.trim();
+      if(!v||heads.has(v)||LETOP.test(v))break;
+      // Voortzetting: een regel die met een kleine letter of leesteken begint, een zin die nog niet
+      // af is, of een link van de pagina ("Staan uw kinderen nog niet ingeschreven? / Lees hoe u
+      // uw kinderen inschrijft in de RNI / .") — die staat op de site in hetzelfde blok.
+      if(/^[a-zà-ÿ.,;:)]/.test(v)||!/[.!?:]$/.test(tekst.trim())||links.has(v)){tekst+="\n"+regels[j].t;j++;}else break;
+    }
+    const kern=plat(tekst.replace(LETOP,""));
+    i=j-1;
+    if(!kern||citaat.includes(kern.slice(0,80)))continue;
+    uit.push({text:tekst.replace(LETOP,""),srcIdx:c.srcIdx,start:begin});
+  }
+  return uit;
+}
+function letOpHTML(c){
+  const blokken=letOpBlokken(c);
+  if(!blokken.length)return "";
+  const links=CORPUS[c.srcIdx].links;
+  return `<details class="letop"><summary>Let op op deze pagina${blokken.length>1?" ("+blokken.length+")":""}</summary>`
+    +blokken.map(b=>`<div class="letop-blok">${blokkenHTML(blokkenVan({text:b.text,srcIdx:b.srcIdx}),"cite",links)}</div>`).join("")
+    +`</details>`;
+}
 function citeBodyHTML(c){
   const links=c&&CORPUS[c.srcIdx]?CORPUS[c.srcIdx].links:null;
   if(c&&c.heleSectie)return blokkenHTML(sectieBlokken(c),"cite",links);
@@ -5463,6 +5522,7 @@ function renderResult(turn,r,voorlopig){
         +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
         +sectieKruimel(r.citations[i])
         +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(r.citations[i])}</div>`
+        +(voorlopig?"":letOpHTML(r.citations[i]||{}))
         +(sp&&sp.ci===i?stappenplanHTML(sp):"")
         +brontegel(r.citations[i]||{},n,i)+`</div></div>`;
     }
