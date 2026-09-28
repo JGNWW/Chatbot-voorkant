@@ -23,6 +23,9 @@ const base = "http://127.0.0.1:" + server.address().port;
 const VOORAF = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const browser = await chromium.launch(fs.existsSync(VOORAF) ? { executablePath: VOORAF } : {});
 const page = await browser.newPage();
+// De vraag hieronder is ook een voorbeeldvraag met een demo-opname; deze proef gaat over de weg
+// zonder AI, dus de demomodus uit (die heeft een eigen test: scripts/demo_test.mjs).
+await page.addInitScript(() => { try { localStorage.setItem("vk_demomodus", "0"); } catch (e) {} });
 const fouten = [];
 page.on("pageerror", e => fouten.push("pageerror: " + e.message));
 // ERR_CERT/ERR_NAME zijn de CDN's (transformers, het embeddingmodel) die in een afgesloten

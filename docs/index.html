@@ -583,6 +583,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
       <label class="spraak-optie" title="EXPERIMENTEEL. Sneller opstarten (bewezen, zelfde zoekresultaten) EN een vraag afhandelen met een modelaanroep in plaats van drie. Dat laatste raakt de antwoordkwaliteit: de AI kiest niet meer welke pagina het beste past. Staat dit uit, dan werkt de app precies zoals altijd. Vereist herladen."><input type="checkbox" id="turbo"> turbomodus (experimenteel)</label>
       <label class="spraak-optie" title="Laat het volledig generatieve antwoord zin voor zin verschijnen in plaats van in één keer. Versnelt niets. Werkt alleen met 'volledig generatief antwoord' aan, en niet bij de twee lokale modellen."><input type="checkbox" id="streamen"> generatief antwoord al schrijvend tonen</label>
       <label class="spraak-optie" title="De AI schrijft het antwoord zelf op basis van de gevonden passages, in plaats van ze letterlijk te tonen"><input type="checkbox" id="generatief"> volledig generatief antwoord</label>
+      <label class="spraak-optie" title="De voorbeeldvragen op het welkomstscherm krijgen een vooraf opgenomen AI-antwoord, met dezelfde stappen en wachttijd als met AI maar zonder tokens te verbruiken. Andere vragen gaan gewoon naar de AI."><input type="checkbox" id="demomodus"> demomodus voor voorbeeldvragen</label>
       <label class="spraak-optie">spraakmodel
         <select id="spraak-motor" title="Groter model = nauwkeuriger, maar eenmalig meer downloaden">
           <option value="vosk">Vosk NL — 40 MB · leest live mee</option>
@@ -1530,6 +1531,9 @@ const SAMPLES=["Hoe vraag ik een ID-kaart aan vanuit het buitenland?","Wat kost 
 const MAX_CITES=3;
 // Volledig generatief antwoord: standaard UIT. De letterlijke modus blijft de norm, omdat je
 // die aan de telefoon woordelijk kunt voorlezen.
+// Demomodus: voorbeeldvragen uit een opname in plaats van een AI-aanroep (zie DEMO_OPNAMES).
+let DEMOMODUS=true;
+try{DEMOMODUS=localStorage.getItem("vk_demomodus")!=="0";}catch(e){}
 let GENERATIEF=false;
 try{GENERATIEF=localStorage.getItem("vk_generatief")==="1";}catch(e){}
 // Koppen en linkteksten per pagina, gecachet: nodig om blokgrenzen en inline links te herkennen.
@@ -2808,6 +2812,14 @@ function loadKey(){keyInput.value=localStorage.getItem("apikey_"+provSel.value)|
     g.onchange=()=>{GENERATIEF=g.checked;try{localStorage.setItem("vk_generatief",GENERATIEF?"1":"0");}catch(e){}};
   }
 }
+// Demomodus aan/uit. Geldt vanaf de volgende vraag.
+{
+  const d=document.getElementById("demomodus");
+  if(d){
+    d.checked=DEMOMODUS;
+    d.onchange=()=>{DEMOMODUS=d.checked;try{localStorage.setItem("vk_demomodus",DEMOMODUS?"1":"0");}catch(e){}};
+  }
+}
 // ---- Lokaal model beheren: eerst downloaden, dan pas gebruiken ----
 // Zonder deze knop begon de download pas bij de eerste vraag, en dan sta je met een klant aan
 // de lijn 800 MB te wachten zonder dat je dat had zien aankomen.
@@ -2914,7 +2926,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 153";
+const APP_VERSION="build 154";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3906,8 +3918,18 @@ async function runQuestion(rawQ,gesproken){
   if(weg())return;
   const key=keyInput.value.trim();const ai=aiKlaar();
   const lokaal=geenSleutelNodig();
-  if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
   stapStart();
+  // Demomodus: een voorbeeldvraag met een opname loopt dezelfde stappen door, maar zonder één
+  // modelaanroep (zie DEMO_OPNAMES).
+  const opname=demoOpname(rawQ);
+  if(opname){
+    try{for(const [naam,ms] of DEMO_STAPPEN){stap(turn,naam);await demoWacht(ms);}}
+    catch(e){return;}    // gestopt of vervangen door een nieuwe vraag
+    if(weg())return;
+    await beantwoord(turn,{rawQ,q:rawQ,cands:opname.cands,deelvragen:[],ai:false,lokaal:false,key,nr,opname});
+    return;
+  }
+  if(lokaal){const mo=lokaleMotor();if(mo)mo.meetStart();}
   let q,cands,deelvragen=[];
   if(TURBO&&ai){
     // ===== TURBO, VRAAGKANT: ÉÉN modelaanroep in plaats van drie ==============================
@@ -4015,8 +4037,9 @@ async function beantwoord(turn,v){
   let result;
   try{
     stap(turn,"Antwoord opstellen");
-    result=ai
-      ?await askAI(q,cands,key,deelvragen,(uit,alineas)=>schrijfLive(turn,uit,alineas))
+    const live=(uit,alineas)=>schrijfLive(turn,uit,alineas);
+    result=v.opname?await speelOpname(q,v.opname,live)
+      :ai?await askAI(q,cands,key,deelvragen,live)
       :demoAnswer(q,cands);
   }catch(err){
     if(weg())return;     // gestopt of vervangen door een nieuwe vraag: geen terugval tonen
@@ -4047,7 +4070,7 @@ async function beantwoord(turn,v){
     };
     return;     // een terugval is geen antwoord van de AI: niet in de gesprekscontext
   }
-  if(lokaal)toonMeting(turn);else toonStappen(turn,meting);
+  if(lokaal)toonMeting(turn);else toonStappen(turn,meting,result.opname);
   recordTurn(rawQ,result);
   if(result.citations&&result.citations.length){
     const summary=(result.citations[0].text||"").slice(0,220);
@@ -4065,6 +4088,181 @@ function terugvalAntwoord(q,cands,err){
   r.demo=false;r.terugval=true;r.note="";
   r.fout=((err&&err.message)||String(err||"")).slice(0,300);
   return r;
+}
+// ---- Demomodus: vooraf opgenomen antwoorden op de voorbeeldvragen ------------------------------
+// Om te demonstreren hoeft niet elke klik op een voorbeeldvraag tokens te kosten. Voor de vragen
+// onder het welkomstscherm (SAMPLES) staat hieronder een modelantwoord klaar, in precies het
+// formaat dat het antwoordmodel teruggeeft: de pagina's die het te zien kreeg, de citaten met
+// source_index, een intro, en voor de generatieve modus de alinea's met bronnummers.
+//
+// Zo'n opname gaat door DEZELFDE molen als een vers antwoord (afwerkAntwoord, keurAlineas): de
+// citaten worden letterlijk uit de pagina geknipt, keuzes en stappenplannen komen uit de
+// kopjes, en elk getal in een alinea moet in de bron staan. Verandert de site, dan valt een
+// citaat dat niet meer klopt dus gewoon weg, net als bij een echt antwoord.
+//
+// Het wachten is nagespeeld: dezelfde stappen als met AI ("Vraag begrijpen" … "Antwoord
+// opstellen"), samen zo'n vijf seconden, zodat de demo laat zien hoe het met een sleutel gaat.
+// Onder het antwoord staat in de tijdregel dat het een opname was.
+//
+// Een opname toevoegen: de vraag letterlijk als sleutel (hoofdletters en leestekens tellen niet
+// mee), de URL's van de pagina's, en het antwoord in het formaat van SYSTEM / GENERATIEF_SYSTEM.
+const NWW="https://www.nederlandwereldwijd.nl/";
+const DEMO_OPNAMES={
+  "Hoe vraag ik een ID-kaart aan vanuit het buitenland?":{
+    paginas:["paspoort-id-kaart/buitenland","paspoort-id-kaart/paspoort-id-kaart-vernieuwen","paspoort-id-kaart/aanvragen","paspoort-id-kaart/status-aanvraag","paspoort-id-kaart","paspoort-id-kaart/tijdsduur-aanvragen"],
+    antwoord:{
+      restated_question:"Hoe vraag ik vanuit het buitenland een Nederlandse ID-kaart aan?",
+      intro:"Als ik het goed begrijp, wilt u weten hoe u vanuit het buitenland een ID-kaart aanvraagt.",
+      citations:[
+        {source_index:0,bridge:"",quote:"Woont u in het buitenland? En wilt u een Nederlands paspoort of ID-kaart aanvragen of vernieuwen? Kies het land waar u woont en volg de stappen."},
+        {source_index:1,bridge:"Houd daarbij rekening met de voorbereiding:",quote:"Het aanvragen van een Nederlands paspoort of ID-kaart in het buitenland kost vaak meer tijd dan u misschien verwacht. U moet zelf meer regelen en soms is het lastig om snel een afspraak te krijgen. Met een goede voorbereiding verloopt uw aanvraag een stuk makkelijker."}
+      ],
+      clarifications:[{question:"In welk land woont u?",prefill:"Ik woon in "}],
+      related_indices:[2,5]
+    },
+    alineas:[
+      {tekst:"U kunt vanuit het buitenland een Nederlandse ID-kaart aanvragen of vernieuwen. Hoe dat precies gaat, hangt af van het land waar u woont: kies dat land en volg daarna de stappen die erbij horen.",bronnen:[1]},
+      {tekst:"Houd er rekening mee dat een aanvraag in het buitenland vaak meer tijd kost dan u verwacht. U moet zelf meer regelen en een afspraak is soms lastig snel te krijgen. Met een goede voorbereiding verloopt de aanvraag een stuk makkelijker.",bronnen:[2]}
+    ]
+  },
+  "Wat kost een paspoort vanuit het buitenland?":{
+    paginas:["paspoort-id-kaart/kosten-buitenland","paspoort-id-kaart/paspoort-id-kaart-vernieuwen","paspoort-id-kaart/aanvragen","paspoort-id-kaart/buitenland","paspoort-id-kaart/status-aanvraag","naamswijziging"],
+    antwoord:{
+      restated_question:"Wat kost een Nederlands paspoort als ik in het buitenland woon?",
+      intro:"U vraagt waarschijnlijk naar de kosten van een Nederlands paspoort als u in het buitenland woont.",
+      citations:[
+        {source_index:0,bridge:"",quote:"Als u in het buitenland woont, kunt u een Nederlands paspoort of ID-kaart aanvragen op verschillende locaties. Wat u betaalt, hangt af van waar u de aanvraag doet."}
+      ],
+      clarifications:[{question:"Waar wilt u het paspoort aanvragen?",prefill:"Ik vraag het aan bij "}],
+      related_indices:[1,2]
+    },
+    alineas:[
+      {tekst:"Wat een Nederlands paspoort kost als u in het buitenland woont, hangt af van waar u het aanvraagt. U kunt het op verschillende locaties aanvragen, en per locatie verschilt het bedrag.",bronnen:[1]}
+    ]
+  },
+  "Wat is een BSN?":{
+    paginas:["bsn/wat-is-bsn","bsn","bsn/bsn-op-nederlands-paspoort","bsn/waar-bsn-vinden","bsn/bsn-op-nederlandse-id-kaart","bsn/bsn-krijgen"],
+    antwoord:{
+      restated_question:"Wat is een burgerservicenummer (BSN)?",
+      intro:"U zoekt informatie over wat een BSN is.",
+      citations:[
+        {source_index:0,bridge:"",quote:"Een BSN is een uniek persoonsnummer voor contact met (overheids)organisaties. Een BSN helpt bijvoorbeeld om persoonswisselingen te voorkomen."},
+        {source_index:0,bridge:"Over het nummer zelf:",quote:"Het BSN bestaat altijd uit 9 cijfers. Soms begint het BSN met één of meer nullen."},
+        {source_index:0,bridge:"Waar u het voor gebruikt:",quote:"U gebruikt uw BSN als u iets wilt regelen met een Nederlandse (overheids)organisatie, bijvoorbeeld uw:\nbelastingaangifte\nzorgverzekering\npensioen"}
+      ],
+      related_indices:[3,5]
+    },
+    alineas:[
+      {tekst:"Een BSN (burgerservicenummer) is een uniek persoonsnummer dat u gebruikt in contact met (overheids)organisaties. Het helpt bijvoorbeeld om persoonswisselingen te voorkomen.",bronnen:[1]},
+      {tekst:"Het nummer bestaat altijd uit 9 cijfers en begint soms met één of meer nullen.",bronnen:[2]},
+      {tekst:"U gebruikt uw BSN als u iets regelt met een Nederlandse (overheids)organisatie, bijvoorbeeld voor uw belastingaangifte, zorgverzekering of pensioen.",bronnen:[3]}
+    ]
+  },
+  "Mijn rijbewijs is gestolen in het buitenland, wat nu?":{
+    paginas:["rijbewijs-buitenland/kwijt-gestolen","rijbewijs-buitenland","rijbewijs-buitenland/verlopen","rijbewijs-buitenland/in-beslag-genomen","paspoort-id-kaart/kwijt-gestolen","visum-nederland/verblijfsvergunning-kwijt"],
+    antwoord:{
+      restated_question:"Wat moet ik doen als mijn Nederlandse rijbewijs in het buitenland is gestolen?",
+      intro:"Als ik het goed begrijp, is uw Nederlandse rijbewijs in het buitenland gestolen.",
+      citations:[
+        {source_index:0,bridge:"",quote:"Bent u buiten Nederland en is uw Nederlandse rijbewijs kwijt of gestolen? Dan mag u niet autorijden. Wat u kunt doen, hangt af van uw situatie."}
+      ],
+      clarifications:[{question:"Woont u in Nederland of in het buitenland?",prefill:"Ik woon in "}],
+      related_indices:[3]
+    },
+    alineas:[
+      {tekst:"Is uw Nederlandse rijbewijs buiten Nederland gestolen, dan mag u niet autorijden. Wat u verder moet doen, hangt af van uw situatie.",bronnen:[1]}
+    ]
+  },
+  "Ik ben mijn DigiD-wachtwoord vergeten":{
+    paginas:["digid-buiten-nederland/gebruikersnaam-wachtwoord-vergeten","digid-buiten-nederland/inloggen-gebruikersnaam-wachtwoord","digid-buiten-nederland/activeren","digid-buiten-nederland","digid-buiten-nederland/inloggen-sms-controle","digid-buiten-nederland/digid-app-activeren-sms"],
+    antwoord:{
+      restated_question:"Wat kan ik doen als ik mijn DigiD-wachtwoord ben vergeten?",
+      intro:"U wilt weten hoe u uw DigiD-wachtwoord herstelt nu u het bent vergeten.",
+      citations:[
+        {source_index:0,bridge:"",quote:"Bent u uw wachtwoord vergeten? Met de DigiD app herstelt u uw wachtwoord in Mijn DigiD. Maakt u nog geen gebruik van de DigiD app? Herstel uw wachtwoord per e-mail en sms."},
+        {source_index:0,bridge:"Lukt dat niet?",quote:"Kunt u uw DigiD gebruikersnaam en/of wachtwoord niet opzoeken of herstellen?\nVraag dan opnieuw een DigiD aan\n. Uw gegevens gaan niet verloren als u opnieuw een DigiD aanvraagt."}
+      ],
+      related_indices:[1]
+    },
+    alineas:[
+      {tekst:"Bent u uw DigiD-wachtwoord vergeten, dan kunt u het herstellen. Gebruikt u de DigiD app, dan herstelt u uw wachtwoord in Mijn DigiD. Gebruikt u de app nog niet, dan herstelt u het wachtwoord per e-mail en sms.",bronnen:[1]},
+      {tekst:"Lukt het herstellen niet, dan kunt u opnieuw een DigiD aanvragen. Uw gegevens gaan daarbij niet verloren.",bronnen:[2]}
+    ]
+  },
+  "Wat is een apostille?":{
+    paginas:["legaliseren/apostille","legaliseren/waar-apostille-halen","legaliseren/wanneer-apostille-nodig","legaliseren/landen-apostille","legaliseren/buitenlandse-documenten"],
+    antwoord:{
+      restated_question:"Wat is een apostille?",
+      intro:"U zoekt informatie over wat een apostille is.",
+      citations:[
+        {source_index:0,bridge:"",quote:"Een apostille is een stempel of sticker op een openbaar document, zoals een geboorteakte of diploma. De apostille bevestigt dat de handtekening op het document echt is. En dat het document van een officiële instantie komt, zoals een school of gemeente."},
+        {source_index:0,bridge:"In Nederland ziet een apostille er zo uit:",quote:"In Nederland is een apostille een sticker van de rechtbank. Deze sticker wordt op uw document geplakt. Een apostille wordt alleen gebruikt bij openbare documenten. Op de sticker komt ook een stempel van de rechtbank en een handtekening van een medewerker van de rechtbank. In andere landen kan een apostille een stempel, sticker of los document zijn."}
+      ],
+      clarifications:[{question:"In welk land wilt u het document gebruiken?",prefill:"Ik wil het document gebruiken in "}],
+      related_indices:[1,2]
+    },
+    alineas:[
+      {tekst:"Een apostille is een stempel of sticker op een openbaar document, zoals een geboorteakte of diploma. Hij bevestigt dat de handtekening op het document echt is en dat het document van een officiële instantie komt, zoals een school of gemeente.",bronnen:[1]},
+      {tekst:"In Nederland is een apostille een sticker van de rechtbank, met daarop een stempel van de rechtbank en de handtekening van een medewerker. In andere landen kan een apostille ook een stempel of een los document zijn.",bronnen:[2]}
+    ]
+  }
+};
+// De stappen zoals het AI-pad ze toont, met nagespeelde duur. Samen met het opstellen van het
+// antwoord (DEMO_OPSTELLEN, en in de generatieve modus DEMO_SCHRIJVEN) komt dat op ~5 seconden.
+const DEMO_STAPPEN=[["Vraag begrijpen",900],["Pagina's zoeken",1100],["Beste pagina's kiezen",1200]];
+const DEMO_OPSTELLEN=1800,DEMO_SCHRIJVEN=1200;
+const demoSleutel=t=>(t||"").toLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").trim();
+const DEMO_INDEX=new Map(Object.entries(DEMO_OPNAMES).map(([k,v])=>[demoSleutel(k),v]));
+// De opname bij deze vraag, met de pagina's omgezet naar hun plek in het corpus. Ontbreekt een
+// pagina (de site is veranderd), dan blijft zijn plek leeg: bouwAntwoord slaat een citaat
+// daaruit over, net als bij een onbekend source_index.
+function demoOpname(q){
+  if(!DEMOMODUS||!CORPUS)return null;
+  const rec=DEMO_INDEX.get(demoSleutel(q));if(!rec)return null;
+  const plek=new Map(CORPUS.map((p,i)=>[p.url.replace(/\/$/,""),i]));
+  const bronnen=rec.paginas.map(u=>{const i=plek.get((NWW+u).replace(/\/$/,""));return Number.isInteger(i)?i:null;});
+  const cands=bronnen.filter(Number.isInteger);
+  return cands.length?{rec,bronnen,cands}:null;
+}
+// Wachten dat afbreekt zodra de vraag gestopt of vervangen is.
+function demoWacht(ms){
+  const sig=vraagSignaal();
+  return new Promise((res,rej)=>{
+    if(sig&&sig.aborted)return rej(new DOMException("gestopt","AbortError"));
+    const t=setTimeout(res,ms);
+    if(sig)sig.addEventListener("abort",()=>{clearTimeout(t);rej(new DOMException("gestopt","AbortError"));},{once:true});
+  });
+}
+// Het antwoord uit een opname, als vervanger van askAI.
+async function speelOpname(q,op,opGeneratief){
+  const t0=performance.now();
+  await demoWacht(GENERATIEF?DEMO_OPSTELLEN/2:DEMO_OPSTELLEN);
+  const r=Object.assign({},op.rec.antwoord);
+  const uit=await afwerkAntwoord(r,q,op.bronnen,op.cands,[],STREAM?opGeneratief:null,
+    (citations,live)=>demoSchrijf(op.rec.alineas||[],citations,live));
+  // Komt de schrijver niet aan de beurt (een antwoord dat alleen uit de inleiding boven een
+  // keuze bestaat), dan toch even lang "opstellen" als anders.
+  const over=DEMO_OPSTELLEN-(performance.now()-t0);
+  if(over>0)await demoWacht(over);
+  uit.opname=true;
+  return uit;
+}
+// De "schrijver" van de generatieve modus: laat de opgenomen alinea's woord voor woord
+// binnenkomen, zoals een stromend antwoord, en keurt ze daarna met dezelfde vangrails.
+async function demoSchrijf(ruw,citations,live){
+  GEN_REDEN="";
+  if(live){
+    const woorden=ruw.map(a=>(a.tekst||"").split(" "));
+    const totaal=woorden.reduce((n,w)=>n+w.length,0)||1;
+    const tik=40,rondes=Math.max(1,Math.round(DEMO_SCHRIJVEN/tik));
+    for(let k=1;k<=rondes;k++){
+      let over=Math.ceil(totaal*k/rondes);const rij=[];
+      for(const w of woorden){if(over<=0)break;rij.push(w.slice(0,over).join(" "));over-=w.length;}
+      live(rij);
+      await demoWacht(tik);
+    }
+  }else await demoWacht(DEMO_SCHRIJVEN);
+  return keurAlineas(ruw,citations);
 }
 document.getElementById("form").addEventListener("submit",(e)=>{e.preventDefault();const q=inputEl.value.trim();if(!q)return;inputEl.value="";runQuestion(q);refreshComposer();});
 
@@ -4808,7 +5006,6 @@ function inleidingAlsAlineas(citations){
   return uit.length?uit:null;
 }
 async function askAI(q,cands,key,subs,opGeneratief){
-  const sig=vraagSignaal();
   // Hoeveel paginatekst er mee mag. Een lokaal model heeft een venster van 4096 tokens; zes
   // volledige pagina's zijn gemiddeld al ~4.900 tokens en zouden er dus niet in passen. Voor
   // een lokaal model korten we elke pagina in tot het deel waar het antwoord in zit.
@@ -4831,6 +5028,16 @@ async function askAI(q,cands,key,subs,opGeneratief){
   // dat leest als een springend scherm in plaats van als een sneller antwoord.
   const text=await PROVIDERS[provSel.value].call(key,modelSel.value,lokaal?SYSTEM_LOKAAL:SYSTEM,user);
   const r=parseModelJSON(text);
+  return afwerkAntwoord(r,q,bronnen,cands,subs,(STREAM&&kanStreamen())?opGeneratief:null,
+    (citations,live,keuze)=>schrijfAntwoord(q,citations,key,live,keuze));
+}
+// Van het antwoord van het model (de JSON met citaten) naar wat er op het scherm komt, inclusief
+// het generatieve blok. Los van askAI zodat de demomodus (zie DEMO_OPNAMES) een vooraf opgenomen
+// modelantwoord door precies dezelfde molen haalt: dezelfde knip uit de bron, dezelfde keuzes en
+// vangrails. schrijf(citations,live,keuze) levert de generatieve alinea's; opGeneratief is null
+// als er niet al schrijvend getoond wordt.
+async function afwerkAntwoord(r,q,bronnen,cands,subs,opGeneratief,schrijf){
+  const sig=vraagSignaal();
   const uit=bouwAntwoord(r,q,bronnen,cands,subs,false);
   // WEL streamen: het volledig generatieve antwoord. Dat is één lopend verhaal dat van boven
   // naar beneden groeit, dus er springt niets — precies waar streamen wél voor deugt.
@@ -4852,14 +5059,14 @@ async function askAI(q,cands,key,subs,opGeneratief){
     // bron en de keuzeknoppen ernaast tegen: het antwoord staat wél op de pagina. Dan tonen we
     // de inleiding letterlijk, met de keuzes eronder.
     const geenInfoBijKeuze=t=>!!uit.keuze&&GEEN_INFO_KERN.some(k=>plat(t).includes(k));
-    const live=(STREAM&&kanStreamen()&&opGeneratief)
+    const live=opGeneratief
       ?(alineas)=>{
         if(alineas.some(geenInfoBijKeuze))return;
         if(uit.keuze)alineas=(zonderKeuzeLijst(alineas.map(t=>({tekst:t,bronnen:[]})),uit.keuze)||[]).map(a=>a.tekst);
         if(alineas.length)opGeneratief(uit,alineas);
       }:null;
     if(sig&&sig.aborted)throw new DOMException("gestopt","AbortError");
-    uit.generatief=await schrijfAntwoord(q,uit.citations,key,live,uit.keuze);
+    uit.generatief=await schrijf(uit.citations,live,uit.keuze);
     if(uit.generatief&&uit.keuze)uit.generatief=zonderKeuzeLijst(uit.generatief,uit.keuze);
     if(uit.generatief&&uit.generatief.length===1&&!uit.generatief[0].bronnen.length&&geenInfoBijKeuze(uit.generatief[0].tekst))
       uit.generatief=null;
@@ -5067,7 +5274,12 @@ async function schrijfAntwoord(q,citations,key,onAlineas,keuze){
     GEN_REDEN="het model gaf geen bruikbaar antwoord ("+((e&&e.message)||e).toString().slice(0,120)+")";
     return null;
   }
-  const ruw=Array.isArray(j&&j.alineas)?j.alineas:[];
+  return keurAlineas(Array.isArray(j&&j.alineas)?j.alineas:[],citations);
+}
+// De vangrails over een compleet generatief antwoord: elke alinea aan een passage, elk getal uit
+// de bron. Los van schrijfAntwoord zodat een vooraf opgenomen antwoord (demomodus) er net zo
+// doorheen moet als een vers geschreven antwoord.
+function keurAlineas(ruw,citations){
   const alineas=[];const afgevallen=[];const hersteld=[];
   for(const a of ruw){
     const tekst=((a&&a.tekst)||"").toString().trim().replace(/\s+/g," ");
@@ -5603,12 +5815,13 @@ function stapKlaar(turn){
 }
 // Onder het antwoord: waar ging de tijd heen? Voor lokale modellen stond dit er al; nu ook voor
 // de cloudproviders, want zonder die regel is "traag" niet toe te wijzen aan een stap.
-function toonStappen(turn,m){
+function toonStappen(turn,m,opname){
   if(!m||!turn||!m.lijst.length)return;
   const bubble=turn.querySelector(".bubble.antwoord");if(!bubble)return;
   const el=document.createElement("div");el.className="meting";
   const sec=x=>(x/1000).toFixed(1)+"s";
-  el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam===STAP_OVERGESLAGEN?x.naam.toLowerCase():x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ");
+  el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam===STAP_OVERGESLAGEN?x.naam.toLowerCase():x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ")
+    +(opname?" · demomodus: vooraf opgenomen antwoord, geen AI-aanroep":"");
   bubble.appendChild(el);
 }
 // ---- Het generatieve antwoord zien ontstaan --------------------------------------------------
