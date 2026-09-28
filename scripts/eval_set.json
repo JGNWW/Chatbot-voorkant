@@ -800,5 +800,29 @@
    "status-aanvraag",
    "tijdsduur"
   ]
+ },
+ {
+  "q": "ik heb 7 weken geleden een paspoort aangevraagd in het buitenland en nog niets gehoord, wat moet ik doen",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen"
+  ]
+ },
+ {
+  "q": "al 10 weken geen bericht over mijn paspoortaanvraag",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen"
+  ]
+ },
+ {
+  "q": "mijn aanvraag voor een ID-kaart duurt al 5 weken, is dat normaal",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen"
+  ]
+ },
+ {
+  "q": "ik heb bij VFS Global een paspoort aangevraagd en hoor na 8 weken niks",
+  "expect": [
+   "/paspoort-id-kaart/tijdsduur-aanvragen"
+  ]
  }
 ]
