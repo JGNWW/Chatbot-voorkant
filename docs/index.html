@@ -139,7 +139,6 @@ body.is-welcome .empty{margin-top:0;}
 .ans-row.gen{grid-template-columns:1fr;}
 .ans-row.gen .ans-lab{display:none;}
 .ans-gen{padding:3px 0;min-width:0;}
-.gen-label{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a6d15;background:#fdf8ec;border:1px solid #ecdcae;border-radius:5px;padding:2px 7px;margin:0 0 8px;}
 .gen-p{font-size:.97rem;line-height:1.62;margin:0 0 10px;}
 .gen-p:last-child{margin-bottom:2px;}
 /* Een letterlijk overgenomen stappenplan of tabel in een AI-alinea houdt de vorm van de bron. */
@@ -2932,7 +2931,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 155";
+const APP_VERSION="build 156";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -5935,7 +5934,7 @@ function renderResult(turn,r,voorlopig){
           return `<div class="gen-p gen-struct">`+(laatste.soort==="alinea"?html.replace(/<\/p>$/," "+chips+"</p>"):html+`<p class="gen-p gen-chips">${chips}</p>`)+`</div>`;
         }).join("");
         h+=`<div class="ans-row gen"><span class="ans-lab">${lab}</span><div class="ans-gen">`
-          +`<span class="gen-label">door AI geschreven op basis van de bronnen hieronder</span>${alineas}`+(r.genHersteld&&r.genHersteld.length?`<p class="genherstel">${escapeHtml(herstelTekst(r.genHersteld))}</p>`:"")+`</div></div>`;
+          +alineas+(r.genHersteld&&r.genHersteld.length?`<p class="genherstel">${escapeHtml(herstelTekst(r.genHersteld))}</p>`:"")+`</div></div>`;
         continue;
       }
       if(blok.type==="bridge"){
