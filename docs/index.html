@@ -170,7 +170,6 @@ a.gen-link:hover{color:var(--rijk-blauw);}
 /* Meestal één interne bron: de tegel zo breed als zijn titel, niet afgekapt op een halve kolom. */
 .intern .bronrooster{display:flex;flex-wrap:wrap;margin-top:4px;}
 .intern .bronrooster .src-card{width:auto;}
-.intern .meting{border-top-color:#f2b77f;}
 .intern .src-card{border-color:#f2b77f;cursor:default;}
 .intern .src-card:hover{background:#fff;border-color:#f2b77f;}
 .intern .src-badge{background:#fde3c6;color:#9a4a00;}
@@ -2930,7 +2929,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 164";
+const APP_VERSION="build 165";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3933,9 +3932,6 @@ async function runQuestion(rawQ,gesproken){
       intern:[{alineas:internePagina.alineas,bron:{titel:internePagina.titel}}]};
     stapKlaar(turn);vraagKlaar(nr);
     renderResult(turn,res);
-    const bel=laatsteBel(turn);
-    if(bel){const m=document.createElement("div");m.className="meting";
-      m.textContent="Concept-achterkant: fictieve interne pagina · geen zoekronde, geen AI";bel.appendChild(m);}
     recordTurn(rawQ,res);
     return;
   }
