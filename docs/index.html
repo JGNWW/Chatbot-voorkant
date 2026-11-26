@@ -324,8 +324,8 @@ ol.srclist li{margin:2px 0;}
    een stopknop (zie refreshComposer). */
 .send-btn .ico-stop,.send-btn.stoppen .ico-send{display:none;}
 .send-btn.stoppen .ico-stop{display:inline;}
-.send-btn.stoppen{background:var(--ink);}
-.send-btn.stoppen:hover:not(:disabled){background:var(--rood);}
+.send-btn.stoppen{background:transparent;color:var(--ink);}
+.send-btn.stoppen:hover:not(:disabled){background:#fde7e7;color:var(--rood);}
 .row.user{align-items:center;}
 .vraag-aanpassen{align-self:center;margin-right:6px;background:none;border:0;color:var(--ink-licht);padding:5px;border-radius:7px;cursor:pointer;opacity:0;transition:opacity .12s;}
 .row.user:hover .vraag-aanpassen,.vraag-aanpassen:focus-visible{opacity:1;}
@@ -358,8 +358,8 @@ a{color:var(--rijk-licht);}
 .ctx-chip select{border:none;background:#fff;border-radius:999px;padding:2px 6px;font-family:inherit;font-size:inherit;color:var(--rijk-blauw);font-weight:600;max-width:190px;}
 .composer-pill:focus-within{border-color:var(--rijk-licht);box-shadow:0 3px 16px rgba(0,123,199,.15);}
 .composer input{flex:1;padding:10px 0;border:none;outline:none;font-size:1rem;background:transparent;font-family:inherit;color:var(--ink);}
-.send-btn{flex:0 0 auto;height:40px;padding:0 16px;border-radius:20px;gap:7px;background:var(--rijk-licht);color:#fff;border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:.9rem;font-weight:600;transition:background .12s,transform .08s;}
-/* "Nieuw gesprek" staat naast Verstuur: daar neem je de beslissing om de context los te laten. */
+.send-btn{flex:0 0 auto;width:40px;height:40px;padding:0;border-radius:50%;background:transparent;color:var(--rijk-licht);border:none;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,color .12s,transform .08s;}
+/* "Nieuw gesprek" staat naast de zoekknop: daar neem je de beslissing om de context los te laten. */
 .pill-btn{flex:0 0 auto;height:40px;padding:0 14px;border-radius:20px;gap:7px;background:#fff;color:var(--ink);border:1.5px solid var(--rand-sterk);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:.9rem;font-weight:600;transition:border-color .12s,color .12s,background .12s;}
 .pill-btn:hover{border-color:var(--rijk-licht);color:var(--rijk-blauw);background:var(--blauw-bg);}
 .pill-btn[hidden]{display:none;}
@@ -401,9 +401,9 @@ body.spraak-laadt .spraak-status{color:var(--rijk-licht);}
 .vraagblok{display:flex;flex-direction:column;align-items:flex-end;max-width:78%;min-width:0;}
 body:not(.spraak-toon) .gesproken{display:none;}
 .gesproken{display:block;text-align:right;font-size:.74rem;color:var(--ink-licht);margin:3px 4px 0;line-height:1.4;}
-.send-btn:hover:not(:disabled){background:var(--rijk-donker);}
+.send-btn:hover:not(:disabled){background:var(--blauw-bg);color:var(--rijk-donker);}
 .send-btn:active:not(:disabled){transform:scale(.93);}
-.send-btn:disabled{background:var(--rand-sterk);cursor:default;}
+.send-btn:disabled{background:transparent;color:var(--rand-sterk);cursor:default;}
 .badge{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:10px;margin-left:8px;vertical-align:middle;}
 .badge.ai{background:var(--blauw-bg);color:var(--rijk-blauw);}
 .badge.demo{background:#fdecec;color:var(--rood);}
@@ -588,7 +588,7 @@ body.viewer-active .viewer{width:min(560px,94vw);}
         <div class="composer-pill">
           <input id="input" type="text" placeholder="Typ hier de vraag van de burger…" autocomplete="off" autofocus />
           <button type="button" id="mic" class="mic-btn" title="Start luistermodus (spraak → automatisch passende antwoorden)" aria-label="Luistermodus starten" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-          <button type="submit" id="send" class="send-btn" disabled title="Vraag stellen" aria-label="Vraag stellen"><svg class="ico-send" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><svg class="ico-stop" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg><span class="btn-label ico-send">Verstuur</span><span class="btn-label ico-stop">Stop</span></button>
+          <button type="submit" id="send" class="send-btn" disabled title="Zoeken" aria-label="Zoeken"><svg class="ico-send" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg><svg class="ico-stop" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
           <span class="spraak-el spraak-status" id="spraak-status" hidden>Luistert mee…</span>
           <span class="spraak-el spraak-live" id="spraak-live" hidden></span>
           <span class="spraak-el spraak-meter" id="spraak-meter" hidden><i style="width:0"></i></span>
@@ -2904,7 +2904,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 157";
+const APP_VERSION="build 159";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -2926,7 +2926,7 @@ function showWelcome(){
   document.body.classList.add("is-welcome");
   conv.innerHTML="";
   const p=document.createElement("p");p.className="empty welcome";
-  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong><span class="hint">Typ de vraag van de beller, bijvoorbeeld:</span>';
+  p.innerHTML='<img class="welcome-logo" src="assets/avatar.png" alt="" onerror="this.style.display=\'none\'"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong><span class="hint">Typ de vraag van de beller, of kies een veelgestelde vraag:</span>';
   conv.appendChild(p);
   const s=document.createElement("div");s.className="samples";s.id="samples";
   SAMPLES.forEach(x=>{const b=document.createElement("button");b.textContent=x;b.onclick=()=>askText(x);s.appendChild(b);});
@@ -2950,7 +2950,7 @@ function refreshComposer(){
   // de lopende vraag ook (zie nieuweVraag).
   const leeg=!inputEl||!inputEl.value.trim(),stoppen=!!VRAAG&&leeg;
   sendBtn.classList.toggle("stoppen",stoppen);
-  const label=stoppen?"Stop deze vraag":"Vraag stellen";
+  const label=stoppen?"Stop deze vraag":"Zoeken";
   sendBtn.title=label;sendBtn.setAttribute("aria-label",label);
   sendBtn.disabled=!stoppen&&(!corpusKlaar||leeg);
   renderCtx();
@@ -2994,7 +2994,7 @@ document.getElementById("reset").addEventListener("click",newConversation);
       PTOKENS=CORPUS.map(tokensOf);
     }
     document.getElementById("loadmsg").innerHTML="<img class=\"welcome-logo\" src=\"assets/avatar.png\" alt=\"\" onerror=\"this.style.display='none'\"><strong>Hoi, ik ben Leo. Ik help je bij jouw werk als voorlichter.</strong>"
-      +"<span class=\"hint\">Typ de vraag van de beller, bijvoorbeeld:</span>";
+      +"<span class=\"hint\">Typ de vraag van de beller, of kies een veelgestelde vraag:</span>";
     corpusKlaar=true;refreshComposer();
     // Nu pas de zware bestanden: de app is bruikbaar, de rest komt terwijl er getypt wordt.
     if(licht)startTekstDownload();
