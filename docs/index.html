@@ -178,7 +178,7 @@ a.gen-link:hover{color:var(--rijk-blauw);}
 .intern .answer-footer{border-top-color:#f2b77f;}
 .intern .feedback{color:#7a4a1f;}
 /* De duimpjes in de kleur van de bel; een gekozen duim houdt zijn groen of rood. */
-.intern .fb-btn:not(.sel-up):not(.sel-down){background:#feead6;border-color:#f2b77f;}
+.intern .fb-btn:not(.sel-up):not(.sel-down){background:#feead6;border-color:#f2b77f;color:#9a4a00;}
 .intern .fb-btn:not(.sel-up):not(.sel-down):hover{background:#fde3c6;}
 .cite-chip{font-size:.68rem;font-weight:700;vertical-align:super;line-height:1;background:var(--blauw-bg);color:var(--rijk-licht);border:1px solid var(--blauw-licht);border-radius:5px;padding:1px 5px;margin:0 1px;cursor:pointer;font-family:inherit;transition:background .12s,color .12s;}
 .cite-chip:hover{background:var(--rijk-licht);color:#fff;border-color:var(--rijk-licht);}
@@ -468,10 +468,10 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 .act-btn.ok{background:#eef7e9;border-color:var(--groen);color:var(--groen);}
 /* Feedback (klopt dit antwoord?) */
 .feedback{display:inline-flex;gap:6px;align-items:center;font-size:.78rem;color:var(--ink-licht);}
-.fb-btn{background:#fff;border:1px solid var(--rand);border-radius:50%;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;line-height:1;}
-.fb-btn:hover{background:#f0f5fa;}
-.fb-btn.sel-up{background:#e9f6e3;border-color:var(--groen);}
-.fb-btn.sel-down{background:#fdecec;border-color:var(--rood);}
+.fb-btn{background:#fff;border:1px solid var(--rand);border-radius:50%;width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;color:#5a6b7b;}
+.fb-btn:hover{background:#f0f5fa;color:var(--rijk-blauw);}
+.fb-btn.sel-up{background:#e9f6e3;border-color:var(--groen);color:var(--groen);}
+.fb-btn.sel-down{background:#fdecec;border-color:var(--rood);color:var(--rood);}
 /* Venster onder het antwoord bij een duim omlaag. Een oordeel zonder reden zegt weinig; hier
    staat waaróm het niet klopte. Bij een duim omhoog verschijnt niets: bevestigen moet gratis
    blijven, anders wordt het net zo duur als afkeuren. */
@@ -2930,7 +2930,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 163";
+const APP_VERSION="build 164";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -5546,7 +5546,11 @@ function brontegel(cit,nummer,i){
     +`</div></div>`;
 }
 function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ol>`;}
-const FEEDBACK_HTML=`<span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">👍</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">👎</button></span>`;
+// Duimpjes als lijnicoon in de kleur van de knop, niet als gele emoji: zo passen ze bij de witte
+// en bij de oranje bel, en kleurt een gekozen duim groen of rood mee.
+const ICON_DUIM_OP='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+const ICON_DUIM_NEER='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+const FEEDBACK_HTML=`<span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">${ICON_DUIM_OP}</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">${ICON_DUIM_NEER}</button></span>`;
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
 // Pijl = de vraag wordt meteen gesteld.
