@@ -116,22 +116,17 @@ body.is-welcome .empty{margin-top:0;}
 .restated-sub{font-size:.86rem;color:var(--ink-licht);margin:0 0 12px;line-height:1.45;}
 .restated-sub .rs-label{font-weight:600;}
 /* DOORLOPEND ANTWOORD.
-   Het antwoord is één lopend stuk: eerst wat de AI van de vraag maakt en een zin die naar het
-   citaat toe leidt, dan het letterlijke citaat. Links een smalle kolom met AI / NWW, daarnaast
-   een streepje. Grijs = door de AI geformuleerd, blauw = letterlijk van de site. Het label staat
-   er alleen de EERSTE keer per soort; daarna doen het streepje en het lichte vlak het werk. */
-.ans-row{display:grid;grid-template-columns:34px 1fr;}
-.ans-lab{font-size:.62rem;font-weight:700;letter-spacing:.06em;text-align:right;padding:4px 9px 0 0;line-height:1.6;user-select:none;color:#6c7681;}
+   Het antwoord is één lopend stuk: eerst een zin die naar het citaat toe leidt, dan het
+   letterlijke citaat. De labels AI / NWW in een kolom links zijn weg: in de echte versie is
+   alles letterlijke tekst uit de bron, dus dat onderscheid hoeft de voorlichter niet te maken.
+   Het onderscheid dat wél telt — intern of openbaar — staat in een eigen bel (zie .intern). */
+.ans-row{display:block;}
 .ans-ai{border-left:3px solid #b3bac2;padding:3px 0 3px 15px;min-width:0;}
 .ans-row + .ans-row .ans-ai{padding-top:0;}
 .intro{font-size:.95rem;color:var(--ink);margin:0;line-height:1.55;}
 /* Volledig generatief antwoord: oker streepje, want dit is GEEN letterlijke tekst. De
    nummertjes openen dezelfde bronviewer als een citaat, met de passage gemarkeerd. */
-/* Geen streepje en geen linkergoot in de generatieve modus: het label erboven zegt al dat de
-   tekst door AI is geschreven, en zonder die 34px + 18px houdt de tekst ruim vijftig pixels
-   meer breedte over. */
-.ans-row.gen{grid-template-columns:1fr;}
-.ans-row.gen .ans-lab{display:none;}
+/* Geen streepje in de generatieve modus: zo houdt de tekst de volle breedte. */
 .ans-gen{padding:3px 0;min-width:0;}
 .gen-p{font-size:.97rem;line-height:1.62;margin:0 0 10px;}
 .gen-p:last-child{margin-bottom:2px;}
@@ -146,6 +141,12 @@ body.is-welcome .empty{margin-top:0;}
 .gen-tabel tr:last-child td{border-bottom:0;}
 .gen-tabel .gen-waarde{white-space:nowrap;font-variant-numeric:tabular-nums;}
 .gen-tabeltitel{margin:0 0 4px;font-weight:600;}
+/* Letterlijke citaten in dezelfde opmaak: tussenkopjes van een hele sectie en links in de tekst. */
+.ans-letterlijk{padding:3px 0;min-width:0;}
+.gen-kop{margin:10px 0 4px;font-weight:700;color:var(--rijk-blauw);line-height:1.4;}
+.gen-kop:first-child{margin-top:0;}
+a.gen-link{color:var(--rijk-licht);text-decoration:underline;text-underline-offset:2px;}
+a.gen-link:hover{color:var(--rijk-blauw);}
 /* Bronnen onder een generatief antwoord: twee per regel, zodat vier bronnen twee regels beslaan
    in plaats van vier. Onder de 560px past er maar een naast elkaar. */
 .bronrooster{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:12px;}
@@ -154,14 +155,37 @@ body.is-welcome .empty{margin-top:0;}
 .bronrooster .src-card{margin:0;max-width:100%;width:100%;}
 .bronrooster .src-card .src-title{max-width:none;}
 .bronrooster .bronkaart{left:0;}
+/* INTERNE INFORMATIE (concept C).
+   Interne tekst staat in een eigen bel BOVEN het openbare antwoord: lichtoranje, zoals de
+   interne pagina's op de site, met de kop "Interne informatie". Staat er ook openbare
+   informatie, dan krijgt die bel de kop "Openbare informatie"; is er alleen openbare informatie,
+   dan blijft het antwoord zoals het was, zonder kop. De kopieerknop staat alleen in de openbare
+   bel, dus wat je kopieert kan niets interns bevatten. */
+.slot>.bubble+.bubble{margin-top:10px;}
+.bel-kop{margin:0 0 8px;font-size:1.06rem;font-weight:700;line-height:1.3;color:var(--rijk-blauw);}
+.bubble.antwoord.intern{background:#fff6ec;border:1.5px solid #f2b77f;box-shadow:none;}
+.intern .bel-kop{color:#9a4a00;}
+.intern-p{font-size:.97rem;line-height:1.62;margin:0 0 10px;}
+.intern-chip{font-size:.68rem;font-weight:700;vertical-align:super;line-height:1;background:#fde3c6;color:#9a4a00;border:1px solid #f2b77f;border-radius:5px;padding:1px 5px;margin:0 1px;cursor:default;}
+/* Meestal één interne bron: de tegel zo breed als zijn titel, niet afgekapt op een halve kolom. */
+.intern .bronrooster{display:flex;flex-wrap:wrap;margin-top:4px;}
+.intern .bronrooster .src-card{width:auto;}
+.intern .src-card{border-color:#f2b77f;cursor:default;}
+.intern .src-card:hover{background:#fff;border-color:#f2b77f;}
+.intern .src-badge{background:#fde3c6;color:#9a4a00;}
+.intern .src-card .src-title{color:#9a4a00;}
+.intern .answer-footer{border-top-color:#f2b77f;}
+.intern .feedback{color:#7a4a1f;}
+/* De duimpjes in de kleur van de bel; een gekozen duim houdt zijn groen of rood. */
+.intern .fb-btn:not(.sel-up):not(.sel-down){background:#feead6;border-color:#f2b77f;color:#9a4a00;}
+.intern .fb-btn:not(.sel-up):not(.sel-down):hover{background:#fde3c6;}
 .cite-chip{font-size:.68rem;font-weight:700;vertical-align:super;line-height:1;background:var(--blauw-bg);color:var(--rijk-licht);border:1px solid var(--blauw-licht);border-radius:5px;padding:1px 5px;margin:0 1px;cursor:pointer;font-family:inherit;transition:background .12s,color .12s;}
 .cite-chip:hover{background:var(--rijk-licht);color:#fff;border-color:var(--rijk-licht);}
 .passage.bron-only{margin-top:2px;}
 .passage.bron-only .src-card{margin-left:0;}
 .brug{font-size:.95rem;color:var(--ink);margin:9px 0 0;line-height:1.55;}
 /* Passage = één citaat als nette, gestructureerde tekst met een bron-kaartje eronder */
-.passage{display:grid;grid-template-columns:34px 1fr;margin:0;}
-.passage .ans-lab{color:#2a6f9e;padding-top:12px;}
+.passage{display:block;margin:0;}
 .cite-col{position:relative;min-width:0;padding-top:9px;}
 .ans-row + .passage .cite-col{padding-top:8px;}
 .passage + .passage .cite-col{padding-top:8px;}   /* twee citaten zonder brug ertussen */
@@ -443,10 +467,10 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 .act-btn.ok{background:#eef7e9;border-color:var(--groen);color:var(--groen);}
 /* Feedback (klopt dit antwoord?) */
 .feedback{display:inline-flex;gap:6px;align-items:center;font-size:.78rem;color:var(--ink-licht);}
-.fb-btn{background:#fff;border:1px solid var(--rand);border-radius:50%;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:.9rem;line-height:1;}
-.fb-btn:hover{background:#f0f5fa;}
-.fb-btn.sel-up{background:#e9f6e3;border-color:var(--groen);}
-.fb-btn.sel-down{background:#fdecec;border-color:var(--rood);}
+.fb-btn{background:#fff;border:1px solid var(--rand);border-radius:50%;width:30px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;color:#5a6b7b;}
+.fb-btn:hover{background:#f0f5fa;color:var(--rijk-blauw);}
+.fb-btn.sel-up{background:#e9f6e3;border-color:var(--groen);color:var(--groen);}
+.fb-btn.sel-down{background:#fdecec;border-color:var(--rood);color:var(--rood);}
 /* Venster onder het antwoord bij een duim omlaag. Een oordeel zonder reden zegt weinig; hier
    staat waaróm het niet klopte. Bij een duim omhoog verschijnt niets: bevestigen moet gratis
    blijven, anders wordt het net zo duur als afkeuren. */
@@ -2905,7 +2929,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 160";
+const APP_VERSION="build 165";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
@@ -3400,7 +3424,7 @@ function kiesSectie(bronTurn,r,k,hulp){
     if(c)res.clarifications=[c];
   }
   renderResult(turn,res);
-  const bubble=turn.querySelector(".bubble.antwoord");
+  const bubble=laatsteBel(turn);
   if(bubble){
     const m=document.createElement("div");m.className="meting";
     m.textContent="Direct uit de bronpagina · geen zoekronde, geen AI";
@@ -3597,7 +3621,7 @@ function kiesStap(knop,sp,actie,nr){
   const res={restated_question:(sp.vraag?sp.vraag+" — ":"")+vraag,citations:[cit],used:[srcOf(sp.idx)],related:[],note:"",
     clarifications:[],uitSectie:true,stap:{sp,nr:n},keuze:n>=0?((b=>b?Object.assign(b,{idx:sp.idx}):null)(keuzeBinnen(p,sp.stappen[n]))):null};
   renderResult(turn,res);
-  const bubble=turn.querySelector(".bubble.antwoord");
+  const bubble=laatsteBel(turn);
   if(bubble){
     const m=document.createElement("div");m.className="meting";
     m.textContent="Direct uit de bronpagina · geen zoekronde, geen AI";
@@ -3816,7 +3840,7 @@ function toonLandenpagina(bronTurn,r,c,land){
   const res={restated_question:vorige?vorige+" — "+land.metLidwoord:vraag,citations:[cit],used:[srcOf(land.j)],
     related:[],note:"",clarifications:[],uitSectie:true,keuze:start>=0?keuzeVoor([cit]):null};
   renderResult(turn,res);
-  const bubble=turn.querySelector(".bubble.antwoord");
+  const bubble=laatsteBel(turn);
   if(bubble){
     const m=document.createElement("div");m.className="meting";
     m.textContent="Direct uit de landenpagina · geen zoekronde, geen AI";
@@ -3897,6 +3921,20 @@ async function runQuestion(rawQ,gesproken){
   const key=keyInput.value.trim();const ai=aiKlaar();
   const lokaal=geenSleutelNodig();
   stapStart();
+  // Concept-achterkant: een vraag die bij een (fictieve) interne pagina hoort, krijgt het
+  // antwoord met alleen interne informatie. Geen zoekronde en geen AI (zie INTERNE_PAGINAS).
+  const internePagina=internePaginaVoor(rawQ);
+  if(internePagina){
+    try{stap(turn,"Pagina's zoeken");await demoWacht(700);}
+    catch(e){return;}
+    if(weg())return;
+    const res={restated_question:rawQ,citations:[],used:[],related:[],clarifications:[],note:"",
+      intern:[{alineas:internePagina.alineas,bron:{titel:internePagina.titel}}]};
+    stapKlaar(turn);vraagKlaar(nr);
+    renderResult(turn,res);
+    recordTurn(rawQ,res);
+    return;
+  }
   // Demomodus: een voorbeeldvraag met een opname loopt dezelfde stappen door, maar zonder één
   // modelaanroep (zie DEMO_OPNAMES).
   const opname=demoOpname(rawQ);
@@ -4067,6 +4105,79 @@ function terugvalAntwoord(q,cands,err){
   r.fout=((err&&err.message)||String(err||"")).slice(0,300);
   return r;
 }
+// ---- Interne informatie: CONCEPT-ACHTERKANT ---------------------------------------------------
+// Leo heeft nog geen bron met interne informatie; die wordt nog gebouwd, samen met de bron voor
+// de openbare informatie. Tot die er is, staat hier NEP-inhoud, alleen om de weergave te kunnen
+// beoordelen (concept C: een eigen oranje bel "Interne informatie" boven het openbare antwoord).
+// Twee soorten, net als op de site:
+//  - INTERN_BLOKKEN: een intern blok op een openbare pagina. Citeert het antwoord die pagina,
+//    dan staat het blok erbij, ook als het model het niet noemt. De app bepaalt wat intern is,
+//    nooit het model.
+//  - INTERNE_PAGINAS: een pagina voor voorlichters. Een vraag die daarbij hoort, krijgt een
+//    antwoord met alleen interne informatie.
+// Interne tekst gaat niet mee met "Kopieer antwoord" of "Simpelere taal": die lezen alleen de
+// citaten (answerBlocks), en intern zit daar niet in.
+// LET OP: alles in docs/ staat openbaar online. Zet hier nooit echte interne informatie.
+const INTERN_BLOKKEN={
+  "bsn/wat-is-bsn":[{alineas:["Dit is een test van de interne informatie. Om te laten zien hoe het eruit kan komen te zien."]}]
+};
+const INTERNE_PAGINAS=[{
+  vragen:["Interne informatie"],
+  titel:"Testpagina interne informatie (fictief)",
+  alineas:[
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+    "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+  ]
+}];
+const internSleutel=url=>(url||"").replace(NWW,"").replace(/\/$/,"");
+function internePaginaVoor(q){
+  const k=demoSleutel(q);
+  return INTERNE_PAGINAS.find(p=>p.vragen.some(v=>demoSleutel(v)===k))||null;
+}
+// De interne delen bij een antwoord: een antwoord uit een interne pagina heeft ze al (r.intern);
+// anders de interne blokken van elke geciteerde pagina, in de volgorde van de citaten.
+function internVan(r){
+  if(Array.isArray(r.intern))return r.intern;
+  const uit=[],gezien=new Set();
+  for(const c of (r.citations||[])){
+    const idx=c.srcIdx;if(!Number.isInteger(idx)||gezien.has(idx))continue;gezien.add(idx);
+    const pag=CORPUS[idx],blokken=pag&&INTERN_BLOKKEN[internSleutel(pag.url)];
+    for(const b of (blokken||[]))uit.push({alineas:b.alineas,bron:{titel:cleanTitle(pag.title),url:pag.url,srcIdx:idx}});
+  }
+  return uit;
+}
+// Het bronnummer van een intern blok is dat van het eerste citaat uit dezelfde pagina in het
+// openbare deel. Een interne pagina zonder openbaar deel is bron 1.
+function internNummer(r,bron){
+  if(!Number.isInteger(bron.srcIdx))return 1;
+  const i=(r.citations||[]).findIndex(c=>c.srcIdx===bron.srcIdx);
+  return i>=0?i+1:1;
+}
+// De oranje bel. Alleen bij een antwoord zonder openbaar deel staan de duimpjes erin; anders
+// staan ze, met de kopieerknop, in de bel "Openbare informatie".
+function internBelHTML(r,intern,metVoet){
+  const tegels=[],gezien=new Set();
+  let h=`<section class="bubble antwoord intern" aria-label="Interne informatie"><h2 class="bel-kop">Interne informatie</h2>`;
+  for(const d of intern){
+    const nr=internNummer(r,d.bron);
+    const chip=`<span class="intern-chip" title="Interne bron: ${escapeHtml(d.bron.titel)}">${nr}</span>`;
+    h+=d.alineas.map((t,n)=>`<p class="intern-p">${escapeHtml(t)}${n===d.alineas.length-1?" "+chip:""}</p>`).join("");
+    const sleutel=d.bron.url||d.bron.titel;
+    if(gezien.has(sleutel))continue;gezien.add(sleutel);
+    tegels.push(`<div class="bronvak"><div class="src-card intern-tegel" title="Interne bron — nog niet te openen in deze testomgeving">`
+      +`<span class="src-badge">${nr}</span><span class="src-title">${escapeHtml(d.bron.titel)}</span></div></div>`);
+  }
+  h+=`<div class="bronrooster">${tegels.join("")}</div>`;
+  if(metVoet)h+=`<div class="answer-footer"><div class="answer-actions"><span class="spacer"></span>${FEEDBACK_HTML}</div></div>`;
+  return h+`</section>`;
+}
+// De laatste antwoordbel van een beurt: daar horen de tijdregel en "Direct uit de bronpagina"
+// onder, ook als er een interne bel boven staat.
+function laatsteBel(turn){
+  const b=turn&&turn.querySelectorAll(".bubble.antwoord");
+  return b&&b.length?b[b.length-1]:null;
+}
+
 // ---- Demomodus: vooraf opgenomen antwoorden op de voorbeeldvragen ------------------------------
 // Om te demonstreren hoeft niet elke klik op een voorbeeldvraag tokens te kosten. Voor de vragen
 // onder het welkomstscherm (SAMPLES) staat hieronder een modelantwoord klaar, in precies het
@@ -5431,6 +5542,11 @@ function brontegel(cit,nummer,i){
     +`</div></div>`;
 }
 function numberedSourceList(items){return `<ol class="srclist">${items.map(s=>`<li><a href="${s.url}" target="_blank" rel="noreferrer">${escapeHtml(s.title)}</a></li>`).join("")}</ol>`;}
+// Duimpjes als lijnicoon in de kleur van de knop, niet als gele emoji: zo passen ze bij de witte
+// en bij de oranje bel, en kleurt een gekozen duim groen of rood mee.
+const ICON_DUIM_OP='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+const ICON_DUIM_NEER='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+const FEEDBACK_HTML=`<span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">${ICON_DUIM_OP}</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">${ICON_DUIM_NEER}</button></span>`;
 const ICON_COPY='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
 const ICON_OK='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
 // Pijl = de vraag wordt meteen gesteld.
@@ -5467,7 +5583,8 @@ function answerPlainText(r){
   const planTekst=()=>"Stappenplan"+(sp.via!==undefined?` (${CORPUS[sp.idx].url})`:"")+":\n"
     +stapTitels(sp).map((t,n)=>`${n+1}. ${t}`).join("\n");
   for(const b of answerBlocks(r)){
-    if(b.type==="bridge"||b.type==="generated")parts.push(b.text);
+    if(b.type==="bridge")continue;     // staat niet meer op het scherm, dus ook niet in de kopie
+    if(b.type==="generated")parts.push(b.text);
     else{
       // Het kopjespad hoort MEE bij het kopiëren: plakt een voorlichter dit citaat in een mail,
       // dan moet de voorwaarde waaronder het geldt er niet onderweg af vallen.
@@ -5487,7 +5604,8 @@ function answerPlainText(r){
 function antwoordInhoud(r){
   const parts=[];
   for(const b of answerBlocks(r)){
-    if(b.type==="bridge"||b.type==="generated")parts.push(b.text);
+    if(b.type==="bridge")continue;     // staat niet meer op het scherm, dus ook niet in de kopie
+    if(b.type==="generated")parts.push(b.text);
     // Generatief antwoord: de passages staan er alleen als bron onder; de AI-tekst IS het antwoord.
     else if(!b.alleenBron){const c=r.citations&&r.citations[b.ci];parts.push(c?citaatAlsTekst(c):b.text);}
   }
@@ -5752,7 +5870,7 @@ const ICON_DOC='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stro
 function toonMeting(turn){
   const mo=lokaleMotor();if(!mo)return;
   const m=mo.meetKlaar();if(!m||!turn)return;
-  const bubble=turn.querySelector(".bubble.antwoord");if(!bubble)return;
+  const bubble=laatsteBel(turn);if(!bubble)return;
   const el=document.createElement("div");el.className="meting";
   const deel=[`${m.totSec}s`,`${m.n} aanroep${m.n===1?"":"en"}`];
   if(m.kernen)deel.push(`${m.kernen} kern${m.kernen===1?"":"en"}`);
@@ -5795,7 +5913,7 @@ function stapKlaar(turn){
 // de cloudproviders, want zonder die regel is "traag" niet toe te wijzen aan een stap.
 function toonStappen(turn,m,opname){
   if(!m||!turn||!m.lijst.length)return;
-  const bubble=turn.querySelector(".bubble.antwoord");if(!bubble)return;
+  const bubble=laatsteBel(turn);if(!bubble)return;
   const el=document.createElement("div");el.className="meting";
   const sec=x=>(x/1000).toFixed(1)+"s";
   el.textContent=sec(m.totaal)+" · "+m.lijst.map(x=>x.naam===STAP_OVERGESLAGEN?x.naam.toLowerCase():x.naam.toLowerCase()+" "+sec(x.ms)).join(" · ")
@@ -5875,28 +5993,28 @@ function schrijfLive(turn,uit,alineas){
 function renderResult(turn,r,voorlopig){
   const badge=r.demo?'<span class="badge demo">DEMO</span>':r.terugval?'<span class="badge demo">ZONDER AI</span>':'<span class="badge ai">AI</span>';
   const hasCites=r.citations&&r.citations.length;
-  let h=`<div class="bubble antwoord">`;
+  // Interne informatie komt uit de bron (internVan), nooit uit het model. Is die er, dan staat
+  // hij in een eigen oranje bel boven het antwoord, en krijgt het openbare deel een kop.
+  const intern=internVan(r);
+  let h=`<div class="bubble antwoord">`+(intern.length&&hasCites?`<h2 class="bel-kop">Openbare informatie</h2>`:"");
   // De intro herformuleert de vraag al; toon dan GEEN losse 'Je vraag:'-regel meer.
   // Zonder intro (demo-modus of geen antwoord) tonen we de vraag wél als context.
   const clar=r.clarifications||[];
-  const num={};(r.used||[]).forEach((s,i)=>{num[s.url]=i+1;});
   const sp=hasCites&&!voorlopig?stappenplanVan(r):null;
   if(r.stap)h+=stapkopHTML(r.stap.sp,r.stap.nr);
   if(r.terugval)h+=`<div class="terugval" role="status"><p><b>AI niet bereikbaar.</b> Hieronder staat de best gevonden passage, letterlijk van de pagina maar niet door AI gekozen.</p>`
     +(r.fout?`<p class="terugval-fout">${escapeHtml(r.fout)}</p>`:"")
     +`<button type="button" class="opnieuw">${ICON_OPNIEUW}<span>Opnieuw proberen</span></button></div>`;
   if(hasCites){
-    // Eén doorlopend stuk: AI-tekst en citaat wisselen elkaar af, elk met een streepje en
-    // alleen de eerste keer een label (AI / NWW). Zo lees je van boven naar beneden af wie
-    // wat zegt, zonder dat het uiteenvalt in losse blokken.
-    let eersteAI=true,eersteCit=true;
-    const bronTegels=[];
+    // Openbare informatie ziet er altijd uit als het volledig generatieve antwoord: alinea's
+    // met bronnummers en de bronnen in een rooster eronder. Zonder generatieve modus zijn die
+    // alinea's de letterlijke citaten zelf.
+    const bronTegels=[];let letterlijk="";
     // Demo-modus levert geen AI-tekst; toon dan de vraag als context, anders begint het
     // antwoord zonder aanloop.
     if(!r.intro&&!r.uitSectie&&!r.citations.some(c=>c.bridge))h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
     for(const blok of answerBlocks(r)){
       if(blok.type==="generated"){
-        const lab=eersteAI?"AI":"";eersteAI=false;
         const alineas=blok.alineas.map(a=>{
           const chips=a.bronnen.map(n=>`<button type="button" class="cite-chip" data-ci="${n-1}" title="Bekijk de passage op de bronpagina">${n}</button>`).join("");
           if(!a.blokken)return `<p class="gen-p">${escapeHtml(a.tekst)} ${chips}</p>`;
@@ -5906,34 +6024,32 @@ function renderResult(turn,r,voorlopig){
           const html=blokkenHTML(a.blokken,"gen");
           return `<div class="gen-p gen-struct">`+(laatste.soort==="alinea"?html.replace(/<\/p>$/," "+chips+"</p>"):html+`<p class="gen-p gen-chips">${chips}</p>`)+`</div>`;
         }).join("");
-        h+=`<div class="ans-row gen"><span class="ans-lab">${lab}</span><div class="ans-gen">`
+        h+=`<div class="ans-row gen"><div class="ans-gen">`
           +alineas+(r.genHersteld&&r.genHersteld.length?`<p class="genherstel">${escapeHtml(herstelTekst(r.genHersteld))}</p>`:"")+`</div></div>`;
         continue;
       }
-      if(blok.type==="bridge"){
-        const lab=eersteAI?"AI":"";eersteAI=false;
-        const alineas=blok.alineas.map((t,n)=>`<p class="${n===0?"intro":"brug"}">${escapeHtml(t)}</p>`).join("");
-        h+=`<div class="ans-row"><span class="ans-lab">${lab}</span><div class="ans-ai">${alineas}</div></div>`;
-        continue;
-      }
-      const i=blok.ci,n=num[blok.sourceUrl]||(i+1);
-      const lab=eersteCit?"NWW":"";eersteCit=false;
-      if(blok.alleenBron){
-        // Generatieve modus: de bronnen in één rooster van twee kolommen, genummerd zoals de
-        // cijfers in de tekst. Ze worden hier verzameld en na de lus in één keer neergezet;
-        // los onder elkaar kost vier bronnen vier regels in plaats van twee.
-        bronTegels.push(brontegel(r.citations[i]||{},i+1,i));
-        continue;
-      }
-      h+=`<div class="passage ${blok.verified?'verified':'unverified'}" data-ci="${i}">`
-        +`<span class="ans-lab">${lab}</span><div class="cite-col">`
-        +`<button class="copy-cite" data-ci="${i}" title="Kopieer dit citaat" aria-label="Kopieer dit citaat">${ICON_COPY}</button>`
-        +sectieKruimel(r.citations[i])
-        +`<div class="cite-body clickable-cite" data-ci="${i}" title="Klik om dit stuk op de bronpagina te bekijken">${citeBodyHTML(r.citations[i])}</div>`
-        +(voorlopig?"":letOpHTML(r.citations[i]||{}))
-        +(sp&&sp.ci===i?stappenplanHTML(sp):"")
-        +brontegel(r.citations[i]||{},n,i)+`</div></div>`;
+      // Geen inleidende of verbindende zin meer: in de echte versie bestaat een antwoord alleen
+      // uit letterlijke tekst uit de bron.
+      if(blok.type==="bridge")continue;
+      const i=blok.ci,c=r.citations[i]||{};
+      // De bronnen in één rooster van twee kolommen, genummerd zoals de cijfers in de tekst. Ze
+      // worden hier verzameld en na de lus in één keer neergezet; los onder elkaar kost vier
+      // bronnen vier regels in plaats van twee.
+      bronTegels.push(brontegel(c,i+1,i));
+      if(blok.alleenBron)continue;
+      // Het letterlijke citaat in de opmaak van het generatieve antwoord: gewone alinea's (met
+      // opsomming of tabel als de bron die heeft), het bronnummer erachter, geen gekleurd vlak.
+      // Een "Let op" uit dezelfde sectie blijft ingeklapt onder het citaat staan.
+      const chip=`<button type="button" class="cite-chip" data-ci="${i}" title="Bekijk de passage op de bronpagina">${i+1}</button>`;
+      const links=CORPUS[c.srcIdx]?CORPUS[c.srcIdx].links:null;
+      const blokken=c.heleSectie?sectieBlokken(c):blokkenVan(c);
+      const html=blokkenHTML(blokken,"gen",links)||`<p class="gen-p">${escapeHtml(c.text||"")}</p>`;
+      const laatste=blokken[blokken.length-1];
+      letterlijk+=`<div class="gen-p gen-struct">`
+        +(!laatste||laatste.soort==="alinea"?html.replace(/<\/p>$/," "+chip+"</p>"):html+`<p class="gen-p gen-chips">${chip}</p>`)
+        +(voorlopig?"":letOpHTML(c))+`</div>`;
     }
+    if(letterlijk)h+=`<div class="ans-letterlijk">${letterlijk}</div>`;
     if(bronTegels.length)h+=(sp?stappenplanHTML(sp):"")+`<div class="bronrooster">${bronTegels.join("")}</div>`;
   }else{
     h+=`<div class="restated-sub"><span class="rs-label">Je vraag:</span> ${escapeHtml(r.restated_question)} ${badge}</div>`;
@@ -5984,10 +6100,13 @@ function renderResult(turn,r,voorlopig){
     f+=`<div class="answer-actions">`;
     if(hasCites)f+=`<button class="act-btn copy-answer" title="Zet het antwoord, het citaat en de bronlink op het klembord">${ICON_COPY}<span>Kopieer antwoord</span></button>`;
     if(hasCites&&aiKlaar())f+=`<button class="act-btn simpel-answer" title="Herschrijf het antwoord in eenvoudig Nederlands (taalniveau B1)">${ICON_SIMPEL}<span>Simpelere taal</span></button>`;
-    f+=`<span class="spacer"></span><span class="feedback">Klopt dit?<button class="fb-btn fb-up" title="Ja, bruikbaar" aria-label="Goed antwoord">👍</button><button class="fb-btn fb-down" title="Nee, niet goed" aria-label="Niet goed">👎</button></span></div>`;
+    f+=`<span class="spacer"></span>${FEEDBACK_HTML}</div>`;
   }
   h+=`<div class="answer-footer">${f}</div></div>`;
-  const slot=turn.querySelector(".slot");slot.innerHTML=h;
+  // Alleen interne informatie: alleen de oranje bel, mét de duimpjes. Anders de oranje bel
+  // (als die er is) boven het openbare antwoord.
+  const slot=turn.querySelector(".slot");
+  slot.innerHTML=(intern.length?internBelHTML(r,intern,!hasCites):"")+(hasCites||!intern.length?h:"");
   koppelBronkaarten(slot);
   slot.querySelectorAll(".keuze-optie").forEach(b=>{b.onclick=()=>kiesSectie(turn,r,+b.dataset.k);});
   const spBij=sp||(r.stap&&r.stap.sp);
@@ -5999,7 +6118,7 @@ function renderResult(turn,r,voorlopig){
   slot.querySelectorAll(".copy-cite").forEach(b=>b.onclick=e=>{e.stopPropagation();copyText(citaatMetLinks(r.citations[+b.getAttribute("data-ci")]),b);});
   const openCite=el=>{const c=r.citations[+el.getAttribute("data-ci")];if(c)openViewer(c.srcIdx,c.text,c.src&&c.src.url,c.src&&c.src.title);};
   slot.querySelectorAll(".cite-chip").forEach(el=>el.onclick=e=>{e.stopPropagation();openCite(el);});
-  slot.querySelectorAll(".cite-body.clickable-cite, .src-card").forEach(el=>{
+  slot.querySelectorAll(".cite-body.clickable-cite, .src-card:not(.intern-tegel)").forEach(el=>{
     el.onclick=e=>{if(e.target.closest(".copy-cite")||e.target.closest("a"))return;openCite(el);};
     el.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&el.classList.contains("src-card")){e.preventDefault();openCite(el);}};
   });

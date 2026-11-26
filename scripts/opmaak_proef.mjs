@@ -66,7 +66,7 @@ const uitslag = await page.evaluate(gevallen => {
     blok.className = "proefblok";
     blok.innerHTML = `<h3 style="font:600 15px system-ui;color:#154273;margin:18px 0 6px">${naam} — ${url}</h3>`
       + `<div class="turn"><div class="row bot"><div class="bubble antwoord" style="max-width:700px;width:700px">`
-      + `<div class="passage verified"><span class="ans-lab">NWW</span><div class="cite-col">`
+      + `<div class="passage verified"><div class="cite-col">`
       + `<div class="cite-body">${citeBodyHTML(c)}</div>`
       + `<div class="bronvak"><div class="bronkaart" style="position:static;display:block;opacity:1;visibility:visible;margin-top:8px">`
       + `<h4>${(CORPUS[idx].title||"").replace(" | NederlandWereldwijd","")}</h4>`
