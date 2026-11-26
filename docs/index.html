@@ -490,6 +490,16 @@ details.section>summary:hover .label{color:var(--rijk-blauw);}
 .fbp-annuleer{background:none;border:none;color:var(--ink-licht);font-size:.82rem;cursor:pointer;font-family:inherit;text-decoration:underline;}
 .fb-panel.klaar{background:#f7fbf5;border-color:#c5e3b6;}
 .fbp-bedankt{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--groen);font-weight:600;}
+/* Hetzelfde venster in de interne bel: wit, met de oranje accenten van die bel. De knop is
+   donkerder oranje dan de site-kleur, anders is de witte tekst erop niet goed leesbaar. */
+.intern .fb-panel:not(.klaar){background:#fff;border-color:#f2b77f;}
+.intern .fbp-titel{color:#9a4a00;}
+.intern .fbp-tekst{border-color:#f2b77f;}
+.intern .fbp-tekst:focus{border-color:#e17000;box-shadow:0 0 0 3px rgba(225,112,0,.15);}
+.intern .fbp-ok{background:#b85a00;}
+.intern .fbp-ok:hover{background:#9a4a00;}
+.intern .fbp-ok:focus-visible{outline-color:#b85a00;}
+.intern .fbp-annuleer{color:#7a4a1f;}
 /* Toegankelijkheid: zichtbare focus voor toetsenbordnavigatie */
 :focus-visible{outline:2px solid var(--rijk-licht);outline-offset:2px;}
 /* Citaat klikbaar -> bronpagina-paneel */
@@ -2929,7 +2939,7 @@ if(proxyInput){
 }
 fillModels();loadKey();refreshMode();
 // Zichtbaar versielabel: verhoog dit nummer bij elke wijziging om cache te kunnen herkennen.
-const APP_VERSION="build 165";
+const APP_VERSION="build 166";
 {const bs=document.getElementById("buildstatus");if(bs)bs.textContent=APP_VERSION;}
 document.getElementById("fb-export").addEventListener("click",exportFeedback);
 
